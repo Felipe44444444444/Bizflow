@@ -1,0 +1,13 @@
+{
+  "name": "conectachat-widget",
+  "version": "1.0.0",
+  "description": "Embeddable AI chat widget for Conectachat",
+  "scripts": {
+    "build": "npx esbuild src/index.js --bundle --minify --outfile=dist/widget.min.js --format=iife --global-name=ConectachatWidget --legal-comments=none",
+    "build:dev": "npx esbuild src/index.js --bundle --outfile=dist/widget.dev.js --format=iife --global-name=ConectachatWidget --sourcemap",
+    "watch": "npx esbuild src/index.js --bundle --outfile=dist/widget.dev.js --format=iife --global-name=ConectachatWidget --sourcemap --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

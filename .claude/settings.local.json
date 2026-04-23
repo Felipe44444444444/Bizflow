@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__supabase-conectachat__apply_migration",
+      "mcp__supabase-conectachat__list_migrations",
+      "mcp__supabase-conectachat__execute_sql",
+      "Bash(npm audit *)",
+      "Bash(npm uninstall *)",
+      "Bash(npm install *)",
+      "mcp__supabase-conectachat__get_project_url",
+      "mcp__supabase-conectachat__get_publishable_keys",
+      "Bash(node src/index.js)",
+      "Bash(curl -s http://localhost:3000/health)",
+      "Bash(kill %1)",
+      "Bash(npm run *)",
+      "Bash(lsof -ti:3000)",
+      "Bash(xargs kill *)",
+      "Bash(npx create-next-app@14 *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/login)",
+      "Bash(gzip -c ~/conectachat/widget/dist/widget.min.js)",
+      "Bash(awk '{printf \"%.1f KB gzipped\\\\n\", $1/1024}')",
+      "Bash(node *)",
+      "Bash(awk '{ *)",
+      "Bash(sort -k3,3 -k2,2)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'feat: Conectachat SaaS v1.0 - production ready *)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "supabase-conectachat"
+  ]
+}

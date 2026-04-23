@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Conectachat — Automatiza la atención al cliente con inteligencia artificial. Responde al instante en WhatsApp, Instagram, Facebook y tu web.">
+  <title>Conectachat — Atención al cliente con IA</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --p: #6366f1;
+      --p-dark: #4f46e5;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --bg: #f8fafc;
+      --white: #ffffff;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+           background: var(--white); color: var(--ink); line-height: 1.6; }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5%; height: 68px;
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { font-weight: 800; font-size: 20px; color: var(--p); text-decoration: none; }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-links a { text-decoration: none; color: var(--muted); font-size: 14px; font-weight: 500; transition: color .15s; }
+    .nav-links a:hover { color: var(--p); }
+    .nav-cta { background: var(--p); color: #fff !important; padding: 9px 20px;
+               border-radius: 9px; font-weight: 600 !important; transition: background .15s !important; }
+    .nav-cta:hover { background: var(--p-dark) !important; color: #fff !important; }
+    @media (max-width: 640px) { .nav-links a:not(.nav-cta) { display: none; } }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center; padding: 96px 5% 80px;
+      background: linear-gradient(160deg, #f0f0ff 0%, #f8fafc 60%);
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #ede9fe; color: var(--p); padding: 6px 14px;
+      border-radius: 999px; font-size: 13px; font-weight: 600; margin-bottom: 24px;
+    }
+    .hero h1 { font-size: clamp(36px, 6vw, 64px); font-weight: 800; line-height: 1.1;
+               letter-spacing: -0.03em; color: var(--ink); }
+    .hero h1 span { color: var(--p); }
+    .hero p { margin: 20px auto 0; font-size: clamp(16px, 2vw, 20px);
+              color: var(--muted); max-width: 600px; }
+    .hero-cta { margin-top: 40px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--p); color: #fff; border: none; padding: 15px 36px;
+      border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer;
+      text-decoration: none; display: inline-block;
+      box-shadow: 0 4px 20px rgba(99,102,241,.4); transition: transform .15s, box-shadow .15s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(99,102,241,.5); }
+    .btn-outline {
+      background: #fff; color: var(--p); border: 1.5px solid var(--border);
+      padding: 14px 36px; border-radius: 12px; font-size: 16px; font-weight: 600;
+      cursor: pointer; text-decoration: none; display: inline-block; transition: border-color .15s;
+    }
+    .btn-outline:hover { border-color: var(--p); }
+    .hero-sub { margin-top: 24px; font-size: 13px; color: #94a3b8; }
+
+    /* ── Logos ── */
+    .logos { padding: 48px 5% 0; text-align: center; }
+    .logos p { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: #94a3b8; margin-bottom: 24px; font-weight: 600; }
+    .logos-row { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; align-items: center; }
+    .logos-row span { font-size: 18px; font-weight: 800; color: #cbd5e1; letter-spacing: -0.02em; }
+
+    /* ── Section wrapper ── */
+    section { padding: 96px 5%; }
+    .section-label { font-size: 13px; font-weight: 700; text-transform: uppercase;
+                     letter-spacing: .08em; color: var(--p); margin-bottom: 12px; }
+    .section-title { font-size: clamp(28px, 4vw, 42px); font-weight: 800; line-height: 1.15;
+                     letter-spacing: -0.02em; color: var(--ink); margin-bottom: 16px; }
+    .section-sub { font-size: 18px; color: var(--muted); max-width: 560px; }
+    .centered { text-align: center; margin: 0 auto; }
+    .centered .section-sub { margin: 0 auto; }
+
+    /* ── Features ── */
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                     gap: 24px; margin-top: 56px; }
+    .feat-card { background: #fff; border: 1px solid var(--border); border-radius: 20px;
+                 padding: 32px; transition: box-shadow .2s, transform .2s; }
+    .feat-card:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.08); transform: translateY(-4px); }
+    .feat-icon { font-size: 32px; margin-bottom: 16px; }
+    .feat-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .feat-card p { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+    /* ── Channels ── */
+    .channels-section { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color: #fff; }
+    .channels-section .section-title { color: #fff; }
+    .channels-section .section-sub { color: rgba(255,255,255,.7); }
+    .channels-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+                     gap: 16px; margin-top: 56px; }
+    .channel-pill {
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      border-radius: 16px; padding: 24px 16px; text-align: center;
+      transition: background .2s;
+    }
+    .channel-pill:hover { background: rgba(255,255,255,.14); }
+    .channel-pill .ch-icon { font-size: 36px; margin-bottom: 10px; }
+    .channel-pill h4 { font-size: 14px; font-weight: 600; color: #fff; }
+    .channel-pill p { font-size: 12px; color: rgba(255,255,255,.55); margin-top: 4px; }
+
+    /* ── How it works ── */
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+             gap: 32px; margin-top: 56px; }
+    .step { display: flex; gap: 16px; align-items: flex-start; }
+    .step-num { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%;
+                background: var(--p); color: #fff; display: flex; align-items: center;
+                justify-content: center; font-weight: 800; font-size: 16px; }
+    .step-body h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .step-body p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    /* ── Pricing ── */
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                    gap: 24px; margin-top: 56px; max-width: 960px; margin-left: auto; margin-right: auto; }
+    .price-card { background: #fff; border: 1.5px solid var(--border); border-radius: 24px; padding: 36px; }
+    .price-card.featured { border-color: var(--p); box-shadow: 0 0 0 4px rgba(99,102,241,.12); }
+    .price-badge { background: var(--p); color: #fff; font-size: 11px; font-weight: 700;
+                   padding: 4px 10px; border-radius: 999px; display: inline-block; margin-bottom: 16px; }
+    .price-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .price-desc { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+    .price-amount { font-size: 42px; font-weight: 800; color: var(--ink); line-height: 1; }
+    .price-amount span { font-size: 16px; color: var(--muted); font-weight: 400; }
+    .price-amount small { font-size: 14px; color: var(--muted); }
+    .price-features { list-style: none; margin: 24px 0; display: flex; flex-direction: column; gap: 10px; }
+    .price-features li { font-size: 14px; display: flex; gap: 8px; align-items: flex-start; }
+    .price-features li::before { content: '✓'; color: var(--p); font-weight: 700; flex-shrink: 0; }
+    .price-btn { width: 100%; padding: 13px; border-radius: 10px; font-size: 15px; font-weight: 700;
+                 cursor: pointer; text-align: center; text-decoration: none; display: block;
+                 transition: background .15s; }
+    .price-btn-outline { background: #fff; color: var(--p); border: 1.5px solid var(--border); }
+    .price-btn-outline:hover { border-color: var(--p); }
+    .price-btn-solid { background: var(--p); color: #fff; border: none; }
+    .price-btn-solid:hover { background: var(--p-dark); }
+
+    /* ── CTA banner ── */
+    .cta-banner { background: linear-gradient(135deg, var(--p) 0%, #7c3aed 100%); color: #fff;
+                  text-align: center; padding: 96px 5%; }
+    .cta-banner h2 { font-size: clamp(28px, 4vw, 48px); font-weight: 800; line-height: 1.15; margin-bottom: 16px; }
+    .cta-banner p { font-size: 18px; opacity: .85; margin-bottom: 40px; }
+    .btn-white { background: #fff; color: var(--p); border: none; padding: 15px 40px;
+                 border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer;
+                 text-decoration: none; display: inline-block;
+                 box-shadow: 0 4px 20px rgba(0,0,0,.2); transition: transform .15s; }
+    .btn-white:hover { transform: translateY(-2px); }
+
+    /* ── Footer ── */
+    footer { background: #0f172a; color: rgba(255,255,255,.6); padding: 64px 5% 32px; }
+    .footer-grid { display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: 40px; margin-bottom: 48px; }
+    @media (max-width: 768px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .footer-grid { grid-template-columns: 1fr; } }
+    .footer-brand .logo { font-size: 20px; font-weight: 800; color: var(--p); }
+    .footer-brand p { font-size: 13px; margin-top: 10px; max-width: 260px; line-height: 1.7; }
+    .footer-col h4 { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 16px;
+                     text-transform: uppercase; letter-spacing: .06em; }
+    .footer-col a { display: block; font-size: 13px; color: rgba(255,255,255,.55);
+                    text-decoration: none; margin-bottom: 8px; transition: color .15s; }
+    .footer-col a:hover { color: #fff; }
+    .footer-bottom { border-top: 1px solid rgba(255,255,255,.08); padding-top: 24px;
+                     display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+                     font-size: 12px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ────────────────────────────────────────────────────────────────── -->
+<nav>
+  <a class="nav-logo" href="https://conectachat.com">Conectachat</a>
+  <div class="nav-links">
+    <a href="#features">Funciones</a>
+    <a href="#channels">Canales</a>
+    <a href="#pricing">Precios</a>
+    <a href="https://conectachat.com/docs">Docs</a>
+    <a href="https://app.conectachat.com/login">Iniciar sesión</a>
+    <a href="https://app.conectachat.com/register" class="nav-cta">Empezar gratis</a>
+  </div>
+</nav>
+
+<!-- ── Hero ───────────────────────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-badge">🚀 Nuevo — Integración con WhatsApp Business</div>
+  <h1>Atención al cliente<br>con <span>IA en minutos</span></h1>
+  <p>Automatiza el 80% de tus conversaciones con un agente de IA entrenado con el contenido de tu negocio. Sin código.</p>
+  <div class="hero-cta">
+    <a href="https://app.conectachat.com/register" class="btn-primary">Crear cuenta gratis</a>
+    <a href="#how" class="btn-outline">Ver cómo funciona</a>
+  </div>
+  <p class="hero-sub">Sin tarjeta de crédito · 14 días gratis · Configura en 5 minutos</p>
+</div>
+
+<!-- ── Trust logos ─────────────────────────────────────────────────────────── -->
+<div class="logos">
+  <p>Integra con las herramientas que ya usas</p>
+  <div class="logos-row">
+    <span>WhatsApp</span>
+    <span>Instagram</span>
+    <span>Facebook</span>
+    <span>Slack</span>
+    <span>Stripe</span>
+    <span>Supabase</span>
+  </div>
+</div>
+
+<!-- ── Features ───────────────────────────────────────────────────────────── -->
+<section id="features">
+  <div class="centered">
+    <div class="section-label">Funcionalidades</div>
+    <h2 class="section-title">Todo lo que necesitas para escalar<br>tu soporte con IA</h2>
+    <p class="section-sub">Desde el entrenamiento del agente hasta el handoff humano y los analytics, todo en un solo lugar.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon">🧠</div>
+      <h3>Agentes con memoria RAG</h3>
+      <p>Entrena tu agente subiendo PDFs, URLs o texto. Usa búsqueda vectorial para respuestas precisas y contextuales.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⚡</div>
+      <h3>Respuesta instantánea</h3>
+      <p>Latencia &lt;2s gracias a Claude claude-sonnet-4-6 con prompt caching. Tus clientes nunca esperan.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔀</div>
+      <h3>Handoff humano inteligente</h3>
+      <p>El agente detecta cuándo escalar a un humano. El equipo recibe la conversación completa sin fricciones.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <h3>Analytics en tiempo real</h3>
+      <p>Mide conversaciones, tokens consumidos, tasa de resolución y más desde un dashboard moderno.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔒</div>
+      <h3>Seguridad enterprise</h3>
+      <p>HMAC en todos los webhooks, RLS en Supabase, claves API con hash SHA-256. Tus datos protegidos.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🌐</div>
+      <h3>Widget embebible</h3>
+      <p>Añade chat a cualquier sitio con una línea de código. Solo 5 KB gzipped, sin dependencias.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Channels ────────────────────────────────────────────────────────────── -->
+<section id="channels" class="channels-section">
+  <div class="centered">
+    <div class="section-label" style="color:rgba(255,255,255,.6)">Multicanal</div>
+    <h2 class="section-title">Un agente,<br>todos tus canales</h2>
+    <p class="section-sub">Conecta en minutos. Tu agente aprende una vez y responde en todos lados.</p>
+  </div>
+  <div class="channels-grid">
+    <div class="channel-pill"><div class="ch-icon">💬</div><h4>WhatsApp</h4><p>Business API</p></div>
+    <div class="channel-pill"><div class="ch-icon">📸</div><h4>Instagram</h4><p>DMs & Mentions</p></div>
+    <div class="channel-pill"><div class="ch-icon">👍</div><h4>Facebook</h4><p>Messenger</p></div>
+    <div class="channel-pill"><div class="ch-icon">#</div><h4>Slack</h4><p>App mentions & DMs</p></div>
+    <div class="channel-pill"><div class="ch-icon">🌐</div><h4>Web Widget</h4><p>Cualquier sitio</p></div>
+    <div class="channel-pill"><div class="ch-icon">🔌</div><h4>API REST</h4><p>Integración custom</p></div>
+  </div>
+</section>
+
+<!-- ── How it works ────────────────────────────────────────────────────────── -->
+<section id="how" style="background: var(--bg)">
+  <div class="centered">
+    <div class="section-label">Cómo funciona</div>
+    <h2 class="section-title">De cero a IA en 5 minutos</h2>
+    <p class="section-sub">Sin configuraciones complejas. Sin código. Solo carga tu contenido y conecta tus canales.</p>
+  </div>
+  <div class="steps" style="max-width:900px; margin: 56px auto 0">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Crea tu agente</h3>
+        <p>Define el nombre, tono de voz y personalidad. El agente se adapta a tu marca en segundos.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>Sube tu contenido</h3>
+        <p>PDFs, URLs, texto libre. El sistema indexa automáticamente y construye la base de conocimiento.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Conecta tus canales</h3>
+        <p>WhatsApp, Instagram, web widget. Cada canal se conecta con un clic desde el dashboard.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>Empieza a responder</h3>
+        <p>Tu agente responde 24/7. Tú ves las conversaciones en tiempo real y puedes tomar el control cuando quieras.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Pricing ─────────────────────────────────────────────────────────────── -->
+<section id="pricing">
+  <div class="centered">
+    <div class="section-label">Precios</div>
+    <h2 class="section-title">Simple y predecible</h2>
+    <p class="section-sub">Sin sorpresas. Cancela cuando quieras.</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-name">Starter</div>
+      <div class="price-desc">Para equipos pequeños que empiezan con IA</div>
+      <div class="price-amount">$29<span>/mes</span></div>
+      <ul class="price-features">
+        <li>1 agente IA</li>
+        <li>3 canales conectados</li>
+        <li>500 conversaciones/mes</li>
+        <li>5 documentos de conocimiento</li>
+        <li>Analytics básicos</li>
+        <li>Soporte por email</li>
+      </ul>
+      <a href="https://app.conectachat.com/register?plan=starter" class="price-btn price-btn-outline">Empezar gratis</a>
+    </div>
+    <div class="price-card featured">
+      <div class="price-badge">Más popular</div>
+      <div class="price-name">Pro</div>
+      <div class="price-desc">Para negocios en crecimiento</div>
+      <div class="price-amount">$79<span>/mes</span></div>
+      <ul class="price-features">
+        <li>5 agentes IA</li>
+        <li>Todos los canales</li>
+        <li>5,000 conversaciones/mes</li>
+        <li>Documentos ilimitados</li>
+        <li>Analytics avanzados</li>
+        <li>Handoff humano</li>
+        <li>Soporte prioritario</li>
+      </ul>
+      <a href="https://app.conectachat.com/register?plan=pro" class="price-btn price-btn-solid">Empezar gratis</a>
+    </div>
+    <div class="price-card">
+      <div class="price-name">Enterprise</div>
+      <div class="price-desc">Para operaciones a gran escala</div>
+      <div class="price-amount">Custom<small></small></div>
+      <ul class="price-features">
+        <li>Agentes ilimitados</li>
+        <li>Volumen personalizado</li>
+        <li>SLA garantizado</li>
+        <li>Onboarding dedicado</li>
+        <li>Integraciones custom</li>
+        <li>Facturación anual</li>
+      </ul>
+      <a href="mailto:hola@conectachat.com" class="price-btn price-btn-outline">Contactar ventas</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ─────────────────────────────────────────────────────────────────── -->
+<div class="cta-banner">
+  <h2>¿Listo para automatizar<br>tu atención al cliente?</h2>
+  <p>Únete a cientos de negocios que ya responden 24/7 con IA.</p>
+  <a href="https://app.conectachat.com/register" class="btn-white">Crear cuenta gratis →</a>
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="logo">Conectachat</div>
+      <p>La plataforma de atención al cliente con IA más fácil de configurar. Responde al instante en todos tus canales.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Producto</h4>
+      <a href="#features">Funciones</a>
+      <a href="#channels">Canales</a>
+      <a href="#pricing">Precios</a>
+      <a href="https://conectachat.com/changelog">Novedades</a>
+    </div>
+    <div class="footer-col">
+      <h4>Recursos</h4>
+      <a href="https://conectachat.com/docs">Documentación</a>
+      <a href="https://conectachat.com/docs/widget">Widget</a>
+      <a href="https://conectachat.com/docs/api">API Reference</a>
+      <a href="https://status.conectachat.com">Estado del sistema</a>
+    </div>
+    <div class="footer-col">
+      <h4>Empresa</h4>
+      <a href="https://conectachat.com/about">Nosotros</a>
+      <a href="https://conectachat.com/blog">Blog</a>
+      <a href="https://conectachat.com/privacy">Privacidad</a>
+      <a href="https://conectachat.com/terms">Términos</a>
+      <a href="mailto:hola@conectachat.com">Contacto</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Conectachat. Todos los derechos reservados.</span>
+    <span>Hecho con ☕ y mucha IA</span>
+  </div>
+</footer>
+
+</body>
+</html>

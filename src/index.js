@@ -1,20 +1,15 @@
 require('dotenv').config();
 
 const express = require('express');
-const helmet = require('helmet');
-const cors = require('cors');
-const { standardLimiter } = require('./middleware/rateLimit');
-
-const agentsRouter        = require('./routes/agents');
-const channelsRouter      = require('./routes/channels');
-const conversationsRouter = require('./routes/conversations');
-const messagesRouter      = require('./routes/messages');
-const documentsRouter     = require('./routes/documents');
-const apiKeysRouter       = require('./routes/apiKeys');
-const webhooksRouter      = require('./routes/webhooks');
-const billingRouter       = require('./routes/billing');
+const helmet  = require('helmet');
+const cors    = require('cors');
 
 const app = express();
+
+// ── Health check — registered first, no middleware, no DB ─────────────────────
+app.get('/health', (_, res) =>
+  res.json({ status: 'ok', version: '1.0.0', timestamp: new Date().toISOString() })
+);
 
 // ── Security middleware ───────────────────────────────────────────────────────
 app.use(helmet());
@@ -40,7 +35,7 @@ app.use((req, res, next) => {
   req.on('data', chunk => chunks.push(chunk));
   req.on('end', () => {
     req.rawBody = Buffer.concat(chunks);
-    if (req.path === '/api/billing/webhook') return next(); // Stripe reads rawBody directly
+    if (req.path === '/api/billing/webhook') return next();
     try { req.body = JSON.parse(req.rawBody.toString()); } catch { req.body = {}; }
     next();
   });
@@ -48,21 +43,18 @@ app.use((req, res, next) => {
 
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ── Global rate limit ─────────────────────────────────────────────────────────
+// ── Routes (loaded lazily so startup errors don't kill health check) ──────────
+const { standardLimiter } = require('./middleware/rateLimit');
 app.use('/api', standardLimiter);
 
-// ── Health check ──────────────────────────────────────────────────────────────
-app.get('/health', (_, res) => res.json({ status: 'ok', version: '1.0.0', timestamp: new Date().toISOString() }));
-
-// ── Routes ────────────────────────────────────────────────────────────────────
-app.use('/api/agents',        agentsRouter);
-app.use('/api/channels',      channelsRouter);
-app.use('/api/conversations', conversationsRouter);
-app.use('/api/messages',      messagesRouter);
-app.use('/api/documents',     documentsRouter);
-app.use('/api/api-keys',      apiKeysRouter);
-app.use('/api/webhooks',      webhooksRouter);
-app.use('/api/billing',       billingRouter);
+app.use('/api/agents',        require('./routes/agents'));
+app.use('/api/channels',      require('./routes/channels'));
+app.use('/api/conversations', require('./routes/conversations'));
+app.use('/api/messages',      require('./routes/messages'));
+app.use('/api/documents',     require('./routes/documents'));
+app.use('/api/api-keys',      require('./routes/apiKeys'));
+app.use('/api/webhooks',      require('./routes/webhooks'));
+app.use('/api/billing',       require('./routes/billing'));
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
@@ -78,9 +70,9 @@ app.use((err, req, res, _next) => {
   });
 });
 
-// ── Start ─────────────────────────────────────────────────────────────────────
+// ── Start — bind to 0.0.0.0 so Railway's proxy can reach the container ───────
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Conectachat backend running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
 });
 

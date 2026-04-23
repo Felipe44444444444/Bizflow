@@ -2,7 +2,13 @@ const OpenAI = require('openai');
 const { supabaseAdmin } = require('../config/supabase');
 const { chunkText, extractText } = require('../utils/chunker');
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Guard: OpenAI constructor may throw on invalid/missing key
+let openai;
+try {
+  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'placeholder' });
+} catch {
+  openai = null;
+}
 
 const EMBEDDING_MODEL = 'text-embedding-3-small';
 

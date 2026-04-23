@@ -2,7 +2,14 @@ const Stripe = require('stripe');
 const { supabaseAdmin } = require('../config/supabase');
 require('dotenv').config();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Guard: Stripe constructor throws if key is missing/invalid
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
+
+function requireStripe() {
+  if (!stripe) throw new Error('Stripe is not configured. Set STRIPE_SECRET_KEY.');
+}
 
 const PLAN_PRICES = {
   starter: process.env.STRIPE_PRICE_STARTER,
@@ -11,6 +18,7 @@ const PLAN_PRICES = {
 };
 
 async function createCheckoutSession({ organizationId, plan, userId, email }) {
+  requireStripe();
   if (!PLAN_PRICES[plan]) throw new Error(`Invalid plan: ${plan}`);
 
   const { data: sub } = await supabaseAdmin
@@ -45,6 +53,7 @@ async function createCheckoutSession({ organizationId, plan, userId, email }) {
 }
 
 async function createPortalSession(organizationId) {
+  requireStripe();
   const { data: sub } = await supabaseAdmin
     .from('subscriptions')
     .select('stripe_customer_id')
@@ -64,6 +73,7 @@ async function createPortalSession(organizationId) {
 }
 
 async function handleWebhook(rawBody, signature) {
+  requireStripe();
   let event;
   try {
     event = stripe.webhooks.constructEvent(

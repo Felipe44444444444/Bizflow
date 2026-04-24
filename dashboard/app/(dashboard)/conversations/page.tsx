@@ -102,7 +102,7 @@ export default function ConversationsPage() {
             return (
               <div
                 key={conv.id}
-                onClick={() => router.push(`/dashboard/conversations/${conv.id}`)}
+                onClick={() => router.push(`/conversations/${conv.id}`)}
                 className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/30 hover:bg-accent/30 cursor-pointer transition-all group"
               >
                 <div className="relative">

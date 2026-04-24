@@ -21,6 +21,7 @@ export default function AgentsPage() {
   const [orgId, setOrgId] = useState("");
   const [token, setToken] = useState("");
   const [form, setForm] = useState({ name: "", language: "es", tone: "professional" });
+  const [error, setError] = useState("");
   const router = useRouter();
   const supabase = createClient();
 
@@ -49,11 +50,17 @@ export default function AgentsPage() {
 
   async function createAgent() {
     setSaving(true);
-    const agent = await api.post("/api/agents", form, token, orgId);
-    setAgents((prev) => [agent, ...prev]);
-    setOpen(false);
-    setForm({ name: "", language: "es", tone: "professional" });
-    setSaving(false);
+    setError("");
+    try {
+      const agent = await api.post("/api/agents", form, token, orgId);
+      setAgents((prev) => [agent, ...prev]);
+      setOpen(false);
+      setForm({ name: "", language: "es", tone: "professional" });
+    } catch (e: any) {
+      setError(e.message ?? "Error al crear el agente");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -89,7 +96,7 @@ export default function AgentsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {agents.map((agent) => (
-              <Card key={agent.id} className="group hover:border-primary/30 transition-all cursor-pointer" onClick={() => router.push(`/dashboard/agents/${agent.id}`)}>
+              <Card key={agent.id} className="group hover:border-primary/30 transition-all cursor-pointer" onClick={() => router.push(`/agents/${agent.id}`)}>
                 <CardContent className="p-6 space-y-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -160,6 +167,7 @@ export default function AgentsPage() {
               </Select>
             </div>
           </div>
+          {error && <p className="text-xs text-destructive">{error}</p>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={createAgent} disabled={!form.name || saving}>

@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
   const [mode, setMode] = useState<"login" | "signup">("login");
+  const [success, setSuccess] = useState("");
   const router = useRouter();
   const supabase = createClient();
 
@@ -23,20 +24,30 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
 
-    const { error } =
-      mode === "login"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
-
-    if (error) {
-      setError(error.message);
+    try {
+      if (mode === "login") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) { setError(error.message); return; }
+        router.push("/dashboard");
+        router.refresh();
+      } else {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) { setError(error.message); return; }
+        // If email confirmation is required, show message instead of redirecting
+        if (data.session) {
+          router.push("/dashboard");
+          router.refresh();
+        } else {
+          setSuccess("¡Cuenta creada! Revisa tu email para confirmar tu registro y luego inicia sesión.");
+        }
+      }
+    } catch {
+      setError("Error inesperado. Intenta de nuevo.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   async function handleGoogle() {
@@ -133,6 +144,11 @@ export default function LoginPage() {
             {error && (
               <p className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg p-3">
                 {error}
+              </p>
+            )}
+            {success && (
+              <p className="text-xs text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded-lg p-3">
+                {success}
               </p>
             )}
 

@@ -11,11 +11,11 @@ import { useRouter } from "next/navigation";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/agents", label: "Agentes", icon: Bot },
-  { href: "/dashboard/conversations", label: "Conversaciones", icon: MessageSquare },
-  { href: "/dashboard/leads", label: "Leads", icon: Users },
-  { href: "/dashboard/api-keys", label: "API Keys", icon: Key },
-  { href: "/dashboard/settings", label: "Configuración", icon: Settings },
+  { href: "/agents", label: "Agentes", icon: Bot },
+  { href: "/conversations", label: "Conversaciones", icon: MessageSquare },
+  { href: "/leads", label: "Leads", icon: Users },
+  { href: "/api-keys", label: "API Keys", icon: Key },
+  { href: "/settings", label: "Configuración", icon: Settings },
 ];
 
 export function Sidebar() {

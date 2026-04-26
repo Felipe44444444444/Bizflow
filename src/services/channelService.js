@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-async function sendMessage(channel, recipientId, text) {
+async function sendMessage(channel, recipientId, text, options = {}) {
   switch (channel.type) {
     case 'whatsapp':
       return sendWhatsApp(channel, recipientId, text);
@@ -8,7 +8,7 @@ async function sendMessage(channel, recipientId, text) {
     case 'facebook':
       return sendMetaMessenger(channel, recipientId, text);
     case 'slack':
-      return sendSlack(channel, recipientId, text);
+      return sendSlack(channel, recipientId, text, options);
     case 'web_widget':
     case 'landing_page':
     case 'api':
@@ -111,9 +111,12 @@ function splitText(text, maxLen) {
   return chunks.filter(Boolean);
 }
 
-async function sendSlack(channel, channelId, text) {
+async function sendSlack(channel, channelId, text, options = {}) {
   const token = channel.config?.bot_token;
   if (!token) throw new Error('Missing Slack bot token in channel config');
+
+  const body = { channel: channelId, text };
+  if (options.thread_ts) body.thread_ts = options.thread_ts;
 
   const res = await fetch('https://slack.com/api/chat.postMessage', {
     method: 'POST',
@@ -121,7 +124,7 @@ async function sendSlack(channel, channelId, text) {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ channel: channelId, text }),
+    body: JSON.stringify(body),
   });
 
   const data = await res.json();

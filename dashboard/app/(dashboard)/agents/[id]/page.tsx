@@ -76,7 +76,7 @@ function AgentDetailInner() {
   const [slackDisconnecting, setSlackDisconnecting] = useState(false);
 
   // ── Facebook state ────────────────────────────────────────────────────────────
-  const [fbStatus, setFbStatus] = useState<{ connected: boolean; page_name: string | null; ig_account_id: string | null } | null>(null);
+  const [fbStatus, setFbStatus] = useState<{ connected: boolean; page_name: string | null; available_pages: { id: string; name: string }[] } | null>(null);
   const [fbConnecting, setFbConnecting] = useState(false);
   const [fbDisconnecting, setFbDisconnecting] = useState(false);
 
@@ -266,7 +266,7 @@ function AgentDetailInner() {
     setFbDisconnecting(true);
     try {
       await api.del(`/api/integrations/facebook?agent_id=${id}`, orgId);
-      setFbStatus({ connected: false, page_name: null, ig_account_id: null });
+      setFbStatus({ connected: false, page_name: null, available_pages: [] });
       showToast('Facebook desconectado', true);
     } catch (e: any) {
       showToast(e.message ?? 'Error al desconectar', false);

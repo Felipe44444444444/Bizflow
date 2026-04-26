@@ -6,6 +6,18 @@ const MODEL = 'claude-sonnet-4-6';
 const MAX_HISTORY = 20;
 const MAX_TOKENS = 1024;
 
+async function deductCredit(organizationId) {
+  await Promise.all([
+    supabaseAdmin.rpc('decrement_credits', { p_org_id: organizationId }),
+    supabaseAdmin.from('credit_transactions').insert({
+      organization_id: organizationId,
+      amount: -1,
+      type: 'message',
+      description: 'Mensaje procesado por agente IA',
+    }),
+  ]);
+}
+
 async function processMessage({ agentId, conversationId, userMessage, organizationId, role = 'user' }) {
   const { data: agent, error: agentErr } = await supabaseAdmin
     .from('agents')
@@ -15,6 +27,19 @@ async function processMessage({ agentId, conversationId, userMessage, organizati
 
   if (agentErr || !agent) throw new Error('Agent not found');
   if (!agent.is_active) throw new Error('Agent is not active');
+
+  // Check credits before calling Claude
+  const { data: org } = await supabaseAdmin
+    .from('organizations')
+    .select('credits_balance, credits_used')
+    .eq('id', organizationId)
+    .single();
+
+  if (org && org.credits_balance < 1) {
+    const err = new Error('Sin créditos disponibles. Recarga tu cuenta en Ajustes → Créditos.');
+    err.status = 402;
+    throw err;
+  }
 
   await supabaseAdmin.from('messages').insert({
     conversation_id: conversationId,
@@ -36,7 +61,7 @@ async function processMessage({ agentId, conversationId, userMessage, organizati
 
   let ragContext = '';
   try {
-    const chunks = await ragService.searchChunks(agentId, userMessage);
+    const chunks = await ragService.searchChunks(agentId, userMessage, 5, 0.45);
     if (chunks.length > 0) {
       ragContext =
         '\n\n## Información relevante de la base de conocimiento:\n' +
@@ -52,18 +77,23 @@ async function processMessage({ agentId, conversationId, userMessage, organizati
   };
 
   const handoffInstruction = agent.handoff_enabled
-    ? '\nSi el usuario solicita hablar con un humano, o si el problema supera tus capacidades, incluye exactamente [HANDOFF_REQUESTED] al final de tu respuesta.'
+    ? 'Si el usuario solicita hablar con un humano, o si el problema supera tus capacidades, incluye exactamente [HANDOFF_REQUESTED] al final de tu respuesta.'
     : '';
 
+  const identity = agent.company_name
+    ? `Eres ${agent.name}, asistente virtual de ${agent.company_name}.`
+    : `Eres ${agent.name}, un asistente de atención al cliente.`;
+
   const systemText = [
-    agent.system_prompt || 'Eres un asistente de atención al cliente útil y preciso.',
-    `\nIdioma de respuesta: ${agent.language || 'es'}.`,
-    toneInstructions[agent.tone] ? `\n${toneInstructions[agent.tone]}` : '',
+    identity,
+    agent.system_prompt || null,
+    `Idioma de respuesta: ${agent.language || 'es'}.`,
+    toneInstructions[agent.tone] || null,
     ragContext,
     handoffInstruction,
   ]
     .filter(Boolean)
-    .join('');
+    .join('\n');
 
   const claudeMessages = (history || [])
     .filter((m) => m.role === 'user' || m.role === 'assistant')
@@ -72,13 +102,7 @@ async function processMessage({ agentId, conversationId, userMessage, organizati
   const response = await anthropic.messages.create({
     model: MODEL,
     max_tokens: MAX_TOKENS,
-    system: [
-      {
-        type: 'text',
-        text: systemText,
-        cache_control: { type: 'ephemeral' },
-      },
-    ],
+    system: [{ type: 'text', text: systemText, cache_control: { type: 'ephemeral' } }],
     messages: claudeMessages,
   });
 
@@ -97,11 +121,7 @@ async function processMessage({ agentId, conversationId, userMessage, organizati
     role: 'assistant',
     content: assistantContent,
     tokens_used: tokensUsed,
-    metadata: {
-      model: response.model,
-      stop_reason: response.stop_reason,
-      cache_hit: cacheHit,
-    },
+    metadata: { model: response.model, stop_reason: response.stop_reason, cache_hit: cacheHit },
   });
 
   if (handoffRequested) {
@@ -111,15 +131,13 @@ async function processMessage({ agentId, conversationId, userMessage, organizati
       .eq('id', conversationId);
   }
 
-  incrementUsageMetrics(organizationId, tokensUsed).catch(() => {});
+  // Deduct credit and update usage metrics (fire and forget — don't fail the response)
+  Promise.all([
+    deductCredit(organizationId),
+    incrementUsageMetrics(organizationId, tokensUsed),
+  ]).catch(console.error);
 
-  return {
-    message: assistantContent,
-    handoffRequested,
-    tokensUsed,
-    cacheHit,
-    conversationId,
-  };
+  return { message: assistantContent, handoffRequested, tokensUsed, cacheHit, conversationId };
 }
 
 async function findOrCreateConversation({ agentId, channelId, organizationId, externalId, contactName, contactEmail, contactPhone }) {
@@ -193,4 +211,60 @@ async function incrementUsageMetrics(organizationId, tokensUsed) {
   }
 }
 
-module.exports = { processMessage, findOrCreateConversation };
+async function previewMessage({ agent, message, conversationHistory = [] }) {
+  const toneInstructions = {
+    professional: 'Mantén un tono profesional y directo.',
+    friendly: 'Sé amigable, cálido y accesible.',
+    formal: 'Usa un lenguaje formal y respetuoso.',
+    casual: 'Habla de manera casual y relajada.',
+  };
+
+  let ragContext = '';
+  let chunksUsed = [];
+  try {
+    const chunks = await ragService.searchChunks(agent.id, message, 3, 0.45);
+    chunksUsed = chunks;
+    if (chunks.length > 0) {
+      ragContext = '\n\n## Información de la base de conocimiento:\n' +
+        chunks.map((c, i) => `[${i + 1}] ${c.content}`).join('\n\n');
+    }
+  } catch (_) {}
+
+  const identity = agent.company_name
+    ? `Eres ${agent.name}, asistente virtual de ${agent.company_name}.`
+    : `Eres ${agent.name}, un asistente de atención al cliente.`;
+
+  const systemText = [
+    identity,
+    agent.system_prompt || null,
+    `Idioma: ${agent.language || 'es'}.`,
+    toneInstructions[agent.tone] || null,
+    ragContext,
+  ].filter(Boolean).join('\n');
+
+  const claudeMessages = [
+    ...conversationHistory.slice(-8),
+    { role: 'user', content: message },
+  ];
+
+  const response = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: MAX_TOKENS,
+    system: [{ type: 'text', text: systemText }],
+    messages: claudeMessages,
+  });
+
+  const tokensUsed = response.usage.input_tokens + response.usage.output_tokens;
+
+  return {
+    message: response.content[0].text,
+    chunksUsed: chunksUsed.map((c) => ({
+      content: c.content.length > 250 ? c.content.slice(0, 250) + '…' : c.content,
+      similarity: Math.round((c.similarity || 0) * 100) / 100,
+      source: c.metadata?.source,
+    })),
+    tokensUsed,
+  };
+}
+
+module.exports = { processMessage, findOrCreateConversation, previewMessage };

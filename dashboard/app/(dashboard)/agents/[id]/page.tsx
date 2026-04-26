@@ -74,6 +74,21 @@ function AgentDetailInner() {
   const [slackStatus, setSlackStatus] = useState<{ connected: boolean; team_name: string | null } | null>(null);
   const [slackConnecting, setSlackConnecting] = useState(false);
   const [slackDisconnecting, setSlackDisconnecting] = useState(false);
+
+  // ── Facebook state ────────────────────────────────────────────────────────────
+  const [fbStatus, setFbStatus] = useState<{ connected: boolean; page_name: string | null; ig_account_id: string | null } | null>(null);
+  const [fbConnecting, setFbConnecting] = useState(false);
+  const [fbDisconnecting, setFbDisconnecting] = useState(false);
+
+  // ── Instagram state ───────────────────────────────────────────────────────────
+  const [igConnecting, setIgConnecting] = useState(false);
+  const [igDisconnecting, setIgDisconnecting] = useState(false);
+
+  // ── WhatsApp state ────────────────────────────────────────────────────────────
+  const [waStatus, setWaStatus] = useState<{ connected: boolean; display_phone: string | null } | null>(null);
+  const [waConnecting, setWaConnecting] = useState(false);
+  const [waDisconnecting, setWaDisconnecting] = useState(false);
+
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   // ── Leads & retargeting state ─────────────────────────────────────────────────
@@ -130,21 +145,65 @@ function AgentDetailInner() {
       }
       setStats({ conversations: convs ?? 0, messages: msgCount, tokens: tokenTotal, leads: leads ?? 0 });
 
-      // Load Slack status for this agent
-      api.get(`/api/integrations/slack/status?agent_id=${id}`, m.organization_id)
-        .then((d: any) => setSlackStatus(d))
-        .catch(() => setSlackStatus({ connected: false, team_name: null }));
+      // Load integration statuses in parallel
+      Promise.all([
+        api.get(`/api/integrations/slack/status?agent_id=${id}`, m.organization_id),
+        api.get(`/api/integrations/facebook/status?agent_id=${id}`, m.organization_id),
+        api.get(`/api/integrations/instagram/status?agent_id=${id}`, m.organization_id),
+        api.get(`/api/integrations/whatsapp/status?agent_id=${id}`, m.organization_id),
+      ]).then(([slk, fb, ig, wa]: any[]) => {
+        setSlackStatus(slk);
+        setFbStatus(fb);
+        // ig status: use ig_account_id presence; merge into fbStatus for display
+        if (ig?.ig_account_id) setFbStatus((prev: any) => prev ? { ...prev, ig_account_id: ig.ig_account_id } : fb);
+        setWaStatus(wa);
+      }).catch(() => {
+        setSlackStatus({ connected: false, team_name: null });
+        setFbStatus({ connected: false, page_name: null, ig_account_id: null });
+        setWaStatus({ connected: false, display_phone: null });
+      });
 
-      // Handle Slack OAuth callback query params
-      const slackParam = searchParams.get('slack');
-      const slackErrParam = searchParams.get('slack_error');
+      // Handle OAuth callback params
+      const slackParam   = searchParams.get('slack');
+      const slackErr     = searchParams.get('slack_error');
+      const fbParam      = searchParams.get('fb');
+      const fbErr        = searchParams.get('fb_error');
+      const igParam      = searchParams.get('ig');
+      const igErr        = searchParams.get('ig_error');
+      const waParam      = searchParams.get('wa');
+      const waErr        = searchParams.get('wa_error');
+
       if (slackParam === 'connected') {
         showToast('¡Slack conectado exitosamente!', true);
         router.replace(`/agents/${id}?tab=canales`);
         api.get(`/api/integrations/slack/status?agent_id=${id}`, m.organization_id)
           .then((d: any) => setSlackStatus(d)).catch(() => {});
-      } else if (slackErrParam) {
-        showToast(`Error al conectar Slack: ${slackErrParam}`, false);
+      } else if (slackErr) {
+        showToast(`Error al conectar Slack: ${slackErr}`, false);
+        router.replace(`/agents/${id}?tab=canales`);
+      } else if (fbParam === 'connected') {
+        showToast('¡Facebook conectado exitosamente!', true);
+        router.replace(`/agents/${id}?tab=canales`);
+        api.get(`/api/integrations/facebook/status?agent_id=${id}`, m.organization_id)
+          .then((d: any) => setFbStatus(d)).catch(() => {});
+      } else if (fbErr) {
+        showToast(`Error al conectar Facebook: ${fbErr}`, false);
+        router.replace(`/agents/${id}?tab=canales`);
+      } else if (igParam === 'connected') {
+        showToast('¡Instagram conectado exitosamente!', true);
+        router.replace(`/agents/${id}?tab=canales`);
+        api.get(`/api/integrations/facebook/status?agent_id=${id}`, m.organization_id)
+          .then((d: any) => setFbStatus(d)).catch(() => {});
+      } else if (igErr) {
+        showToast(`Error al conectar Instagram: ${igErr}`, false);
+        router.replace(`/agents/${id}?tab=canales`);
+      } else if (waParam === 'connected') {
+        showToast('¡WhatsApp conectado exitosamente!', true);
+        router.replace(`/agents/${id}?tab=canales`);
+        api.get(`/api/integrations/whatsapp/status?agent_id=${id}`, m.organization_id)
+          .then((d: any) => setWaStatus(d)).catch(() => {});
+      } else if (waErr) {
+        showToast(`Error al conectar WhatsApp: ${waErr}`, false);
         router.replace(`/agents/${id}?tab=canales`);
       }
     }
@@ -179,6 +238,81 @@ function AgentDetailInner() {
       showToast(e.message ?? 'Error al desconectar', false);
     } finally {
       setSlackDisconnecting(false);
+    }
+  }
+
+  // ── Facebook OAuth ────────────────────────────────────────────────────────────
+  async function connectFacebook() {
+    setFbConnecting(true);
+    try {
+      const { url } = await api.get(`/api/integrations/facebook/connect?agent_id=${id}`, orgId);
+      window.location.href = url;
+    } catch (e: any) {
+      showToast(e.message ?? 'No se pudo iniciar la conexión con Facebook', false);
+      setFbConnecting(false);
+    }
+  }
+
+  async function disconnectFacebook() {
+    setFbDisconnecting(true);
+    try {
+      await api.del(`/api/integrations/facebook?agent_id=${id}`, orgId);
+      setFbStatus({ connected: false, page_name: null, ig_account_id: null });
+      showToast('Facebook desconectado', true);
+    } catch (e: any) {
+      showToast(e.message ?? 'Error al desconectar', false);
+    } finally {
+      setFbDisconnecting(false);
+    }
+  }
+
+  // ── Instagram OAuth ───────────────────────────────────────────────────────────
+  async function connectInstagram() {
+    setIgConnecting(true);
+    try {
+      const { url } = await api.get(`/api/integrations/instagram/connect?agent_id=${id}`, orgId);
+      window.location.href = url;
+    } catch (e: any) {
+      showToast(e.message ?? 'No se pudo iniciar la conexión con Instagram', false);
+      setIgConnecting(false);
+    }
+  }
+
+  async function disconnectInstagram() {
+    setIgDisconnecting(true);
+    try {
+      await api.del(`/api/integrations/instagram?agent_id=${id}`, orgId);
+      setFbStatus((prev: any) => prev ? { ...prev, ig_account_id: null } : prev);
+      showToast('Instagram desconectado', true);
+    } catch (e: any) {
+      showToast(e.message ?? 'Error al desconectar', false);
+    } finally {
+      setIgDisconnecting(false);
+    }
+  }
+
+  // ── WhatsApp OAuth ────────────────────────────────────────────────────────────
+  async function connectWhatsApp() {
+    setWaConnecting(true);
+    try {
+      const { url } = await api.get(`/api/integrations/whatsapp/connect?agent_id=${id}`, orgId);
+      window.location.href = url;
+    } catch (e: any) {
+      showToast(e.message ?? 'No se pudo iniciar la conexión con WhatsApp', false);
+      setWaConnecting(false);
+    }
+  }
+
+  async function disconnectWhatsApp() {
+    setWaDisconnecting(true);
+    try {
+      await api.del(`/api/integrations/whatsapp?agent_id=${id}`, orgId);
+      setWaStatus({ connected: false, display_phone: null });
+      showToast('WhatsApp desconectado', true);
+    } catch (e: any) {
+      showToast(e.message ?? 'Error al desconectar', false);
+    } finally {
+      setWaDisconnecting(false);
     }
   }
 
@@ -778,7 +912,7 @@ function AgentDetailInner() {
           {/* ═══════════════ TAB 3 — CANALES ═══════════════ */}
           <TabsContent value="canales" className="space-y-4">
 
-            {/* Main channels grid */}
+            {/* Row 1 — Widget · Slack · Facebook */}
             <div className="grid md:grid-cols-3 gap-4">
 
               {/* ── Widget Web ── */}
@@ -786,9 +920,7 @@ function AgentDetailInner() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center justify-between">
                     <span>🌐 Widget Web</span>
-                    {widgetChannel
-                      ? <Badge variant="success">Activo</Badge>
-                      : <Badge variant="secondary">Inactivo</Badge>}
+                    {widgetChannel ? <Badge variant="success">Activo</Badge> : <Badge variant="secondary">Inactivo</Badge>}
                   </CardTitle>
                   <CardDescription className="text-xs">Chat en tu sitio web</CardDescription>
                 </CardHeader>
@@ -816,10 +948,7 @@ function AgentDetailInner() {
                         </pre>
                         <Button
                           variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6"
-                          onClick={() => copyText(
-                            `<script src="${WIDGET_SRC}" data-agent-id="${id}" data-api-key="${displayKey}" async></script>`,
-                            "widget"
-                          )}
+                          onClick={() => copyText(`<script src="${WIDGET_SRC}" data-agent-id="${id}" data-api-key="${displayKey}" async></script>`, "widget")}
                         >
                           {copied === "widget" ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
                         </Button>
@@ -833,10 +962,7 @@ function AgentDetailInner() {
               <Card className={cn(slackStatus?.connected ? "border-emerald-500/30 bg-emerald-500/5" : "")}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <SlackLogo />
-                      Slack
-                    </span>
+                    <span className="flex items-center gap-2"><SlackLogo />Slack</span>
                     {slackStatus?.connected && <Badge variant="success">Conectado</Badge>}
                   </CardTitle>
                   <CardDescription className="text-xs">Responde en canales y DMs de Slack</CardDescription>
@@ -850,15 +976,8 @@ function AgentDetailInner() {
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                         {slackStatus.team_name}
                       </p>
-                      <Button
-                        variant="ghost" size="sm"
-                        className="w-full text-xs text-destructive hover:text-destructive h-7 px-2"
-                        onClick={disconnectSlack}
-                        disabled={slackDisconnecting}
-                      >
-                        {slackDisconnecting
-                          ? <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                          : <X className="h-3 w-3 mr-1" />}
+                      <Button variant="ghost" size="sm" className="w-full text-xs text-destructive hover:text-destructive h-7 px-2" onClick={disconnectSlack} disabled={slackDisconnecting}>
+                        {slackDisconnecting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <X className="h-3 w-3 mr-1" />}
                         Desconectar
                       </Button>
                     </div>
@@ -868,38 +987,161 @@ function AgentDetailInner() {
                       Conectar Slack
                     </Button>
                   )}
-
-                  {/* Shareable install link — always visible */}
                   <div className="pt-2 border-t border-border">
                     <p className="text-[10px] text-muted-foreground mb-1.5">Link para instalar en otros workspaces:</p>
-                    <Button
-                      variant="outline" size="sm"
-                      className="w-full gap-1.5 text-xs h-7"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${APP_URL}/install/slack/${id}`);
-                        showToast("¡Link copiado! Compártelo con tus clientes", true);
-                      }}
-                    >
-                      <Copy className="h-3 w-3" />
-                      Copiar link de instalación
+                    <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs h-7"
+                      onClick={() => { navigator.clipboard.writeText(`${APP_URL}/install/slack/${id}`); showToast("¡Link copiado! Compártelo con tus clientes", true); }}>
+                      <Copy className="h-3 w-3" />Copiar link de instalación
                     </Button>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* ── WhatsApp (próximo) ── */}
-              <Card className="opacity-60">
+              {/* ── Facebook Pages ── */}
+              <Card className={cn(fbStatus?.connected ? "border-blue-500/30 bg-blue-500/5" : "")}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center justify-between">
-                    <span>💬 WhatsApp Business</span>
-                    <Badge variant="secondary">Próximo</Badge>
+                    <span className="flex items-center gap-2">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-[#1877F2]" fill="currentColor">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                      Facebook
+                    </span>
+                    {fbStatus?.connected && <Badge variant="success">Conectado</Badge>}
+                  </CardTitle>
+                  <CardDescription className="text-xs">Responde mensajes de tu página de Facebook</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {!fbStatus ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  ) : fbStatus.connected ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                        {fbStatus.page_name}
+                      </p>
+                      <Button variant="ghost" size="sm" className="w-full text-xs text-destructive hover:text-destructive h-7 px-2" onClick={disconnectFacebook} disabled={fbDisconnecting}>
+                        {fbDisconnecting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <X className="h-3 w-3 mr-1" />}
+                        Desconectar
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button size="sm" className="w-full gap-2 bg-[#1877F2] hover:bg-[#166fe5] text-white" onClick={connectFacebook} disabled={fbConnecting}>
+                      {fbConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                        <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="currentColor">
+                          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        </svg>
+                      )}
+                      Conectar Facebook
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Row 2 — Instagram · WhatsApp */}
+            <div className="grid md:grid-cols-2 gap-4">
+
+              {/* ── Instagram DM ── */}
+              <Card className={cn(fbStatus?.ig_account_id ? "border-pink-500/30 bg-pink-500/5" : "")}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="url(#igGrad)">
+                        <defs>
+                          <linearGradient id="igGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#f09433"/>
+                            <stop offset="25%" stopColor="#e6683c"/>
+                            <stop offset="50%" stopColor="#dc2743"/>
+                            <stop offset="75%" stopColor="#cc2366"/>
+                            <stop offset="100%" stopColor="#bc1888"/>
+                          </linearGradient>
+                        </defs>
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                      </svg>
+                      Instagram DM
+                    </span>
+                    {fbStatus?.ig_account_id ? <Badge variant="success">Conectado</Badge> : <Badge variant="secondary">Requiere Facebook</Badge>}
+                  </CardTitle>
+                  <CardDescription className="text-xs">Responde mensajes directos de Instagram</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {!fbStatus ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  ) : fbStatus.ig_account_id ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                        Cuenta de Instagram conectada vía {fbStatus.page_name}
+                      </p>
+                      <Button variant="ghost" size="sm" className="w-full text-xs text-destructive hover:text-destructive h-7 px-2" onClick={disconnectInstagram} disabled={igDisconnecting}>
+                        {igDisconnecting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <X className="h-3 w-3 mr-1" />}
+                        Desconectar Instagram
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        {fbStatus.connected
+                          ? "Tu página de Facebook no tiene una cuenta de Instagram Business vinculada."
+                          : "Conecta primero tu página de Facebook para habilitar Instagram DM."}
+                      </p>
+                      <Button
+                        size="sm"
+                        className="w-full gap-2 bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] text-white hover:opacity-90"
+                        onClick={connectInstagram}
+                        disabled={igConnecting}
+                      >
+                        {igConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                          <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="currentColor">
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                          </svg>
+                        )}
+                        Conectar Instagram
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* ── WhatsApp Business ── */}
+              <Card className={cn(waStatus?.connected ? "border-emerald-500/30 bg-emerald-500/5" : "")}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-[#25D366]" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                      </svg>
+                      WhatsApp Business
+                    </span>
+                    {waStatus?.connected && <Badge variant="success">Conectado</Badge>}
                   </CardTitle>
                   <CardDescription className="text-xs">Automatiza tu atención por WhatsApp</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground text-center py-4">
-                    Lanzamiento próximo — únete a la lista de espera en ajustes.
-                  </p>
+                <CardContent className="space-y-3">
+                  {!waStatus ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  ) : waStatus.connected ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                        {waStatus.display_phone}
+                      </p>
+                      <Button variant="ghost" size="sm" className="w-full text-xs text-destructive hover:text-destructive h-7 px-2" onClick={disconnectWhatsApp} disabled={waDisconnecting}>
+                        {waDisconnecting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <X className="h-3 w-3 mr-1" />}
+                        Desconectar
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button size="sm" className="w-full gap-2 bg-[#25D366] hover:bg-[#20bc59] text-white" onClick={connectWhatsApp} disabled={waConnecting}>
+                      {waConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                        <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="currentColor">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                      )}
+                      Conectar WhatsApp
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </div>

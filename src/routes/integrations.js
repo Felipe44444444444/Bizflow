@@ -386,4 +386,533 @@ async function handleSlackEvent({ team_id, userId, slackChannel, text, threadTs 
   }
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// META (FACEBOOK / INSTAGRAM / WHATSAPP) INTEGRATION
+// ══════════════════════════════════════════════════════════════════════════════
+
+const FB_BASE = 'https://graph.facebook.com/v18.0';
+
+// ── Meta webhook signature verification ──────────────────────────────────────
+function verifyMetaSig(rawBody, secret, sig) {
+  if (!rawBody || !secret || !sig) return false;
+  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+  try { return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig)); } catch { return false; }
+}
+
+// ── Upsert channel record for Meta channels ───────────────────────────────────
+async function upsertMetaChannel({ agentId, organizationId, type, name, config }) {
+  const { data: existing } = await supabaseAdmin
+    .from('channels')
+    .select('id')
+    .eq('agent_id', agentId)
+    .eq('type', type)
+    .maybeSingle();
+
+  if (existing) {
+    await supabaseAdmin.from('channels')
+      .update({ config, name, is_active: true, connected_at: new Date().toISOString() })
+      .eq('id', existing.id);
+    return existing.id;
+  }
+
+  const { data: ch } = await supabaseAdmin.from('channels')
+    .insert({ agent_id: agentId, organization_id: organizationId, type, name, config, is_active: true, connected_at: new Date().toISOString() })
+    .select('id').single();
+  return ch?.id;
+}
+
+// ═════════════════════════ FACEBOOK ═══════════════════════════════════════════
+
+// ── GET /api/integrations/facebook/connect?agent_id=xxx ──────────────────────
+router.get('/facebook/connect', authMiddleware, (req, res) => {
+  const appId      = process.env.FACEBOOK_APP_ID;
+  const redirectUri = process.env.FACEBOOK_REDIRECT_URI;
+  if (!appId || !redirectUri) return res.status(500).json({ error: 'Facebook app not configured' });
+
+  const state = req.query.agent_id
+    ? `${req.organizationId}:${req.query.agent_id}`
+    : req.organizationId;
+
+  const scope = [
+    'pages_messaging',
+    'pages_show_list',
+    'pages_read_engagement',
+  ].join(',');
+
+  res.json({
+    url: `https://www.facebook.com/v18.0/dialog/oauth`
+      + `?client_id=${encodeURIComponent(appId)}`
+      + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+      + `&scope=${encodeURIComponent(scope)}`
+      + `&state=${encodeURIComponent(state)}`,
+  });
+});
+
+// ── GET /api/integrations/facebook/callback ───────────────────────────────────
+router.get('/facebook/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+  if (error) return res.redirect(`${FRONTEND}/dashboard?fb_error=${encodeURIComponent(error)}`);
+  if (!code || !state) return res.redirect(`${FRONTEND}/dashboard?fb_error=invalid_callback_params`);
+
+  const [organizationId, agentId = null] = String(state).split(':');
+  const successUrl = agentId ? `${FRONTEND}/agents/${agentId}?tab=canales&fb=connected` : `${FRONTEND}/dashboard?fb=connected`;
+  const errorUrl   = (m) => agentId ? `${FRONTEND}/agents/${agentId}?tab=canales&fb_error=${encodeURIComponent(m)}` : `${FRONTEND}/dashboard?fb_error=${encodeURIComponent(m)}`;
+
+  try {
+    const appId      = process.env.FACEBOOK_APP_ID;
+    const appSecret  = process.env.FACEBOOK_APP_SECRET;
+    const redirectUri = process.env.FACEBOOK_REDIRECT_URI;
+
+    // Short-lived token
+    const tkRes  = await fetch(`${FB_BASE}/oauth/access_token?client_id=${encodeURIComponent(appId)}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${encodeURIComponent(appSecret)}&code=${encodeURIComponent(code)}`);
+    const tkData = await tkRes.json();
+    if (!tkData.access_token) throw new Error(tkData.error?.message || 'Token exchange failed');
+
+    // Long-lived token
+    const llRes  = await fetch(`${FB_BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id=${encodeURIComponent(appId)}&client_secret=${encodeURIComponent(appSecret)}&fb_exchange_token=${encodeURIComponent(tkData.access_token)}`);
+    const llData = await llRes.json();
+    const longToken = llData.access_token || tkData.access_token;
+
+    // Pages list
+    const pgRes  = await fetch(`${FB_BASE}/me/accounts?access_token=${encodeURIComponent(longToken)}`);
+    const pgData = await pgRes.json();
+    const pages  = pgData.data || [];
+    if (pages.length === 0) throw new Error('No tienes páginas de Facebook administradas');
+
+    // Take first page (user can reconnect to change)
+    const { id: pageId, name: pageName, access_token: pageToken } = pages[0];
+
+    // Optional: get linked Instagram business account
+    let igAccountId = null;
+    try {
+      const igRes  = await fetch(`${FB_BASE}/${pageId}?fields=instagram_business_account&access_token=${encodeURIComponent(pageToken)}`);
+      const igData = await igRes.json();
+      igAccountId  = igData.instagram_business_account?.id || null;
+    } catch {}
+
+    // Subscribe page to messaging webhook (best effort)
+    try {
+      await fetch(`${FB_BASE}/${pageId}/subscribed_apps`, {
+        method: 'POST',
+        body: new URLSearchParams({ subscribed_fields: 'messages,messaging_postbacks', access_token: pageToken }),
+      });
+    } catch {}
+
+    const row = {
+      organization_id:   organizationId,
+      agent_id:          agentId || undefined,
+      page_id:           pageId,
+      page_name:         pageName,
+      page_access_token: pageToken,
+      ig_account_id:     igAccountId,
+      user_access_token: longToken,
+      updated_at:        new Date().toISOString(),
+    };
+    const { error: dbErr } = await supabaseAdmin.from('facebook_integrations')
+      .upsert(row, { onConflict: agentId ? 'agent_id' : 'organization_id' });
+    if (dbErr) throw dbErr;
+
+    // Sync channels table
+    const targetAgentId = agentId || await getFirstAgentId(organizationId);
+    if (targetAgentId) {
+      await upsertMetaChannel({ agentId: targetAgentId, organizationId, type: 'facebook', name: `Facebook — ${pageName}`, config: { access_token: pageToken, page_id: pageId, page_name: pageName } });
+    }
+
+    console.log(`[Facebook OAuth] Connected: ${pageName} (${pageId}) org=${organizationId} agent=${agentId} ig=${igAccountId}`);
+    res.redirect(successUrl);
+  } catch (err) {
+    console.error('[Facebook OAuth] callback error:', err.message);
+    res.redirect(errorUrl(err.message));
+  }
+});
+
+// ── GET /api/integrations/facebook/status?agent_id=xxx ───────────────────────
+router.get('/facebook/status', authMiddleware, async (req, res) => {
+  const { agent_id } = req.query;
+  let q = supabaseAdmin.from('facebook_integrations').select('page_name, ig_account_id, updated_at');
+  q = agent_id ? q.eq('agent_id', agent_id) : q.eq('organization_id', req.organizationId);
+  const { data } = await q.maybeSingle();
+  res.json({ connected: !!data, page_name: data?.page_name ?? null, ig_account_id: data?.ig_account_id ?? null });
+});
+
+// ── DELETE /api/integrations/facebook?agent_id=xxx ───────────────────────────
+router.delete('/facebook', authMiddleware, async (req, res) => {
+  const { agent_id } = req.query;
+  const filter = agent_id ? { agent_id } : { organization_id: req.organizationId };
+  await Promise.all([
+    supabaseAdmin.from('facebook_integrations').delete().match(filter),
+    supabaseAdmin.from('channels').update({ is_active: false }).match(agent_id ? { agent_id, type: 'facebook' } : { organization_id: req.organizationId, type: 'facebook' }),
+  ]);
+  res.json({ disconnected: true });
+});
+
+// ── GET /api/integrations/facebook/webhook (verify) ──────────────────────────
+router.get('/facebook/webhook', (req, res) => {
+  const { 'hub.mode': mode, 'hub.verify_token': token, 'hub.challenge': challenge } = req.query;
+  if (mode === 'subscribe' && token === process.env.FACEBOOK_VERIFY_TOKEN) return res.send(challenge);
+  res.sendStatus(403);
+});
+
+// ── POST /api/integrations/facebook/webhook (Messenger + Instagram DM) ───────
+router.post('/facebook/webhook', (req, res) => {
+  const secret = process.env.FACEBOOK_APP_SECRET;
+  if (secret && !verifyMetaSig(req.rawBody, secret, req.headers['x-hub-signature-256'])) {
+    return res.sendStatus(401);
+  }
+  res.sendStatus(200); // ACK immediately
+
+  const body = req.body;
+  setImmediate(async () => {
+    if (body.object === 'page') {
+      for (const entry of (body.entry || [])) {
+        for (const evt of (entry.messaging || [])) {
+          if (!evt.message?.text || evt.message?.is_echo) continue;
+          await handleMetaMessage({ lookupField: 'page_id', lookupValue: entry.id, senderId: evt.sender.id, text: evt.message.text, platform: 'facebook' })
+            .catch(e => console.error('[FB Webhook]', e.message));
+        }
+      }
+    } else if (body.object === 'instagram') {
+      for (const entry of (body.entry || [])) {
+        for (const evt of (entry.messaging || [])) {
+          if (!evt.message?.text || evt.message?.is_echo) continue;
+          await handleMetaMessage({ lookupField: 'ig_account_id', lookupValue: entry.id, senderId: evt.sender.id, text: evt.message.text, platform: 'instagram' })
+            .catch(e => console.error('[IG Webhook]', e.message));
+        }
+      }
+    }
+  });
+});
+
+async function handleMetaMessage({ lookupField, lookupValue, senderId, text, platform }) {
+  const { data: integration } = await supabaseAdmin
+    .from('facebook_integrations')
+    .select('*')
+    .eq(lookupField, lookupValue)
+    .maybeSingle();
+  if (!integration) return console.warn(`[Meta] No integration for ${lookupField}=${lookupValue}`);
+
+  const agentId = integration.agent_id || await getFirstAgentId(integration.organization_id);
+  if (!agentId) return;
+
+  const channelConfig = platform === 'instagram'
+    ? { access_token: integration.page_access_token, ig_account_id: integration.ig_account_id, page_id: integration.page_id }
+    : { access_token: integration.page_access_token, page_id: integration.page_id };
+
+  const channelId = await upsertMetaChannel({
+    agentId, organizationId: integration.organization_id, type: platform,
+    name: platform === 'instagram' ? `Instagram — ${integration.page_name}` : `Facebook — ${integration.page_name}`,
+    config: channelConfig,
+  });
+  if (!channelId) return;
+
+  const fakeChannel = { id: channelId, type: platform, config: channelConfig };
+  const conversationId = await agentService.findOrCreateConversation({
+    agentId, channelId, organizationId: integration.organization_id,
+    externalId: `${lookupValue}_${senderId}`,
+  });
+
+  const result = await agentService.processMessage({ agentId, conversationId, userMessage: text, organizationId: integration.organization_id });
+  if (!result.handoffRequested) {
+    await channelService.sendMessage(fakeChannel, senderId, result.message);
+  }
+}
+
+// ═════════════════════════ INSTAGRAM ══════════════════════════════════════════
+
+// ── GET /api/integrations/instagram/connect?agent_id=xxx ─────────────────────
+router.get('/instagram/connect', authMiddleware, (req, res) => {
+  const appId       = process.env.FACEBOOK_APP_ID;
+  const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
+  if (!appId || !redirectUri) return res.status(500).json({ error: 'Instagram app not configured' });
+
+  const state = req.query.agent_id
+    ? `${req.organizationId}:${req.query.agent_id}`
+    : req.organizationId;
+
+  const scope = [
+    'pages_messaging',
+    'pages_show_list',
+    'pages_read_engagement',
+    'instagram_basic',
+    'instagram_manage_messages',
+  ].join(',');
+
+  res.json({
+    url: `https://www.facebook.com/v18.0/dialog/oauth`
+      + `?client_id=${encodeURIComponent(appId)}`
+      + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+      + `&scope=${encodeURIComponent(scope)}`
+      + `&state=${encodeURIComponent(state)}`,
+  });
+});
+
+// ── GET /api/integrations/instagram/callback ──────────────────────────────────
+router.get('/instagram/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+  if (error) return res.redirect(`${FRONTEND}/dashboard?ig_error=${encodeURIComponent(error)}`);
+  if (!code || !state) return res.redirect(`${FRONTEND}/dashboard?ig_error=invalid_callback_params`);
+
+  const [organizationId, agentId = null] = String(state).split(':');
+  const successUrl = agentId ? `${FRONTEND}/agents/${agentId}?tab=canales&ig=connected` : `${FRONTEND}/dashboard?ig=connected`;
+  const errorUrl   = (m) => agentId ? `${FRONTEND}/agents/${agentId}?tab=canales&ig_error=${encodeURIComponent(m)}` : `${FRONTEND}/dashboard?ig_error=${encodeURIComponent(m)}`;
+
+  try {
+    const appId       = process.env.FACEBOOK_APP_ID;
+    const appSecret   = process.env.FACEBOOK_APP_SECRET;
+    const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
+
+    const tkRes  = await fetch(`${FB_BASE}/oauth/access_token?client_id=${encodeURIComponent(appId)}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${encodeURIComponent(appSecret)}&code=${encodeURIComponent(code)}`);
+    const tkData = await tkRes.json();
+    if (!tkData.access_token) throw new Error(tkData.error?.message || 'Token exchange failed');
+
+    const llRes  = await fetch(`${FB_BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id=${encodeURIComponent(appId)}&client_secret=${encodeURIComponent(appSecret)}&fb_exchange_token=${encodeURIComponent(tkData.access_token)}`);
+    const llData = await llRes.json();
+    const longToken = llData.access_token || tkData.access_token;
+
+    const pgRes  = await fetch(`${FB_BASE}/me/accounts?access_token=${encodeURIComponent(longToken)}`);
+    const pgData = await pgRes.json();
+    const pages  = pgData.data || [];
+    if (pages.length === 0) throw new Error('No tienes páginas de Facebook para vincular con Instagram');
+
+    const { id: pageId, name: pageName, access_token: pageToken } = pages[0];
+
+    // Require Instagram business account
+    const igRes  = await fetch(`${FB_BASE}/${pageId}?fields=instagram_business_account&access_token=${encodeURIComponent(pageToken)}`);
+    const igData = await igRes.json();
+    const igAccountId = igData.instagram_business_account?.id;
+    if (!igAccountId) throw new Error('La página de Facebook no tiene una cuenta de Instagram Business vinculada');
+
+    // Subscribe to Instagram messaging
+    try {
+      await fetch(`${FB_BASE}/${pageId}/subscribed_apps`, {
+        method: 'POST',
+        body: new URLSearchParams({ subscribed_fields: 'messages,messaging_postbacks', access_token: pageToken }),
+      });
+    } catch {}
+
+    const row = {
+      organization_id:   organizationId,
+      agent_id:          agentId || undefined,
+      page_id:           pageId,
+      page_name:         pageName,
+      page_access_token: pageToken,
+      ig_account_id:     igAccountId,
+      user_access_token: longToken,
+      updated_at:        new Date().toISOString(),
+    };
+    const { error: dbErr } = await supabaseAdmin.from('facebook_integrations')
+      .upsert(row, { onConflict: agentId ? 'agent_id' : 'organization_id' });
+    if (dbErr) throw dbErr;
+
+    const targetAgentId = agentId || await getFirstAgentId(organizationId);
+    if (targetAgentId) {
+      await upsertMetaChannel({ agentId: targetAgentId, organizationId, type: 'instagram', name: `Instagram — ${pageName}`, config: { access_token: pageToken, ig_account_id: igAccountId, page_id: pageId } });
+    }
+
+    console.log(`[Instagram OAuth] Connected: ${pageName} (ig=${igAccountId}) org=${organizationId} agent=${agentId}`);
+    res.redirect(successUrl);
+  } catch (err) {
+    console.error('[Instagram OAuth] callback error:', err.message);
+    res.redirect(errorUrl(err.message));
+  }
+});
+
+// ── GET /api/integrations/instagram/status?agent_id=xxx ──────────────────────
+router.get('/instagram/status', authMiddleware, async (req, res) => {
+  const { agent_id } = req.query;
+  let q = supabaseAdmin.from('facebook_integrations').select('page_name, ig_account_id, updated_at');
+  q = agent_id ? q.eq('agent_id', agent_id) : q.eq('organization_id', req.organizationId);
+  const { data } = await q.maybeSingle();
+  res.json({ connected: !!(data?.ig_account_id), page_name: data?.page_name ?? null, ig_account_id: data?.ig_account_id ?? null });
+});
+
+// ── DELETE /api/integrations/instagram?agent_id=xxx ──────────────────────────
+router.delete('/instagram', authMiddleware, async (req, res) => {
+  const { agent_id } = req.query;
+  // Only deactivate the Instagram channel, keep Facebook integration intact
+  const filter = agent_id ? { agent_id, type: 'instagram' } : { organization_id: req.organizationId, type: 'instagram' };
+  await supabaseAdmin.from('channels').update({ is_active: false }).match(filter);
+  // Clear ig_account_id from facebook_integrations
+  const fbFilter = agent_id ? { agent_id } : { organization_id: req.organizationId };
+  await supabaseAdmin.from('facebook_integrations').update({ ig_account_id: null }).match(fbFilter);
+  res.json({ disconnected: true });
+});
+
+// ═════════════════════════ WHATSAPP ════════════════════════════════════════════
+
+// ── GET /api/integrations/whatsapp/connect?agent_id=xxx ──────────────────────
+router.get('/whatsapp/connect', authMiddleware, (req, res) => {
+  const appId       = process.env.FACEBOOK_APP_ID;
+  const redirectUri = process.env.WHATSAPP_REDIRECT_URI;
+  if (!appId || !redirectUri) return res.status(500).json({ error: 'WhatsApp app not configured' });
+
+  const state = req.query.agent_id
+    ? `${req.organizationId}:${req.query.agent_id}`
+    : req.organizationId;
+
+  const scope = [
+    'whatsapp_business_messaging',
+    'whatsapp_business_management',
+  ].join(',');
+
+  res.json({
+    url: `https://www.facebook.com/v18.0/dialog/oauth`
+      + `?client_id=${encodeURIComponent(appId)}`
+      + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+      + `&scope=${encodeURIComponent(scope)}`
+      + `&state=${encodeURIComponent(state)}`,
+  });
+});
+
+// ── GET /api/integrations/whatsapp/callback ───────────────────────────────────
+router.get('/whatsapp/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+  if (error) return res.redirect(`${FRONTEND}/dashboard?wa_error=${encodeURIComponent(error)}`);
+  if (!code || !state) return res.redirect(`${FRONTEND}/dashboard?wa_error=invalid_callback_params`);
+
+  const [organizationId, agentId = null] = String(state).split(':');
+  const successUrl = agentId ? `${FRONTEND}/agents/${agentId}?tab=canales&wa=connected` : `${FRONTEND}/dashboard?wa=connected`;
+  const errorUrl   = (m) => agentId ? `${FRONTEND}/agents/${agentId}?tab=canales&wa_error=${encodeURIComponent(m)}` : `${FRONTEND}/dashboard?wa_error=${encodeURIComponent(m)}`;
+
+  try {
+    const appId       = process.env.FACEBOOK_APP_ID;
+    const appSecret   = process.env.FACEBOOK_APP_SECRET;
+    const redirectUri = process.env.WHATSAPP_REDIRECT_URI;
+
+    const tkRes  = await fetch(`${FB_BASE}/oauth/access_token?client_id=${encodeURIComponent(appId)}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${encodeURIComponent(appSecret)}&code=${encodeURIComponent(code)}`);
+    const tkData = await tkRes.json();
+    if (!tkData.access_token) throw new Error(tkData.error?.message || 'Token exchange failed');
+
+    const llRes  = await fetch(`${FB_BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id=${encodeURIComponent(appId)}&client_secret=${encodeURIComponent(appSecret)}&fb_exchange_token=${encodeURIComponent(tkData.access_token)}`);
+    const llData = await llRes.json();
+    const longToken = llData.access_token || tkData.access_token;
+
+    // Get WABA
+    const wabaRes  = await fetch(`${FB_BASE}/me/whatsapp_business_accounts?access_token=${encodeURIComponent(longToken)}`);
+    const wabaData = await wabaRes.json();
+    const wabas    = wabaData.data || [];
+    if (wabas.length === 0) throw new Error('No tienes una cuenta de WhatsApp Business asociada');
+
+    const waba = wabas[0];
+    const wabaId = waba.id;
+
+    // Get phone numbers for this WABA
+    const phoneRes  = await fetch(`${FB_BASE}/${wabaId}/phone_numbers?access_token=${encodeURIComponent(longToken)}`);
+    const phoneData = await phoneRes.json();
+    const phones    = phoneData.data || [];
+    if (phones.length === 0) throw new Error('La cuenta WABA no tiene números de teléfono registrados');
+
+    const { id: phoneNumberId, display_phone_number: displayPhone } = phones[0];
+
+    const row = {
+      organization_id: organizationId,
+      agent_id:        agentId || undefined,
+      phone_number_id: phoneNumberId,
+      waba_id:         wabaId,
+      display_phone:   displayPhone,
+      access_token:    longToken,
+      updated_at:      new Date().toISOString(),
+    };
+    const { error: dbErr } = await supabaseAdmin.from('whatsapp_integrations')
+      .upsert(row, { onConflict: agentId ? 'agent_id' : 'organization_id' });
+    if (dbErr) throw dbErr;
+
+    const targetAgentId = agentId || await getFirstAgentId(organizationId);
+    if (targetAgentId) {
+      await upsertMetaChannel({ agentId: targetAgentId, organizationId, type: 'whatsapp', name: `WhatsApp — ${displayPhone}`, config: { access_token: longToken, phone_number_id: phoneNumberId, waba_id: wabaId, display_phone: displayPhone } });
+    }
+
+    console.log(`[WhatsApp OAuth] Connected: ${displayPhone} waba=${wabaId} org=${organizationId} agent=${agentId}`);
+    res.redirect(successUrl);
+  } catch (err) {
+    console.error('[WhatsApp OAuth] callback error:', err.message);
+    res.redirect(errorUrl(err.message));
+  }
+});
+
+// ── GET /api/integrations/whatsapp/status?agent_id=xxx ───────────────────────
+router.get('/whatsapp/status', authMiddleware, async (req, res) => {
+  const { agent_id } = req.query;
+  let q = supabaseAdmin.from('whatsapp_integrations').select('display_phone, waba_id, updated_at');
+  q = agent_id ? q.eq('agent_id', agent_id) : q.eq('organization_id', req.organizationId);
+  const { data } = await q.maybeSingle();
+  res.json({ connected: !!data, display_phone: data?.display_phone ?? null, waba_id: data?.waba_id ?? null });
+});
+
+// ── DELETE /api/integrations/whatsapp?agent_id=xxx ───────────────────────────
+router.delete('/whatsapp', authMiddleware, async (req, res) => {
+  const { agent_id } = req.query;
+  const filter = agent_id ? { agent_id } : { organization_id: req.organizationId };
+  await Promise.all([
+    supabaseAdmin.from('whatsapp_integrations').delete().match(filter),
+    supabaseAdmin.from('channels').update({ is_active: false }).match(agent_id ? { agent_id, type: 'whatsapp' } : { organization_id: req.organizationId, type: 'whatsapp' }),
+  ]);
+  res.json({ disconnected: true });
+});
+
+// ── GET /api/integrations/whatsapp/webhook (verify) ──────────────────────────
+router.get('/whatsapp/webhook', (req, res) => {
+  const { 'hub.mode': mode, 'hub.verify_token': token, 'hub.challenge': challenge } = req.query;
+  if (mode === 'subscribe' && token === process.env.FACEBOOK_VERIFY_TOKEN) return res.send(challenge);
+  res.sendStatus(403);
+});
+
+// ── POST /api/integrations/whatsapp/webhook ───────────────────────────────────
+router.post('/whatsapp/webhook', (req, res) => {
+  const secret = process.env.FACEBOOK_APP_SECRET;
+  if (secret && !verifyMetaSig(req.rawBody, secret, req.headers['x-hub-signature-256'])) {
+    return res.sendStatus(401);
+  }
+  res.sendStatus(200);
+
+  const body = req.body;
+  setImmediate(async () => {
+    if (body.object !== 'whatsapp_business_account') return;
+    for (const entry of (body.entry || [])) {
+      for (const change of (entry.changes || [])) {
+        if (change.field !== 'messages') continue;
+        const val = change.value;
+        for (const msg of (val.messages || [])) {
+          if (msg.type !== 'text') continue;
+          await handleWhatsAppMessage({ phoneNumberId: val.metadata?.phone_number_id, fromPhone: msg.from, text: msg.text?.body })
+            .catch(e => console.error('[WA Webhook]', e.message));
+        }
+      }
+    }
+  });
+});
+
+async function handleWhatsAppMessage({ phoneNumberId, fromPhone, text }) {
+  if (!text || !phoneNumberId) return;
+
+  const { data: integration } = await supabaseAdmin
+    .from('whatsapp_integrations')
+    .select('*')
+    .eq('phone_number_id', phoneNumberId)
+    .maybeSingle();
+  if (!integration) return console.warn(`[WhatsApp] No integration for phone_number_id=${phoneNumberId}`);
+
+  const agentId = integration.agent_id || await getFirstAgentId(integration.organization_id);
+  if (!agentId) return;
+
+  const channelConfig = { access_token: integration.access_token, phone_number_id: integration.phone_number_id, waba_id: integration.waba_id, display_phone: integration.display_phone };
+
+  const channelId = await upsertMetaChannel({
+    agentId, organizationId: integration.organization_id, type: 'whatsapp',
+    name: `WhatsApp — ${integration.display_phone}`, config: channelConfig,
+  });
+  if (!channelId) return;
+
+  const fakeChannel = { id: channelId, type: 'whatsapp', config: channelConfig };
+  const conversationId = await agentService.findOrCreateConversation({
+    agentId, channelId, organizationId: integration.organization_id,
+    externalId: `${phoneNumberId}_${fromPhone}`,
+  });
+
+  const result = await agentService.processMessage({ agentId, conversationId, userMessage: text, organizationId: integration.organization_id });
+  if (!result.handoffRequested) {
+    await channelService.sendMessage(fakeChannel, fromPhone, result.message);
+  }
+}
+
 module.exports = router;

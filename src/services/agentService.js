@@ -56,6 +56,28 @@ FORMATO:
 - Emojis con moderación (máx 2 por respuesta)${ragSection}`;
 }
 
+// Hybrid RAG retrieval: primary threshold 0.45, fallback 0.20 for greetings/short queries.
+// Always returns chunks (may be empty), logs warnings when nothing is found.
+async function retrieveRagChunks(agentId, query, maxChunks = 5) {
+  try {
+    let chunks = await ragService.searchChunks(agentId, query, maxChunks, 0.45);
+    if (chunks.length === 0) {
+      // Fallback: lower threshold so identity/product context still loads for generic messages
+      chunks = await ragService.searchChunks(agentId, query, 2, 0.20);
+    }
+    if (chunks.length === 0) {
+      console.warn(`[RAG] No chunks found — agent=${agentId} query="${query.slice(0, 60)}"`);
+    } else {
+      const topSim = chunks[0].similarity?.toFixed(3);
+      console.log(`[RAG] ${chunks.length} chunk(s) — agent=${agentId} top_sim=${topSim}`);
+    }
+    return chunks;
+  } catch (err) {
+    console.error(`[RAG] searchChunks error — agent=${agentId}:`, err.message);
+    return [];
+  }
+}
+
 async function deductCredit(organizationId) {
   await Promise.all([
     supabaseAdmin.rpc('decrement_credits', { p_org_id: organizationId }),
@@ -109,13 +131,10 @@ async function processMessage({ agentId, conversationId, userMessage, organizati
     .order('created_at', { ascending: true })
     .limit(MAX_HISTORY);
 
-  let ragContext = '';
-  try {
-    const chunks = await ragService.searchChunks(agentId, userMessage, 5, 0.45);
-    if (chunks.length > 0) {
-      ragContext = chunks.map((c, i) => `[${i + 1}] ${c.content}`).join('\n\n');
-    }
-  } catch (_) {}
+  const ragChunks = await retrieveRagChunks(agentId, userMessage);
+  const ragContext = ragChunks.length > 0
+    ? ragChunks.map((c, i) => `[${i + 1}] ${c.content}`).join('\n\n')
+    : '';
 
   const systemText = buildSystemPrompt(agent, ragContext, agent.handoff_enabled);
 
@@ -236,15 +255,10 @@ async function incrementUsageMetrics(organizationId, tokensUsed) {
 }
 
 async function previewMessage({ agent, message, conversationHistory = [] }) {
-  let ragContext = '';
-  let chunksUsed = [];
-  try {
-    const chunks = await ragService.searchChunks(agent.id, message, 3, 0.45);
-    chunksUsed = chunks;
-    if (chunks.length > 0) {
-      ragContext = chunks.map((c, i) => `[${i + 1}] ${c.content}`).join('\n\n');
-    }
-  } catch (_) {}
+  const chunksUsed = await retrieveRagChunks(agent.id, message, 3);
+  const ragContext = chunksUsed.length > 0
+    ? chunksUsed.map((c, i) => `[${i + 1}] ${c.content}`).join('\n\n')
+    : '';
 
   const systemText = buildSystemPrompt(agent, ragContext, false);
 

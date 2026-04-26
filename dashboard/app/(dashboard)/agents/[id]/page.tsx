@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { Suspense, useEffect, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,16 @@ import {
   Save, Loader2, Upload, Trash2, RefreshCw, FileText, Link2, AlignLeft,
   Brain, Settings, Radio, BarChart3, Copy, Check, Key, Zap,
   MessageSquare, Users, TrendingUp, Bot, Send, Target, Clock,
-  Mail, Phone, AlertCircle,
+  Mail, Phone, AlertCircle, CheckCircle2, X,
 } from "lucide-react";
+
+function SlackLogo({ className = "h-4 w-4 shrink-0" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" />
+    </svg>
+  );
+}
 
 const BACKEND = process.env.NEXT_PUBLIC_API_URL || "https://api.conectaachat.com";
 const WIDGET_SRC = process.env.NEXT_PUBLIC_WIDGET_URL || "https://cdn.conectaachat.com/widget.js";
@@ -33,6 +41,7 @@ const DOC_STATUS_COLOR: Record<string, any> = {
 function AgentDetailInner() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const defaultTab = searchParams.get("tab") || "cerebro";
   const supabase = createClient();
 
@@ -59,6 +68,12 @@ function AgentDetailInner() {
   const [testMessages, setTestMessages]   = useState<any[]>([]);
   const [testInput,    setTestInput]      = useState("");
   const [testLoading,  setTestLoading]    = useState(false);
+
+  // ── Slack state ──────────────────────────────────────────────────────────────
+  const [slackStatus, setSlackStatus] = useState<{ connected: boolean; team_name: string | null } | null>(null);
+  const [slackConnecting, setSlackConnecting] = useState(false);
+  const [slackDisconnecting, setSlackDisconnecting] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   // ── Leads & retargeting state ─────────────────────────────────────────────────
   const [leads, setLeads]                     = useState<any[]>([]);
@@ -113,9 +128,58 @@ function AgentDetailInner() {
         tokenTotal = (td || []).reduce((s: number, r: any) => s + (r.tokens_used || 0), 0);
       }
       setStats({ conversations: convs ?? 0, messages: msgCount, tokens: tokenTotal, leads: leads ?? 0 });
+
+      // Load Slack status for this agent
+      api.get(`/api/integrations/slack/status?agent_id=${id}`, m.organization_id)
+        .then((d: any) => setSlackStatus(d))
+        .catch(() => setSlackStatus({ connected: false, team_name: null }));
+
+      // Handle Slack OAuth callback query params
+      const slackParam = searchParams.get('slack');
+      const slackErrParam = searchParams.get('slack_error');
+      if (slackParam === 'connected') {
+        showToast('¡Slack conectado exitosamente!', true);
+        router.replace(`/agents/${id}?tab=canales`);
+        api.get(`/api/integrations/slack/status?agent_id=${id}`, m.organization_id)
+          .then((d: any) => setSlackStatus(d)).catch(() => {});
+      } else if (slackErrParam) {
+        showToast(`Error al conectar Slack: ${slackErrParam}`, false);
+        router.replace(`/agents/${id}?tab=canales`);
+      }
     }
     load();
   }, [id]);
+
+  // ── Toast helper ─────────────────────────────────────────────────────────────
+  function showToast(msg: string, ok: boolean) {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 4000);
+  }
+
+  // ── Slack OAuth ───────────────────────────────────────────────────────────────
+  async function connectSlack() {
+    setSlackConnecting(true);
+    try {
+      const { url } = await api.get(`/api/integrations/slack/connect?agent_id=${id}`, orgId);
+      window.location.href = url;
+    } catch (e: any) {
+      showToast(e.message ?? 'No se pudo iniciar la conexión con Slack', false);
+      setSlackConnecting(false);
+    }
+  }
+
+  async function disconnectSlack() {
+    setSlackDisconnecting(true);
+    try {
+      await api.del(`/api/integrations/slack?agent_id=${id}`, orgId);
+      setSlackStatus({ connected: false, team_name: null });
+      showToast('Slack desconectado', true);
+    } catch (e: any) {
+      showToast(e.message ?? 'Error al desconectar', false);
+    } finally {
+      setSlackDisconnecting(false);
+    }
+  }
 
   // ── Actions ───────────────────────────────────────────────────────────────────
   async function saveAgent() {
@@ -285,6 +349,17 @@ function AgentDetailInner() {
 
   return (
     <div>
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 rounded-lg border px-4 py-3 text-sm shadow-lg bg-card ${
+          toast.ok ? "border-emerald-500/30 text-emerald-400" : "border-destructive/30 text-destructive"
+        }`}>
+          {toast.ok
+            ? <CheckCircle2 className="h-4 w-4 shrink-0" />
+            : <X className="h-4 w-4 shrink-0" />}
+          {toast.msg}
+        </div>
+      )}
       <Header
         title={agent.name}
         description="Configuración del agente"
@@ -603,13 +678,14 @@ function AgentDetailInner() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>System Prompt</Label>
+                    <Label>Instrucciones adicionales</Label>
                     <Textarea
-                      className="min-h-[160px] font-mono text-xs"
-                      placeholder="Eres un asistente de soporte para [Empresa]. Tu objetivo es ayudar a los clientes..."
+                      className="min-h-[160px] text-xs"
+                      placeholder={"Ejemplos:\n- Solo responde preguntas sobre nuestros productos\n- Si te preguntan por precios, dirige al usuario a contactar a ventas\n- No compartas información de competidores"}
                       value={agent.system_prompt ?? ""}
                       onChange={(e) => setAgent({ ...agent, system_prompt: e.target.value })}
                     />
+                    <p className="text-xs text-muted-foreground">Se añaden al comportamiento base del bot. La identidad y tono se construyen automáticamente.</p>
                   </div>
                   <div className="space-y-2">
                     <Label>Mensaje de bienvenida</Label>
@@ -643,84 +719,129 @@ function AgentDetailInner() {
           {/* ═══════════════ TAB 3 — CANALES ═══════════════ */}
           <TabsContent value="canales" className="space-y-4">
 
-            {/* Web Widget */}
-            <Card className={cn(widgetChannel ? "border-primary/40 bg-primary/5" : "")}>
-              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                <div>
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    🌐 Web Widget
+            {/* Main channels grid */}
+            <div className="grid md:grid-cols-3 gap-4">
+
+              {/* ── Widget Web ── */}
+              <Card className={cn(widgetChannel ? "border-primary/40 bg-primary/5" : "")}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span>🌐 Widget Web</span>
                     {widgetChannel
                       ? <Badge variant="success">Activo</Badge>
-                      : <Badge variant="secondary">No activo</Badge>}
+                      : <Badge variant="secondary">Inactivo</Badge>}
                   </CardTitle>
-                  <CardDescription className="text-xs mt-1">
-                    Añade el chat a cualquier sitio web con una línea de código
-                  </CardDescription>
-                </div>
-                {!widgetChannel && (
-                  <Button size="sm" onClick={activateWidget} disabled={activating === "widget"}>
-                    {activating === "widget"
-                      ? <Loader2 className="h-3 w-3 animate-spin" />
-                      : <Zap className="h-3 w-3" />}
-                    Activar widget
-                  </Button>
-                )}
-              </CardHeader>
-              {(widgetChannel || newRawKey) && (
+                  <CardDescription className="text-xs">Chat en tu sitio web</CardDescription>
+                </CardHeader>
                 <CardContent className="space-y-3">
-                  {newRawKey && (
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-400">
-                      ⚠️ Copia esta API key ahora — no podrás verla de nuevo.
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Pega este código antes de &lt;/body&gt;</Label>
-                    <div className="relative">
-                      <pre className="bg-secondary rounded-lg p-4 text-xs font-mono overflow-x-auto text-foreground/80 leading-relaxed">
+                  {!widgetChannel ? (
+                    <Button size="sm" className="w-full" onClick={activateWidget} disabled={activating === "widget"}>
+                      {activating === "widget" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
+                      Activar widget
+                    </Button>
+                  ) : (
+                    <>
+                      {newRawKey && (
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 text-xs text-amber-400">
+                          ⚠️ Copia la API key — no la verás de nuevo.
+                        </div>
+                      )}
+                      <div className="relative">
+                        <pre className="bg-secondary rounded-lg p-3 text-[10px] font-mono overflow-x-auto text-foreground/80 leading-relaxed">
 {`<script
   src="${WIDGET_SRC}"
   data-agent-id="${id}"
   data-api-key="${displayKey}"
   async
 ></script>`}
-                      </pre>
+                        </pre>
+                        <Button
+                          variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6"
+                          onClick={() => copyText(
+                            `<script src="${WIDGET_SRC}" data-agent-id="${id}" data-api-key="${displayKey}" async></script>`,
+                            "widget"
+                          )}
+                        >
+                          {copied === "widget" ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* ── Slack OAuth ── */}
+              <Card className={cn(slackStatus?.connected ? "border-emerald-500/30 bg-emerald-500/5" : "")}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <SlackLogo />
+                      Slack
+                    </span>
+                    {slackStatus?.connected && <Badge variant="success">Conectado</Badge>}
+                  </CardTitle>
+                  <CardDescription className="text-xs">Responde en canales y DMs de Slack</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {!slackStatus ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  ) : slackStatus.connected ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                        {slackStatus.team_name}
+                      </p>
                       <Button
-                        variant="ghost" size="icon"
-                        className="absolute top-2 right-2 h-7 w-7"
-                        onClick={() => copyText(
-                          `<script src="${WIDGET_SRC}" data-agent-id="${id}" data-api-key="${displayKey}" async></script>`,
-                          "widget"
-                        )}
+                        variant="ghost" size="sm"
+                        className="w-full text-xs text-destructive hover:text-destructive h-7 px-2"
+                        onClick={disconnectSlack}
+                        disabled={slackDisconnecting}
                       >
-                        {copied === "widget"
-                          ? <Check className="h-3.5 w-3.5 text-emerald-400" />
-                          : <Copy className="h-3.5 w-3.5" />}
+                        {slackDisconnecting
+                          ? <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          : <X className="h-3 w-3 mr-1" />}
+                        Desconectar
                       </Button>
                     </div>
-                  </div>
+                  ) : (
+                    <Button size="sm" className="w-full gap-2" onClick={connectSlack} disabled={slackConnecting}>
+                      {slackConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <SlackLogo />}
+                      Conectar Slack
+                    </Button>
+                  )}
                 </CardContent>
-              )}
-            </Card>
+              </Card>
 
-            {/* API REST */}
+              {/* ── WhatsApp (próximo) ── */}
+              <Card className="opacity-60">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span>💬 WhatsApp Business</span>
+                    <Badge variant="secondary">Próximo</Badge>
+                  </CardTitle>
+                  <CardDescription className="text-xs">Automatiza tu atención por WhatsApp</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground text-center py-4">
+                    Lanzamiento próximo — únete a la lista de espera en ajustes.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* ── API REST ── */}
             <Card className={cn(agentKey ? "border-primary/40 bg-primary/5" : "")}>
               <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
                 <div>
                   <CardTitle className="text-sm flex items-center gap-2">
                     ⚡ API REST
-                    {agentKey
-                      ? <Badge variant="success">Activo</Badge>
-                      : <Badge variant="secondary">Sin API key</Badge>}
+                    {agentKey ? <Badge variant="success">Activo</Badge> : <Badge variant="secondary">Sin API key</Badge>}
                   </CardTitle>
-                  <CardDescription className="text-xs mt-1">
-                    Integra el agente en tus aplicaciones mediante API
-                  </CardDescription>
+                  <CardDescription className="text-xs mt-1">Integra el agente en tus aplicaciones mediante API</CardDescription>
                 </div>
                 {!agentKey && (
                   <Button size="sm" onClick={generateApiKey} disabled={activating === "api"}>
-                    {activating === "api"
-                      ? <Loader2 className="h-3 w-3 animate-spin" />
-                      : <Key className="h-3 w-3" />}
+                    {activating === "api" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Key className="h-3 w-3" />}
                     Generar API Key
                   </Button>
                 )}
@@ -737,13 +858,9 @@ function AgentDetailInner() {
                       <Label className="text-xs text-muted-foreground">Endpoint</Label>
                       <div className="flex items-center gap-2 bg-secondary rounded-lg px-3 py-2">
                         <code className="text-xs flex-1 truncate">POST {BACKEND}/api/messages/chat</code>
-                        <Button
-                          variant="ghost" size="icon" className="h-6 w-6 shrink-0"
-                          onClick={() => copyText(`${BACKEND}/api/messages/chat`, "endpoint")}
-                        >
-                          {copied === "endpoint"
-                            ? <Check className="h-3 w-3 text-emerald-400" />
-                            : <Copy className="h-3 w-3" />}
+                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0"
+                          onClick={() => copyText(`${BACKEND}/api/messages/chat`, "endpoint")}>
+                          {copied === "endpoint" ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
                         </Button>
                       </div>
                     </div>
@@ -752,13 +869,9 @@ function AgentDetailInner() {
                       <div className="flex items-center gap-2 bg-secondary rounded-lg px-3 py-2">
                         <code className="text-xs flex-1 truncate font-mono">{displayKey}</code>
                         {newRawKey && (
-                          <Button
-                            variant="ghost" size="icon" className="h-6 w-6 shrink-0"
-                            onClick={() => copyText(newRawKey, "apikey")}
-                          >
-                            {copied === "apikey"
-                              ? <Check className="h-3 w-3 text-emerald-400" />
-                              : <Copy className="h-3 w-3" />}
+                          <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0"
+                            onClick={() => copyText(newRawKey, "apikey")}>
+                            {copied === "apikey" ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
                           </Button>
                         )}
                       </div>
@@ -776,79 +889,6 @@ function AgentDetailInner() {
                 </CardContent>
               )}
             </Card>
-
-            {/* Social + Slack channels */}
-            {([
-              {
-                type: "instagram", emoji: "📸", title: "Instagram DMs",
-                steps: [
-                  "Ve a Meta for Developers y crea una app de tipo Business.",
-                  "Activa el producto Instagram Messaging en tu app.",
-                  `Configura el webhook apuntando a: ${BACKEND}/api/webhooks/meta`,
-                  "Vincula tu cuenta de Instagram Business a la app.",
-                  "Pega tu Page Access Token en la configuración del canal.",
-                ],
-              },
-              {
-                type: "facebook", emoji: "👍", title: "Facebook Messenger",
-                steps: [
-                  "Crea una app en Meta for Developers (tipo Business).",
-                  "Activa el producto Messenger y vincula tu página de Facebook.",
-                  `Configura el webhook: ${BACKEND}/api/webhooks/meta`,
-                  "Solicita el permiso pages_messaging.",
-                  "Genera un Page Access Token permanente.",
-                ],
-              },
-              {
-                type: "whatsapp", emoji: "💬", title: "WhatsApp Business API",
-                steps: [
-                  "Solicita acceso a WhatsApp Business API en Meta Business Suite.",
-                  "Crea un número de teléfono dedicado para la API.",
-                  `Configura el webhook: ${BACKEND}/api/webhooks/whatsapp`,
-                  "Genera un token de acceso permanente.",
-                  "Pega el número y token en la configuración del canal.",
-                ],
-              },
-              {
-                type: "slack", emoji: "💼", title: "Slack App",
-                steps: [
-                  "Ve a api.slack.com/apps y crea una nueva Slack App.",
-                  "Activa Event Subscriptions y agrega los eventos: message.channels, app_mention.",
-                  `URL del evento: ${BACKEND}/api/webhooks/slack`,
-                  "Agrega los scopes: chat:write, channels:history, app_mentions:read.",
-                  "Instala la app en tu workspace y pega el Bot Token.",
-                ],
-              },
-            ] as const).map(({ type, emoji, title, steps }) => {
-              const connected = channels.some((c: any) => c.type === type && c.is_active);
-              return (
-                <Card key={type} className={cn(connected ? "border-primary/40" : "")}>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      {emoji} {title}
-                      {connected
-                        ? <Badge variant="success">Conectado</Badge>
-                        : <Badge variant="secondary">Configuración manual</Badge>}
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Sigue estos pasos para conectar el canal
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ol className="space-y-2.5">
-                      {steps.map((step, i) => (
-                        <li key={i} className="flex gap-3 text-xs text-muted-foreground">
-                          <span className="flex-shrink-0 h-5 w-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold mt-0.5">
-                            {i + 1}
-                          </span>
-                          <span>{step}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </CardContent>
-                </Card>
-              );
-            })}
           </TabsContent>
 
           {/* ═══════════════ TAB 4 — ESTADÍSTICAS ═══════════════ */}

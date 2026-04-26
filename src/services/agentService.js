@@ -6,6 +6,56 @@ const MODEL = 'claude-sonnet-4-6';
 const MAX_HISTORY = 20;
 const MAX_TOKENS = 1024;
 
+const TONE_MAP = {
+  professional: 'profesional y directo',
+  friendly:     'amigable, cálido y accesible',
+  formal:       'formal y respetuoso',
+  casual:       'casual y relajado',
+};
+const LANG_MAP = { es: 'español', en: 'inglés', pt: 'português' };
+
+function buildSystemPrompt(agent, ragContext = '', includeHandoff = false) {
+  const botName  = agent.name         || 'Asistente';
+  const company  = agent.company_name || 'nuestra empresa';
+  const fallback = agent.fallback_message
+    || `Lo siento, no tengo información sobre eso. Para más ayuda, contacta directamente al equipo de ${company}.`;
+  const welcome  = agent.welcome_message
+    || `¡Hola! Soy ${botName} de ${company}, ¿en qué puedo ayudarte hoy?`;
+  const tone     = TONE_MAP[agent.tone]     || 'profesional';
+  const language = LANG_MAP[agent.language] || agent.language || 'español';
+  const extra    = agent.system_prompt ? `\n- ${agent.system_prompt}` : '';
+
+  const handoffRule = includeHandoff
+    ? '\n8. Si el usuario solicita hablar con un humano o el problema supera tus capacidades, incluye exactamente [HANDOFF_REQUESTED] al final de tu respuesta.'
+    : '';
+
+  const ragSection = ragContext
+    ? `\n\nCONTEXTO DE LA EMPRESA (usa esta información para responder):\n${ragContext}`
+    : '';
+
+  return `Eres ${botName}, asistente virtual de ${company}.
+
+IDENTIDAD:
+- Representas exclusivamente a ${company}
+- Tu personalidad es ${tone}
+- Respondes siempre en ${language}${extra}
+
+REGLAS DE COMPORTAMIENTO:
+1. Prioriza la información del contexto de la empresa cuando esté disponible
+2. Si no tienes información suficiente, di: "${fallback}"
+3. NUNCA inventes datos, precios, contactos o servicios
+4. NUNCA menciones que usas IA, Claude o tecnología específica
+5. Mantén respuestas concisas (máx 3 párrafos)
+6. Al primer saludo del usuario, responde con: "${welcome}"
+7. Para agendar, cotizar o hablar con un humano, deriva amablemente al equipo de ${company}${handoffRule}
+
+FORMATO:
+- Usa *negrita* para puntos importantes
+- Usa listas con • para enumerar
+- Nunca uses markdown de headers (#, ##)
+- Emojis con moderación (máx 2 por respuesta)${ragSection}`;
+}
+
 async function deductCredit(organizationId) {
   await Promise.all([
     supabaseAdmin.rpc('decrement_credits', { p_org_id: organizationId }),
@@ -63,37 +113,11 @@ async function processMessage({ agentId, conversationId, userMessage, organizati
   try {
     const chunks = await ragService.searchChunks(agentId, userMessage, 5, 0.45);
     if (chunks.length > 0) {
-      ragContext =
-        '\n\n## Información relevante de la base de conocimiento:\n' +
-        chunks.map((c, i) => `[${i + 1}] ${c.content}`).join('\n\n');
+      ragContext = chunks.map((c, i) => `[${i + 1}] ${c.content}`).join('\n\n');
     }
   } catch (_) {}
 
-  const toneInstructions = {
-    professional: 'Mantén un tono profesional y directo.',
-    friendly: 'Sé amigable, cálido y accesible.',
-    formal: 'Usa un lenguaje formal y respetuoso.',
-    casual: 'Habla de manera casual y relajada.',
-  };
-
-  const handoffInstruction = agent.handoff_enabled
-    ? 'Si el usuario solicita hablar con un humano, o si el problema supera tus capacidades, incluye exactamente [HANDOFF_REQUESTED] al final de tu respuesta.'
-    : '';
-
-  const identity = agent.company_name
-    ? `Eres ${agent.name}, asistente virtual de ${agent.company_name}.`
-    : `Eres ${agent.name}, un asistente de atención al cliente.`;
-
-  const systemText = [
-    identity,
-    agent.system_prompt || null,
-    `Idioma de respuesta: ${agent.language || 'es'}.`,
-    toneInstructions[agent.tone] || null,
-    ragContext,
-    handoffInstruction,
-  ]
-    .filter(Boolean)
-    .join('\n');
+  const systemText = buildSystemPrompt(agent, ragContext, agent.handoff_enabled);
 
   const claudeMessages = (history || [])
     .filter((m) => m.role === 'user' || m.role === 'assistant')
@@ -212,35 +236,17 @@ async function incrementUsageMetrics(organizationId, tokensUsed) {
 }
 
 async function previewMessage({ agent, message, conversationHistory = [] }) {
-  const toneInstructions = {
-    professional: 'Mantén un tono profesional y directo.',
-    friendly: 'Sé amigable, cálido y accesible.',
-    formal: 'Usa un lenguaje formal y respetuoso.',
-    casual: 'Habla de manera casual y relajada.',
-  };
-
   let ragContext = '';
   let chunksUsed = [];
   try {
     const chunks = await ragService.searchChunks(agent.id, message, 3, 0.45);
     chunksUsed = chunks;
     if (chunks.length > 0) {
-      ragContext = '\n\n## Información de la base de conocimiento:\n' +
-        chunks.map((c, i) => `[${i + 1}] ${c.content}`).join('\n\n');
+      ragContext = chunks.map((c, i) => `[${i + 1}] ${c.content}`).join('\n\n');
     }
   } catch (_) {}
 
-  const identity = agent.company_name
-    ? `Eres ${agent.name}, asistente virtual de ${agent.company_name}.`
-    : `Eres ${agent.name}, un asistente de atención al cliente.`;
-
-  const systemText = [
-    identity,
-    agent.system_prompt || null,
-    `Idioma: ${agent.language || 'es'}.`,
-    toneInstructions[agent.tone] || null,
-    ragContext,
-  ].filter(Boolean).join('\n');
+  const systemText = buildSystemPrompt(agent, ragContext, false);
 
   const claudeMessages = [
     ...conversationHistory.slice(-8),

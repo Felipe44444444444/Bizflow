@@ -21,7 +21,7 @@ function verifySlackSig(rawBody, secret, timestamp, sig) {
   }
 }
 
-// In-memory event dedup (prevents double-processing Slack retries)
+// In-memory event dedup
 const seenEventIds = new Set();
 function dedupEvent(eventId) {
   if (!eventId) return false;
@@ -31,8 +31,19 @@ function dedupEvent(eventId) {
   return false;
 }
 
-// ── GET /api/integrations/slack/connect ──────────────────────────────────────
-// Returns the Slack OAuth URL. Caller redirects to it.
+async function getFirstAgentId(organizationId) {
+  const { data } = await supabaseAdmin
+    .from('agents')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data?.id || null;
+}
+
+// ── GET /api/integrations/slack/connect?agent_id=xxx ─────────────────────────
 router.get('/slack/connect', authMiddleware, (req, res) => {
   const clientId    = process.env.SLACK_CLIENT_ID;
   const redirectUri = process.env.SLACK_REDIRECT_URI;
@@ -40,8 +51,21 @@ router.get('/slack/connect', authMiddleware, (req, res) => {
     return res.status(500).json({ error: 'Slack app not configured on server' });
   }
 
-  const scope = 'chat:write,channels:read,im:write,users:read';
-  const state = req.organizationId;
+  const { agent_id } = req.query;
+  // State encodes "orgId:agentId" — agentId optional for backward compat
+  const state = agent_id
+    ? `${req.organizationId}:${agent_id}`
+    : req.organizationId;
+
+  const scope = [
+    'chat:write',
+    'channels:read',
+    'channels:history',
+    'im:write',
+    'im:history',
+    'app_mentions:read',
+    'users:read',
+  ].join(',');
 
   const url = 'https://slack.com/oauth/v2/authorize'
     + `?client_id=${encodeURIComponent(clientId)}`
@@ -53,7 +77,6 @@ router.get('/slack/connect', authMiddleware, (req, res) => {
 });
 
 // ── GET /api/integrations/slack/callback ─────────────────────────────────────
-// Called by Slack after the user authorizes. Public endpoint (no JWT).
 router.get('/slack/callback', async (req, res) => {
   const { code, state, error } = req.query;
 
@@ -64,10 +87,19 @@ router.get('/slack/callback', async (req, res) => {
     return res.redirect(`${FRONTEND}/dashboard?slack_error=invalid_callback_params`);
   }
 
-  const organizationId = String(state);
+  // Parse state: "orgId:agentId" or legacy "orgId"
+  const parts          = String(state).split(':');
+  const organizationId = parts[0];
+  const agentId        = parts[1] || null;
+
+  const successUrl = agentId
+    ? `${FRONTEND}/agents/${agentId}?tab=canales&slack=connected`
+    : `${FRONTEND}/dashboard?slack=connected`;
+  const errorUrl = (msg) => agentId
+    ? `${FRONTEND}/agents/${agentId}?tab=canales&slack_error=${encodeURIComponent(msg)}`
+    : `${FRONTEND}/dashboard?slack_error=${encodeURIComponent(msg)}`;
 
   try {
-    // Exchange code for access token
     const tokenRes = await fetch('https://slack.com/api/oauth.v2.access', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -75,33 +107,36 @@ router.get('/slack/callback', async (req, res) => {
         client_id:     process.env.SLACK_CLIENT_ID,
         client_secret: process.env.SLACK_CLIENT_SECRET,
         code,
-        redirect_uri: process.env.SLACK_REDIRECT_URI,
+        redirect_uri:  process.env.SLACK_REDIRECT_URI,
       }),
     });
 
     const data = await tokenRes.json();
     if (!data.ok) throw new Error(data.error || 'oauth.v2.access failed');
 
-    const accessToken  = data.access_token;
-    const teamId       = data.team?.id;
-    const teamName     = data.team?.name;
-    const botUserId    = data.bot_user_id;
+    const accessToken = data.access_token;
+    const teamId      = data.team?.id;
+    const teamName    = data.team?.name;
+    const botUserId   = data.bot_user_id;
 
-    // 1. Upsert org-level record
+    // Upsert slack_integrations keyed on agent_id (preferred) or org
+    const upsertRow = {
+      organization_id:    organizationId,
+      agent_id:           agentId || undefined,
+      slack_access_token: accessToken,
+      slack_team_id:      teamId,
+      slack_team_name:    teamName,
+      slack_bot_user_id:  botUserId,
+      updated_at:         new Date().toISOString(),
+    };
+
     const { error: siErr } = await supabaseAdmin
       .from('slack_integrations')
-      .upsert({
-        organization_id:    organizationId,
-        slack_access_token: accessToken,
-        slack_team_id:      teamId,
-        slack_team_name:    teamName,
-        slack_bot_user_id:  botUserId,
-        updated_at:         new Date().toISOString(),
-      }, { onConflict: 'organization_id' });
+      .upsert(upsertRow, { onConflict: agentId ? 'agent_id' : 'organization_id' });
 
     if (siErr) throw siErr;
 
-    // 2. Sync with channels table so the existing webhook routing works
+    // Sync channels table
     const channelConfig = {
       bot_token:      accessToken,
       team_id:        teamId,
@@ -109,22 +144,13 @@ router.get('/slack/callback', async (req, res) => {
       bot_user_id:    botUserId,
       signing_secret: process.env.SLACK_SIGNING_SECRET,
     };
+    const targetAgentId = agentId || await getFirstAgentId(organizationId);
 
-    // Find the first active agent for this org
-    const { data: agent } = await supabaseAdmin
-      .from('agents')
-      .select('id')
-      .eq('organization_id', organizationId)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle();
-
-    if (agent) {
-      // Check if a Slack channel already exists for this agent
+    if (targetAgentId) {
       const { data: existingCh } = await supabaseAdmin
         .from('channels')
         .select('id')
-        .eq('agent_id', agent.id)
+        .eq('agent_id', targetAgentId)
         .eq('type', 'slack')
         .maybeSingle();
 
@@ -137,7 +163,7 @@ router.get('/slack/callback', async (req, res) => {
         await supabaseAdmin
           .from('channels')
           .insert({
-            agent_id:        agent.id,
+            agent_id:        targetAgentId,
             organization_id: organizationId,
             type:            'slack',
             name:            `Slack — ${teamName}`,
@@ -148,51 +174,56 @@ router.get('/slack/callback', async (req, res) => {
       }
     }
 
-    console.log(`[Slack OAuth] Connected: ${teamName} (${teamId}) org=${organizationId}`);
-    res.redirect(`${FRONTEND}/dashboard?slack=connected`);
+    console.log(`[Slack OAuth] Connected: ${teamName} (${teamId}) org=${organizationId} agent=${agentId}`);
+    res.redirect(successUrl);
   } catch (err) {
     console.error('[Slack OAuth] callback error:', err.message);
-    res.redirect(`${FRONTEND}/dashboard?slack_error=${encodeURIComponent(err.message)}`);
+    res.redirect(errorUrl(err.message));
   }
 });
 
-// ── GET /api/integrations/slack/status ───────────────────────────────────────
+// ── GET /api/integrations/slack/status?agent_id=xxx ──────────────────────────
 router.get('/slack/status', authMiddleware, async (req, res) => {
-  const { data } = await supabaseAdmin
-    .from('slack_integrations')
-    .select('slack_team_name, updated_at')
-    .eq('organization_id', req.organizationId)
-    .maybeSingle();
+  const { agent_id } = req.query;
 
+  let query = supabaseAdmin
+    .from('slack_integrations')
+    .select('slack_team_name, updated_at');
+
+  query = agent_id
+    ? query.eq('agent_id', agent_id)
+    : query.eq('organization_id', req.organizationId);
+
+  const { data } = await query.maybeSingle();
   res.json({ connected: !!data, team_name: data?.slack_team_name ?? null });
 });
 
-// ── DELETE /api/integrations/slack ───────────────────────────────────────────
+// ── DELETE /api/integrations/slack?agent_id=xxx ───────────────────────────────
 router.delete('/slack', authMiddleware, async (req, res) => {
-  await supabaseAdmin
-    .from('slack_integrations')
-    .delete()
-    .eq('organization_id', req.organizationId);
+  const { agent_id } = req.query;
 
-  // Deactivate matching channels records
-  await supabaseAdmin
-    .from('channels')
-    .update({ is_active: false })
-    .eq('organization_id', req.organizationId)
-    .eq('type', 'slack');
+  if (agent_id) {
+    await Promise.all([
+      supabaseAdmin.from('slack_integrations').delete().eq('agent_id', agent_id),
+      supabaseAdmin.from('channels').update({ is_active: false }).eq('agent_id', agent_id).eq('type', 'slack'),
+    ]);
+  } else {
+    await Promise.all([
+      supabaseAdmin.from('slack_integrations').delete().eq('organization_id', req.organizationId),
+      supabaseAdmin.from('channels').update({ is_active: false }).eq('organization_id', req.organizationId).eq('type', 'slack'),
+    ]);
+  }
 
   res.json({ disconnected: true });
 });
 
 // ── POST /api/integrations/slack/events ──────────────────────────────────────
-// Public endpoint — called by Slack Events API. No JWT auth.
 router.post('/slack/events', async (req, res) => {
   const { type, challenge, team_id, event, event_id } = req.body;
   const secret = process.env.SLACK_SIGNING_SECRET;
   const ts     = req.headers['x-slack-request-timestamp'];
   const sig    = req.headers['x-slack-signature'];
 
-  // Handle URL verification challenge (Slack sends this when you first set the URL)
   if (type === 'url_verification') {
     if (secret && !verifySlackSig(req.rawBody, secret, ts, sig)) {
       return res.status(401).send('Invalid signature');
@@ -200,29 +231,26 @@ router.post('/slack/events', async (req, res) => {
     return res.json({ challenge });
   }
 
-  // Reject invalid signatures on all other requests
   if (!verifySlackSig(req.rawBody, secret, ts, sig)) {
     console.warn('[Slack Events] Invalid signature — rejected');
     return res.status(401).send('Invalid signature');
   }
 
-  // Only handle event_callback with an actual event
   if (type !== 'event_callback' || !event || !team_id) return res.status(200).send();
 
-  // Deduplicate retries from Slack
   if (dedupEvent(event_id)) return res.status(200).send();
 
-  // ACK within 3 s — processing happens async
+  // ACK within 3 s — processing is async
   res.status(200).send();
 
-  // Skip bot messages (own replies, edited, deleted, etc.)
+  // Skip bot messages, edits, deletions
   if (event.bot_id || event.bot_profile || event.subtype) return;
   if (event.type !== 'message' && event.type !== 'app_mention') return;
 
   const text = (event.text || '').replace(/<@[A-Z0-9]+>/g, '').trim();
   if (!text) return;
 
-  // For channel mentions reply in-thread; for DMs (channel starts with D) no thread
+  // Reply in-thread for mentions, direct for DMs
   const threadTs = event.type === 'app_mention' ? event.ts : undefined;
 
   setImmediate(() =>
@@ -232,7 +260,7 @@ router.post('/slack/events', async (req, res) => {
 });
 
 async function handleSlackEvent({ team_id, userId, slackChannel, text, threadTs }) {
-  // 1. Look up integration by Slack team_id
+  // 1. Look up integration by team_id
   const { data: integration } = await supabaseAdmin
     .from('slack_integrations')
     .select('*')
@@ -244,35 +272,27 @@ async function handleSlackEvent({ team_id, userId, slackChannel, text, threadTs 
     return;
   }
 
-  // 2. Find the channels record (created during OAuth for the first agent)
+  // 2. Resolve agent — use stored agent_id or fall back to first active agent
+  const agentId = integration.agent_id || await getFirstAgentId(integration.organization_id);
+  if (!agentId) {
+    console.warn(`[Slack Events] No active agent for org ${integration.organization_id}`);
+    return;
+  }
+
+  // 3. Find or lazy-create the channels record for this agent
   let { data: channel } = await supabaseAdmin
     .from('channels')
     .select('*')
-    .eq('organization_id', integration.organization_id)
+    .eq('agent_id', agentId)
     .eq('type', 'slack')
     .eq('is_active', true)
-    .limit(1)
     .maybeSingle();
 
-  // 3. Lazy-create channels record if OAuth ran before any agents existed
   if (!channel) {
-    const { data: agent } = await supabaseAdmin
-      .from('agents')
-      .select('id')
-      .eq('organization_id', integration.organization_id)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle();
-
-    if (!agent) {
-      console.warn(`[Slack Events] No active agent for org ${integration.organization_id}`);
-      return;
-    }
-
     const { data: newCh } = await supabaseAdmin
       .from('channels')
       .insert({
-        agent_id:        agent.id,
+        agent_id:        agentId,
         organization_id: integration.organization_id,
         type:            'slack',
         name:            `Slack — ${integration.slack_team_name}`,
@@ -294,29 +314,29 @@ async function handleSlackEvent({ team_id, userId, slackChannel, text, threadTs 
 
   if (!channel) return;
 
-  // 4. Ensure token is fresh from integration (not the potentially stale channels config)
+  // 4. Always use fresh token from integration record
   const channelWithToken = {
     ...channel,
     config: { ...channel.config, bot_token: integration.slack_access_token },
   };
 
-  // 5. Find or create conversation
+  // 5. Find or create conversation keyed by team+user
   const conversationId = await agentService.findOrCreateConversation({
-    agentId:        channel.agent_id,
+    agentId,
     channelId:      channel.id,
-    organizationId: channel.organization_id,
+    organizationId: integration.organization_id,
     externalId:     `${team_id}_${userId}`,
   });
 
-  // 6. Run the RAG + Claude pipeline
+  // 6. RAG + Claude pipeline
   const result = await agentService.processMessage({
-    agentId:        channel.agent_id,
+    agentId,
     conversationId,
     userMessage:    text,
-    organizationId: channel.organization_id,
+    organizationId: integration.organization_id,
   });
 
-  // 7. Send reply back to Slack (unless handed off to human)
+  // 7. Reply to Slack
   if (!result.handoffRequested) {
     const opts = threadTs ? { thread_ts: threadTs } : {};
     await channelService.sendMessage(channelWithToken, slackChannel, result.message, opts);

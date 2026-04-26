@@ -81,8 +81,13 @@ function AgentDetailInner() {
   const [fbDisconnecting, setFbDisconnecting] = useState(false);
 
   // ── Instagram state ───────────────────────────────────────────────────────────
+  const [igStatus, setIgStatus] = useState<{ connected: boolean; ig_username: string | null; page_name: string | null } | null>(null);
   const [igConnecting, setIgConnecting] = useState(false);
   const [igDisconnecting, setIgDisconnecting] = useState(false);
+
+  // ── Multi-page picker ─────────────────────────────────────────────────────────
+  const [fbPages, setFbPages] = useState<{ id: string; name: string }[]>([]);
+  const [fbPageSwitching, setFbPageSwitching] = useState(false);
 
   // ── WhatsApp state ────────────────────────────────────────────────────────────
   const [waStatus, setWaStatus] = useState<{ connected: boolean; display_phone: string | null } | null>(null);
@@ -154,12 +159,13 @@ function AgentDetailInner() {
       ]).then(([slk, fb, ig, wa]: any[]) => {
         setSlackStatus(slk);
         setFbStatus(fb);
-        // ig status: use ig_account_id presence; merge into fbStatus for display
-        if (ig?.ig_account_id) setFbStatus((prev: any) => prev ? { ...prev, ig_account_id: ig.ig_account_id } : fb);
+        if (fb?.available_pages?.length > 1) setFbPages(fb.available_pages);
+        setIgStatus(ig);
         setWaStatus(wa);
       }).catch(() => {
         setSlackStatus({ connected: false, team_name: null });
-        setFbStatus({ connected: false, page_name: null, ig_account_id: null });
+        setFbStatus({ connected: false, page_name: null, available_pages: [] });
+        setIgStatus({ connected: false, ig_username: null, page_name: null });
         setWaStatus({ connected: false, display_phone: null });
       });
 
@@ -185,7 +191,10 @@ function AgentDetailInner() {
         showToast('¡Facebook conectado exitosamente!', true);
         router.replace(`/agents/${id}?tab=canales`);
         api.get(`/api/integrations/facebook/status?agent_id=${id}`, m.organization_id)
-          .then((d: any) => setFbStatus(d)).catch(() => {});
+          .then((d: any) => { setFbStatus(d); if (d?.available_pages?.length > 1) setFbPages(d.available_pages); }).catch(() => {});
+        // If multiple pages were returned in the URL, show them
+        const fbPagesParam = searchParams.get('fb_pages');
+        if (fbPagesParam) { try { setFbPages(JSON.parse(fbPagesParam)); } catch {} }
       } else if (fbErr) {
         showToast(`Error al conectar Facebook: ${fbErr}`, false);
         router.replace(`/agents/${id}?tab=canales`);
@@ -282,12 +291,26 @@ function AgentDetailInner() {
     setIgDisconnecting(true);
     try {
       await api.del(`/api/integrations/instagram?agent_id=${id}`, orgId);
-      setFbStatus((prev: any) => prev ? { ...prev, ig_account_id: null } : prev);
+      setIgStatus({ connected: false, ig_username: null, page_name: null });
       showToast('Instagram desconectado', true);
     } catch (e: any) {
       showToast(e.message ?? 'Error al desconectar', false);
     } finally {
       setIgDisconnecting(false);
+    }
+  }
+
+  async function switchFbPage(pageId: string) {
+    setFbPageSwitching(true);
+    try {
+      const d = await api.post(`/api/integrations/facebook/select-page`, { agent_id: id, page_id: pageId }, orgId);
+      setFbStatus((prev: any) => ({ ...prev, page_name: d.page_name }));
+      setFbPages([]);
+      showToast(`Página cambiada a ${d.page_name}`, true);
+    } catch (e: any) {
+      showToast(e.message ?? 'Error al cambiar página', false);
+    } finally {
+      setFbPageSwitching(false);
     }
   }
 
@@ -1043,7 +1066,7 @@ function AgentDetailInner() {
             <div className="grid md:grid-cols-2 gap-4">
 
               {/* ── Instagram DM ── */}
-              <Card className={cn(fbStatus?.ig_account_id ? "border-pink-500/30 bg-pink-500/5" : "")}>
+              <Card className={cn(igStatus?.connected ? "border-pink-500/30 bg-pink-500/5" : "")}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center justify-between">
                     <span className="flex items-center gap-2">
@@ -1061,18 +1084,18 @@ function AgentDetailInner() {
                       </svg>
                       Instagram DM
                     </span>
-                    {fbStatus?.ig_account_id ? <Badge variant="success">Conectado</Badge> : <Badge variant="secondary">Requiere Facebook</Badge>}
+                    {igStatus?.connected ? <Badge variant="success">Conectado</Badge> : <Badge variant="secondary">No conectado</Badge>}
                   </CardTitle>
                   <CardDescription className="text-xs">Responde mensajes directos de Instagram</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {!fbStatus ? (
+                  {!igStatus ? (
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  ) : fbStatus.ig_account_id ? (
+                  ) : igStatus.connected ? (
                     <div className="space-y-2">
                       <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                        Cuenta de Instagram conectada vía {fbStatus.page_name}
+                        {igStatus.ig_username ? `@${igStatus.ig_username}` : igStatus.page_name}
                       </p>
                       <Button variant="ghost" size="sm" className="w-full text-xs text-destructive hover:text-destructive h-7 px-2" onClick={disconnectInstagram} disabled={igDisconnecting}>
                         {igDisconnecting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <X className="h-3 w-3 mr-1" />}
@@ -1081,11 +1104,7 @@ function AgentDetailInner() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        {fbStatus.connected
-                          ? "Tu página de Facebook no tiene una cuenta de Instagram Business vinculada."
-                          : "Conecta primero tu página de Facebook para habilitar Instagram DM."}
-                      </p>
+                      <p className="text-xs text-muted-foreground">Necesitas una cuenta Instagram Business o Creator vinculada a una página de Facebook.</p>
                       <Button
                         size="sm"
                         className="w-full gap-2 bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] text-white hover:opacity-90"
@@ -1145,6 +1164,40 @@ function AgentDetailInner() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* ── Facebook page picker (when multiple pages available) ── */}
+            {fbPages.length > 1 && (
+              <Card className="border-blue-500/30 bg-blue-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-[#1877F2]" fill="currentColor">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    Tienes {fbPages.length} páginas — selecciona cuál usar
+                  </CardTitle>
+                  <CardDescription className="text-xs">Actualmente usando: <strong>{fbStatus?.page_name}</strong></CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {fbPages.map((page) => (
+                    <Button
+                      key={page.id}
+                      variant={fbStatus?.page_name === page.name ? "default" : "outline"}
+                      size="sm"
+                      className="w-full justify-start gap-2 text-xs"
+                      onClick={() => switchFbPage(page.id)}
+                      disabled={fbPageSwitching || fbStatus?.page_name === page.name}
+                    >
+                      {fbPageSwitching ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                      {page.name}
+                      {fbStatus?.page_name === page.name && <Badge variant="success" className="ml-auto text-[10px]">Activa</Badge>}
+                    </Button>
+                  ))}
+                  <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground h-7" onClick={() => setFbPages([])}>
+                    Cerrar
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             {/* ── API REST ── */}
             <Card className={cn(agentKey ? "border-primary/40 bg-primary/5" : "")}>

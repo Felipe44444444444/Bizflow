@@ -217,6 +217,49 @@ router.delete('/slack', authMiddleware, async (req, res) => {
   res.json({ disconnected: true });
 });
 
+// ── GET /api/integrations/slack/public-install/:agentId ─────────────────────
+// Public — no auth. Returns agent info + Slack OAuth install URL.
+router.get('/slack/public-install/:agentId', async (req, res) => {
+  const { agentId } = req.params;
+  const clientId    = process.env.SLACK_CLIENT_ID;
+  const redirectUri = process.env.SLACK_REDIRECT_URI;
+
+  if (!clientId || !redirectUri) {
+    return res.status(500).json({ error: 'Slack no configurado en el servidor' });
+  }
+
+  const { data: agent, error } = await supabaseAdmin
+    .from('agents')
+    .select('id, name, company_name, organization_id, is_active')
+    .eq('id', agentId)
+    .single();
+
+  if (error || !agent) return res.status(404).json({ error: 'Agente no encontrado' });
+  if (!agent.is_active) return res.status(404).json({ error: 'Agente no disponible' });
+
+  const scope = [
+    'chat:write',
+    'channels:history',
+    'im:write',
+    'im:history',
+    'app_mentions:read',
+  ].join(',');
+
+  const state = `${agent.organization_id}:${agentId}`;
+
+  const install_url = 'https://slack.com/oauth/v2/authorize'
+    + `?client_id=${encodeURIComponent(clientId)}`
+    + `&scope=${encodeURIComponent(scope)}`
+    + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+    + `&state=${encodeURIComponent(state)}`;
+
+  res.json({
+    agent_name:   agent.name,
+    company_name: agent.company_name,
+    install_url,
+  });
+});
+
 // ── POST /api/integrations/slack/events ──────────────────────────────────────
 router.post('/slack/events', async (req, res) => {
   const { type, challenge, team_id, event, event_id } = req.body;

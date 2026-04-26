@@ -29,14 +29,19 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isLoginPage = request.nextUrl.pathname === "/login";
-  const isRoot = request.nextUrl.pathname === "/";
+  const { pathname } = request.nextUrl;
+  // /auth/* must be public — the OAuth callback arrives unauthenticated and
+  // needs to reach the route handler so it can exchange the code for a session.
+  const isPublicAuthPage = pathname === "/login" || pathname === "/register"
+    || pathname.startsWith("/auth/")
+    || pathname.startsWith("/install/");
+  const isRoot = pathname === "/";
 
-  if (!user && !isLoginPage) {
+  if (!user && !isPublicAuthPage) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (user && (isLoginPage || isRoot)) {
+  if (user && (isPublicAuthPage || isRoot)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

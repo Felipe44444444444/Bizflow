@@ -31,8 +31,9 @@ function SlackLogo({ className = "h-4 w-4 shrink-0" }: { className?: string }) {
   );
 }
 
-const BACKEND = process.env.NEXT_PUBLIC_API_URL || "https://api.conectaachat.com";
+const BACKEND    = process.env.NEXT_PUBLIC_API_URL  || "https://api.conectaachat.com";
 const WIDGET_SRC = process.env.NEXT_PUBLIC_WIDGET_URL || "https://cdn.conectaachat.com/widget.js";
+const APP_URL    = process.env.NEXT_PUBLIC_APP_URL    || "https://app.conectaachat.com";
 
 const DOC_STATUS_COLOR: Record<string, any> = {
   ready: "success", processing: "warning", error: "destructive",
@@ -708,6 +709,64 @@ function AgentDetailInner() {
                 </CardContent>
               </Card>
             </div>
+            {/* Compartir — Slack install link + QR */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <SlackLogo className="h-3.5 w-3.5 shrink-0" />
+                  Compartir en Slack
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Comparte este link para que tus clientes instalen el bot en su workspace de Slack
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* QR */}
+                <div className="flex justify-center">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=ffffff&color=000000&data=${encodeURIComponent(`${APP_URL}/install/slack/${id}`)}`}
+                    alt="QR instalación Slack"
+                    width={180}
+                    height={180}
+                    className="rounded-lg border border-border"
+                  />
+                </div>
+
+                {/* Link copiable */}
+                <div className="flex items-center gap-2 bg-secondary rounded-lg px-3 py-2">
+                  <code className="text-[10px] flex-1 truncate text-muted-foreground">
+                    {APP_URL}/install/slack/{id}
+                  </code>
+                  <Button
+                    variant="ghost" size="icon" className="h-6 w-6 shrink-0"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${APP_URL}/install/slack/${id}`);
+                      showToast("Link copiado", true);
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+
+                {/* Texto sugerido */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Texto para enviar a clientes:</Label>
+                  <div className="relative bg-secondary rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground leading-relaxed pr-8 whitespace-pre-wrap">{`Instala nuestro asistente de IA en tu Slack y recibe atención inmediata:\n${APP_URL}/install/slack/${id}`}</p>
+                    <Button
+                      variant="ghost" size="icon" className="absolute top-1.5 right-1.5 h-6 w-6"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`Instala nuestro asistente de IA en tu Slack y recibe atención inmediata:\n${APP_URL}/install/slack/${id}`);
+                        showToast("Texto copiado", true);
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="flex justify-end">
               <Button onClick={saveAgent} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -782,7 +841,7 @@ function AgentDetailInner() {
                   </CardTitle>
                   <CardDescription className="text-xs">Responde en canales y DMs de Slack</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-3">
                   {!slackStatus ? (
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   ) : slackStatus.connected ? (
@@ -809,6 +868,22 @@ function AgentDetailInner() {
                       Conectar Slack
                     </Button>
                   )}
+
+                  {/* Shareable install link — always visible */}
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-[10px] text-muted-foreground mb-1.5">Link para instalar en otros workspaces:</p>
+                    <Button
+                      variant="outline" size="sm"
+                      className="w-full gap-1.5 text-xs h-7"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${APP_URL}/install/slack/${id}`);
+                        showToast("¡Link copiado! Compártelo con tus clientes", true);
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                      Copiar link de instalación
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 

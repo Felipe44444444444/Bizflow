@@ -611,6 +611,7 @@ router.post('/facebook/webhook', (req, res) => {
       for (const entry of (body.entry || [])) {
         for (const evt of (entry.messaging || [])) {
           if (!evt.message?.text || evt.message?.is_echo) continue;
+          if (dedupEvent(evt.message.mid)) continue;
           await handleMetaMessage({ lookupField: 'page_id', lookupValue: entry.id, senderId: evt.sender.id, text: evt.message.text, platform: 'facebook' })
             .catch(e => console.error('[FB Webhook]', e.message));
         }
@@ -619,6 +620,7 @@ router.post('/facebook/webhook', (req, res) => {
       for (const entry of (body.entry || [])) {
         for (const evt of (entry.messaging || [])) {
           if (!evt.message?.text || evt.message?.is_echo) continue;
+          if (dedupEvent(evt.message.mid)) continue;
           await handleMetaMessage({ lookupField: 'ig_account_id', lookupValue: entry.id, senderId: evt.sender.id, text: evt.message.text, platform: 'instagram' })
             .catch(e => console.error('[IG Webhook]', e.message));
         }
@@ -629,11 +631,14 @@ router.post('/facebook/webhook', (req, res) => {
 
 async function handleMetaMessage({ lookupField, lookupValue, senderId, text, platform }) {
   const table = platform === 'instagram' ? 'instagram_integrations' : 'facebook_integrations';
-  const { data: integration } = await supabaseAdmin
+  // Use limit(1) — maybeSingle() throws if multiple rows share the same page/ig_account
+  const { data: rows } = await supabaseAdmin
     .from(table)
     .select('*')
     .eq(lookupField, lookupValue)
-    .maybeSingle();
+    .eq('is_active', true)
+    .limit(1);
+  const integration = rows?.[0];
   if (!integration) return console.warn(`[Meta/${platform}] No integration for ${lookupField}=${lookupValue}`);
 
   const agentId = integration.agent_id || await getFirstAgentId(integration.organization_id);
@@ -953,6 +958,7 @@ router.post('/whatsapp/webhook', (req, res) => {
         const val = change.value;
         for (const msg of (val.messages || [])) {
           if (msg.type !== 'text') continue;
+          if (dedupEvent(msg.id)) continue;
           await handleWhatsAppMessage({ phoneNumberId: val.metadata?.phone_number_id, fromPhone: msg.from, text: msg.text?.body })
             .catch(e => console.error('[WA Webhook]', e.message));
         }
@@ -964,11 +970,13 @@ router.post('/whatsapp/webhook', (req, res) => {
 async function handleWhatsAppMessage({ phoneNumberId, fromPhone, text }) {
   if (!text || !phoneNumberId) return;
 
-  const { data: integration } = await supabaseAdmin
+  const { data: rows } = await supabaseAdmin
     .from('whatsapp_integrations')
     .select('*')
     .eq('phone_number_id', phoneNumberId)
-    .maybeSingle();
+    .eq('is_active', true)
+    .limit(1);
+  const integration = rows?.[0];
   if (!integration) return console.warn(`[WhatsApp] No integration for phone_number_id=${phoneNumberId}`);
 
   const agentId = integration.agent_id || await getFirstAgentId(integration.organization_id);

@@ -686,7 +686,6 @@ router.get('/instagram/connect', authMiddleware, (req, res) => {
     'pages_messaging',
     'pages_show_list',
     'pages_manage_metadata',
-    'business_management',
   ].join(',');
 
   res.json({

@@ -660,7 +660,8 @@ async function handleMetaMessage({ lookupField, lookupValue, senderId, text, pla
   const fakeChannel = { id: channelId, type: platform, config: channelConfig };
   const conversationId = await agentService.findOrCreateConversation({
     agentId, channelId, organizationId: integration.organization_id,
-    externalId: `${lookupValue}_${senderId}`,
+    externalId:    `${lookupValue}_${senderId}`,
+    sourceChannel: platform,
   });
 
   const result = await agentService.processMessage({ agentId, conversationId, userMessage: text, organizationId: integration.organization_id });
@@ -686,6 +687,7 @@ router.get('/instagram/connect', authMiddleware, (req, res) => {
     'pages_messaging',
     'pages_show_list',
     'pages_manage_metadata',
+    'pages_read_engagement',
   ].join(',');
 
   res.json({
@@ -700,6 +702,7 @@ router.get('/instagram/connect', authMiddleware, (req, res) => {
 // ── GET /api/integrations/instagram/callback ──────────────────────────────────
 router.get('/instagram/callback', async (req, res) => {
   const { code, state, error } = req.query;
+  console.log('[Instagram callback] query params:', { code: code ? 'present' : 'missing', state, error, error_description: req.query.error_description });
   if (error) return res.redirect(`${FRONTEND}/dashboard?ig_error=${encodeURIComponent(error)}`);
   if (!code || !state) return res.redirect(`${FRONTEND}/dashboard?ig_error=invalid_callback_params`);
 
@@ -724,7 +727,9 @@ router.get('/instagram/callback', async (req, res) => {
 
     const pgRes  = await fetch(`${FB_BASE}/me/accounts?access_token=${encodeURIComponent(longToken)}`);
     const pgData = await pgRes.json();
-    const pages  = pgData.data || [];
+    const rawPages = pgData.data || [];
+    console.log('[Instagram callback] pages found:', rawPages.length, rawPages.map(p => ({ id: p.id, name: p.name })));
+    const pages  = rawPages;
     if (pages.length === 0) throw new Error('No tienes páginas de Facebook vinculadas a tu cuenta');
 
     // Find the first page that has an Instagram Business account
@@ -733,6 +738,7 @@ router.get('/instagram/callback', async (req, res) => {
       try {
         const igRes  = await fetch(`${FB_BASE}/${page.id}?fields=instagram_business_account{id,username}&access_token=${encodeURIComponent(page.access_token)}`);
         const igData = await igRes.json();
+        console.log(`[Instagram callback] page ${page.id} (${page.name}) igData:`, JSON.stringify(igData));
         if (igData.instagram_business_account?.id) {
           igAccountId     = igData.instagram_business_account.id;
           igUsername      = igData.instagram_business_account.username || null;
@@ -744,7 +750,10 @@ router.get('/instagram/callback', async (req, res) => {
       } catch {}
     }
 
-    if (!igAccountId) throw new Error('Ninguna de tus páginas tiene una cuenta de Instagram Business vinculada. Ve a Instagram → Configuración → Cambiar a cuenta profesional y vincula tu página.');
+    if (!igAccountId) {
+      console.log('[Instagram callback] No Instagram Business account found on any page. Total pages checked:', pages.length);
+      throw new Error('Ninguna de tus páginas tiene una cuenta de Instagram Business vinculada. Ve a Instagram → Configuración → Cambiar a cuenta profesional y vincula tu página.');
+    }
 
     // Subscribe page to messaging webhook
     try {
@@ -777,7 +786,7 @@ router.get('/instagram/callback', async (req, res) => {
     console.log(`[Instagram OAuth] Connected: @${igUsername} (ig=${igAccountId}) page=${chosenPageName} org=${organizationId}`);
     res.redirect(`${baseUrl}&ig=connected`);
   } catch (err) {
-    console.error('[Instagram OAuth] callback error:', err.message);
+    console.error('[Instagram callback] Fatal error:', err.message, err.stack);
     res.redirect(errorUrl(err.message));
   }
 });
@@ -817,7 +826,6 @@ router.get('/whatsapp/connect', authMiddleware, (req, res) => {
   const scope = [
     'whatsapp_business_messaging',
     'whatsapp_business_management',
-    'business_management',
   ].join(',');
 
   res.json({
@@ -992,7 +1000,9 @@ async function handleWhatsAppMessage({ phoneNumberId, fromPhone, text }) {
   const fakeChannel = { id: channelId, type: 'whatsapp', config: channelConfig };
   const conversationId = await agentService.findOrCreateConversation({
     agentId, channelId, organizationId: integration.organization_id,
-    externalId: `${phoneNumberId}_${fromPhone}`,
+    externalId:    `${phoneNumberId}_${fromPhone}`,
+    contactPhone:  fromPhone,
+    sourceChannel: 'whatsapp',
   });
 
   const result = await agentService.processMessage({ agentId, conversationId, userMessage: text, organizationId: integration.organization_id });

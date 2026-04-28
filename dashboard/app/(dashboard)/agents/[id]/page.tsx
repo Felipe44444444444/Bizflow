@@ -286,6 +286,25 @@ function AgentDetailInner() {
   async function connectInstagram() {
     setIgConnecting(true);
     try {
+      // First try using the already-stored Facebook page token (no extra OAuth)
+      const result = await api.post('/api/integrations/instagram/connect-via-facebook', { agent_id: id }, orgId);
+      if (result.success) {
+        showToast(`Instagram @${result.ig_username} conectado`, true);
+        setIgStatus({ connected: true, ig_username: result.ig_username, page_name: null });
+        setIgConnecting(false);
+        return;
+      }
+    } catch (e: any) {
+      const msg: string = e.message ?? '';
+      // If FB isn't connected yet, fall through to full OAuth
+      if (!msg.includes('No hay una página de Facebook')) {
+        showToast(msg || 'Error al conectar Instagram', false);
+        setIgConnecting(false);
+        return;
+      }
+    }
+    // Fallback: full OAuth flow
+    try {
       const { url } = await api.get(`/api/integrations/instagram/connect?agent_id=${id}`, orgId);
       window.location.href = url;
     } catch (e: any) {

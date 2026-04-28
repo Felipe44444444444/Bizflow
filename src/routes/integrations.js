@@ -1023,4 +1023,87 @@ async function handleWhatsAppMessage({ phoneNumberId, fromPhone, text }) {
   }
 }
 
+// POST /instagram/connect-via-facebook — usa el token de FB ya almacenado para conectar IG
+router.post('/instagram/connect-via-facebook', authMiddleware, async (req, res) => {
+  const { agent_id } = req.body;
+  if (!agent_id) return res.status(400).json({ error: 'agent_id requerido' });
+
+  const { data: fbChannel } = await supabaseAdmin
+    .from('channels')
+    .select('*')
+    .eq('agent_id', agent_id)
+    .eq('organization_id', req.organizationId)
+    .eq('type', 'facebook')
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (!fbChannel?.config?.access_token || !fbChannel?.config?.page_id) {
+    return res.status(404).json({
+      error: 'No hay una página de Facebook conectada para este agente. Conecta Facebook primero.',
+    });
+  }
+
+  const { access_token, page_id } = fbChannel.config;
+
+  const igRes = await fetch(
+    `https://graph.facebook.com/v19.0/${page_id}?fields=instagram_business_account{id,username,name,profile_picture_url}&access_token=${access_token}`
+  );
+  const igData = await igRes.json();
+  console.log('[IG via FB] igData:', JSON.stringify(igData));
+
+  if (!igData.instagram_business_account?.id) {
+    return res.status(400).json({
+      error: 'La página de Facebook no tiene una cuenta de Instagram Business vinculada.',
+      help: 'Ve a Configuración de Instagram → Cuenta → Cambiar a cuenta profesional → Empresa. Luego en tu Página de Facebook → Configuración → Instagram → Conectar cuenta.',
+      page_id,
+    });
+  }
+
+  const ig = igData.instagram_business_account;
+
+  const { data: existingIg } = await supabaseAdmin
+    .from('channels')
+    .select('id')
+    .eq('agent_id', agent_id)
+    .eq('organization_id', req.organizationId)
+    .eq('type', 'instagram')
+    .maybeSingle();
+
+  const channelPayload = {
+    agent_id,
+    organization_id: req.organizationId,
+    type: 'instagram',
+    name: ig.username ? `@${ig.username}` : (ig.name || 'Instagram'),
+    is_active: true,
+    config: {
+      ig_user_id: ig.id,
+      ig_username: ig.username,
+      page_id,
+      access_token,
+      profile_picture_url: ig.profile_picture_url || null,
+    },
+  };
+
+  let result;
+  if (existingIg) {
+    const { data, error } = await supabaseAdmin
+      .from('channels')
+      .update(channelPayload)
+      .eq('id', existingIg.id)
+      .select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    result = data;
+  } else {
+    const { data, error } = await supabaseAdmin
+      .from('channels')
+      .insert(channelPayload)
+      .select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    result = data;
+  }
+
+  console.log(`[IG via FB] Connected @${ig.username} (ig_user_id=${ig.id}) agent=${agent_id}`);
+  res.json({ success: true, channel: result, ig_username: ig.username });
+});
+
 module.exports = router;

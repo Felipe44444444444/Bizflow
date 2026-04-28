@@ -729,8 +729,14 @@ router.get('/instagram/callback', async (req, res) => {
     const pgData = await pgRes.json();
     const rawPages = pgData.data || [];
     console.log('[Instagram callback] pages found:', rawPages.length, rawPages.map(p => ({ id: p.id, name: p.name })));
-    const pages  = rawPages;
-    if (pages.length === 0) throw new Error('No tienes páginas de Facebook vinculadas a tu cuenta');
+    const pages = rawPages;
+    if (pages.length === 0) {
+      const errorMsg = encodeURIComponent(
+        'NO_PAGES: No encontramos páginas de Facebook asociadas a tu cuenta. ' +
+        'Necesitas ser administrador de una Página de Facebook con una cuenta de Instagram Business vinculada.'
+      );
+      return res.redirect(`${baseUrl}&error=${errorMsg}`);
+    }
 
     // Find the first page that has an Instagram Business account
     let igAccountId = null, igUsername = null, chosenPageId = null, chosenPageName = null, chosenPageToken = null;
@@ -752,7 +758,12 @@ router.get('/instagram/callback', async (req, res) => {
 
     if (!igAccountId) {
       console.log('[Instagram callback] No Instagram Business account found on any page. Total pages checked:', pages.length);
-      throw new Error('Ninguna de tus páginas tiene una cuenta de Instagram Business vinculada. Ve a Instagram → Configuración → Cambiar a cuenta profesional y vincula tu página.');
+      const errorMsg = encodeURIComponent(
+        'NO_IG_LINKED: Ninguna de tus páginas de Facebook tiene una cuenta de Instagram Business vinculada. ' +
+        'Ve a Configuración de Instagram → Cuenta → Cambiar a cuenta profesional → Empresa. ' +
+        'Luego en la configuración de tu Página de Facebook → Instagram → Conectar cuenta.'
+      );
+      return res.redirect(`${baseUrl}&error=${errorMsg}`);
     }
 
     // Subscribe page to messaging webhook
@@ -783,6 +794,7 @@ router.get('/instagram/callback', async (req, res) => {
       await upsertMetaChannel({ agentId: targetAgentId, organizationId, type: 'instagram', name: `Instagram — ${igUsername || chosenPageName}`, config: { access_token: chosenPageToken, ig_account_id: igAccountId, page_id: chosenPageId } });
     }
 
+    console.log('[Instagram callback] Result:', { pagesCount: rawPages?.length, linkedIgPages: pages?.filter(p => p.instagram_user_id).length });
     console.log(`[Instagram OAuth] Connected: @${igUsername} (ig=${igAccountId}) page=${chosenPageName} org=${organizationId}`);
     res.redirect(`${baseUrl}&ig=connected`);
   } catch (err) {

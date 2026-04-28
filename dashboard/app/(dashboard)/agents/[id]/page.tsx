@@ -95,6 +95,7 @@ function AgentDetailInner() {
   const [waDisconnecting, setWaDisconnecting] = useState(false);
 
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [urlError, setUrlError] = useState<string | null>(null);
 
   // ── Leads & retargeting state ─────────────────────────────────────────────────
   const [leads, setLeads]                     = useState<any[]>([]);
@@ -213,6 +214,12 @@ function AgentDetailInner() {
           .then((d: any) => setWaStatus(d)).catch(() => {});
       } else if (waErr) {
         showToast(`Error al conectar WhatsApp: ${waErr}`, false);
+        router.replace(`/agents/${id}?tab=canales`);
+      }
+
+      const urlErrorParam = searchParams.get('error');
+      if (urlErrorParam) {
+        setUrlError(urlErrorParam);
         router.replace(`/agents/${id}?tab=canales`);
       }
     }
@@ -530,6 +537,21 @@ function AgentDetailInner() {
       />
 
       <div className="p-6">
+        {urlError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm font-semibold text-red-700 mb-1">Error al conectar Instagram</p>
+            <p className="text-sm text-red-600">{urlError}</p>
+            <a
+              href="https://help.instagram.com/502981923235522"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 underline mt-2 inline-block"
+            >
+              Ver guía de Instagram Business →
+            </a>
+          </div>
+        )}
+
         <Tabs defaultValue={defaultTab}>
           <TabsList className="mb-6">
             <TabsTrigger value="cerebro" className="gap-1.5">
@@ -1104,7 +1126,22 @@ function AgentDetailInner() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">Necesitas una cuenta Instagram Business o Creator vinculada a una página de Facebook.</p>
+                      <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                        <p className="font-semibold mb-1">Requisitos previos:</p>
+                        <ol className="list-decimal list-inside space-y-1">
+                          <li>Debes tener una <strong>Página de Facebook</strong> (no perfil personal)</li>
+                          <li>Tu cuenta de Instagram debe ser <strong>Business o Creator</strong></li>
+                          <li>La cuenta de Instagram debe estar <strong>vinculada a tu Página de Facebook</strong></li>
+                        </ol>
+                        <a
+                          href="https://www.facebook.com/help/1148909221857370"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 underline mt-2 inline-block"
+                        >
+                          Cómo vincular Instagram a tu Página de Facebook →
+                        </a>
+                      </div>
                       <Button
                         size="sm"
                         className="w-full gap-2 bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] text-white hover:opacity-90"

@@ -307,26 +307,27 @@ router.get('/meta/auth-url', async (req, res) => {
   res.json({ url });
 });
 
-// GET /meta/callback — exchange OAuth code for page tokens, return pages list
+// GET /meta/callback — exchange OAuth code, save FB+IG channels to DB immediately
 router.get('/meta/callback', async (req, res) => {
   const { code, state } = req.query;
   if (!code || !state) return res.status(400).json({ error: 'code and state are required' });
 
-  const parts  = String(state).split('_');
-  const orgId  = parts[parts.length - 1];
+  const parts   = String(state).split('_');
+  const orgId   = parts[parts.length - 1];
   const agentId = parts.slice(0, parts.length - 1).join('_');
 
   if (orgId !== req.organizationId) {
     return res.status(403).json({ error: 'State mismatch — org does not match session' });
   }
 
+  const appId     = META_APP_ID;
   const appSecret = process.env.META_APP_SECRET;
   if (!appSecret) return res.status(500).json({ error: 'META_APP_SECRET not configured' });
 
-  // Exchange code for user access token
+  // 1) Exchange code for short-lived user token
   const tokenRes = await fetch(
     `https://graph.facebook.com/v19.0/oauth/access_token`
-    + `?client_id=${META_APP_ID}`
+    + `?client_id=${appId}`
     + `&client_secret=${appSecret}`
     + `&redirect_uri=${encodeURIComponent(META_REDIRECT)}`
     + `&code=${encodeURIComponent(code)}`
@@ -335,13 +336,26 @@ router.get('/meta/callback', async (req, res) => {
   if (tokenData.error) {
     return res.status(400).json({ error: tokenData.error.message || 'Failed to exchange OAuth code' });
   }
-
   const userToken = tokenData.access_token;
 
-  // Get pages managed by the user
-  const pagesRes = await fetch(
+  // 2) Exchange for long-lived token
+  let longLivedToken = userToken;
+  try {
+    const llRes  = await fetch(
+      `https://graph.facebook.com/v19.0/oauth/access_token`
+      + `?grant_type=fb_exchange_token`
+      + `&client_id=${appId}`
+      + `&client_secret=${appSecret}`
+      + `&fb_exchange_token=${userToken}`
+    );
+    const llData = await llRes.json();
+    if (llData.access_token) longLivedToken = llData.access_token;
+  } catch (e) { console.warn('[Meta callback] Long-lived token exchange failed, using short-lived'); }
+
+  // 3) Get pages
+  const pagesRes  = await fetch(
     `https://graph.facebook.com/v19.0/me/accounts`
-    + `?access_token=${userToken}`
+    + `?access_token=${longLivedToken}`
     + `&fields=id,name,access_token,category`
   );
   const pagesData = await pagesRes.json();
@@ -350,37 +364,118 @@ router.get('/meta/callback', async (req, res) => {
   }
 
   const rawPages = pagesData.data || [];
+  if (rawPages.length === 0) {
+    return res.status(400).json({
+      error: 'NO_PAGES: Tu cuenta no tiene Páginas de Facebook. Debes ser administrador de una Página.',
+    });
+  }
 
-  // For each page fetch its linked Instagram Business Account (if any)
+  // 4) Enrich each page with Instagram Business account
   const pages = await Promise.all(
     rawPages.map(async (page) => {
       try {
         const igRes  = await fetch(
           `https://graph.facebook.com/v19.0/${page.id}`
-          + `?fields=instagram_business_account`
+          + `?fields=instagram_business_account{id,username,name}`
           + `&access_token=${page.access_token}`
         );
         const igData = await igRes.json();
+        console.log(`[Meta callback] page ${page.id} (${page.name}) ig:`, JSON.stringify(igData.instagram_business_account));
         return {
-          id:                 page.id,
-          name:               page.name,
-          access_token:       page.access_token,
-          category:           page.category,
-          instagram_user_id:  igData.instagram_business_account?.id || null,
+          id:                  page.id,
+          name:                page.name,
+          access_token:        page.access_token,
+          category:            page.category,
+          instagram_user_id:   igData.instagram_business_account?.id     || null,
+          instagram_username:  igData.instagram_business_account?.username || null,
         };
       } catch {
-        return {
-          id:                page.id,
-          name:              page.name,
-          access_token:      page.access_token,
-          category:          page.category,
-          instagram_user_id: null,
-        };
+        return { id: page.id, name: page.name, access_token: page.access_token, category: page.category, instagram_user_id: null, instagram_username: null };
       }
     })
   );
 
-  res.json({ pages, agentId });
+  // 5) Auto-generate verify token for webhooks
+  const verifyToken = require('crypto').randomBytes(16).toString('hex');
+
+  // 6) Save FB + IG channels to DB for every page
+  const savedChannels = [];
+
+  for (const page of pages) {
+    const fbConfig = {
+      page_id:            page.id,
+      access_token:       page.access_token,
+      verify_token:       verifyToken,
+      page_name:          page.name,
+      user_access_token:  longLivedToken,
+    };
+
+    // Subscribe page to Facebook webhooks
+    try {
+      await fetch(`https://graph.facebook.com/v19.0/${page.id}/subscribed_apps`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: page.access_token, subscribed_fields: ['messages', 'messaging_postbacks', 'messaging_referrals'] }),
+      });
+    } catch (e) { console.warn('[Meta callback] Webhook subscription failed for page', page.id, e.message); }
+
+    // Upsert Facebook channel
+    const { data: fbExisting } = await supabaseAdmin.from('channels').select('id')
+      .eq('organization_id', orgId).eq('agent_id', agentId).eq('type', 'facebook').maybeSingle();
+
+    let fbChannel;
+    if (fbExisting) {
+      const { data } = await supabaseAdmin.from('channels')
+        .update({ config: fbConfig, is_active: true, connected_at: new Date().toISOString(), name: page.name })
+        .eq('id', fbExisting.id).select().single();
+      fbChannel = data;
+    } else {
+      const { data } = await supabaseAdmin.from('channels')
+        .insert({ organization_id: orgId, agent_id: agentId, type: 'facebook', name: page.name, is_active: true, connected_at: new Date().toISOString(), config: fbConfig })
+        .select().single();
+      fbChannel = data;
+    }
+    if (fbChannel) savedChannels.push({ type: 'facebook', channel: fbChannel });
+
+    // Upsert Instagram channel (only if IG Business account is linked)
+    if (page.instagram_user_id) {
+      const igConfig = {
+        ig_user_id:         page.instagram_user_id,
+        ig_username:        page.instagram_username,
+        page_id:            page.id,
+        access_token:       page.access_token,
+        verify_token:       verifyToken,
+        user_access_token:  longLivedToken,
+      };
+
+      const { data: igExisting } = await supabaseAdmin.from('channels').select('id')
+        .eq('organization_id', orgId).eq('agent_id', agentId).eq('type', 'instagram').maybeSingle();
+
+      let igChannel;
+      if (igExisting) {
+        const { data } = await supabaseAdmin.from('channels')
+          .update({ config: igConfig, is_active: true, connected_at: new Date().toISOString(), name: page.instagram_username || 'Instagram' })
+          .eq('id', igExisting.id).select().single();
+        igChannel = data;
+      } else {
+        const { data } = await supabaseAdmin.from('channels')
+          .insert({ organization_id: orgId, agent_id: agentId, type: 'instagram', name: page.instagram_username || 'Instagram', is_active: true, connected_at: new Date().toISOString(), config: igConfig })
+          .select().single();
+        igChannel = data;
+      }
+      if (igChannel) savedChannels.push({ type: 'instagram', channel: igChannel });
+    }
+  }
+
+  console.log('[Meta callback] Saved channels:', savedChannels.map(c => `${c.type}:${c.channel?.id}`));
+
+  res.json({
+    pages,
+    agentId,
+    savedChannels,
+    verifyToken,
+    noInstagram: pages.every(p => !p.instagram_user_id),
+  });
 });
 
 module.exports = router;

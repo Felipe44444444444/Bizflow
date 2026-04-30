@@ -675,9 +675,9 @@ async function handleMetaMessage({ lookupField, lookupValue, senderId, text, pla
 // ═════════════════════════ INSTAGRAM ══════════════════════════════════════════
 
 // ── GET /api/integrations/instagram/connect?agent_id=xxx ─────────────────────
-// Uses Instagram Business Login — no Facebook Page linking required
+// Uses Facebook Login with Instagram Business scopes — proven token exchange path
 router.get('/instagram/connect', authMiddleware, (req, res) => {
-  const appId       = process.env.INSTAGRAM_APP_ID || metaAppId();
+  const appId       = metaAppId();
   const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
   if (!appId || !redirectUri) return res.status(500).json({ error: 'Instagram app not configured' });
 
@@ -689,26 +689,20 @@ router.get('/instagram/connect', authMiddleware, (req, res) => {
     'instagram_business_basic',
     'instagram_business_manage_messages',
     'instagram_business_manage_comments',
+    'pages_show_list',
+    'pages_read_engagement',
   ].join(',');
 
-  const url = `https://www.instagram.com/oauth/authorize`
+  const url = `https://www.facebook.com/v21.0/dialog/oauth`
     + `?client_id=${encodeURIComponent(appId)}`
     + `&redirect_uri=${encodeURIComponent(redirectUri)}`
     + `&scope=${encodeURIComponent(scope)}`
     + `&response_type=code`
     + `&state=${encodeURIComponent(state)}`;
 
-  console.log('[Instagram connect] app_id:', appId, '| redirect_uri:', redirectUri, '| scope:', scope);
+  console.log('[Instagram connect] app_id:', appId, '| redirect_uri:', redirectUri);
   console.log('[Instagram connect] full URL:', url);
-
-  res.json({
-    url: `https://www.instagram.com/oauth/authorize`
-      + `?client_id=${encodeURIComponent(appId)}`
-      + `&redirect_uri=${encodeURIComponent(redirectUri)}`
-      + `&scope=${encodeURIComponent(scope)}`
-      + `&response_type=code`
-      + `&state=${encodeURIComponent(state)}`,
-  });
+  res.json({ url });
 });
 
 // ── GET /api/integrations/instagram/callback ──────────────────────────────────
@@ -730,48 +724,50 @@ router.get('/instagram/callback', async (req, res) => {
   const errDest = (m) => `${cbUrl}?error=${encodeURIComponent(m)}&agent_id=${agentId || ''}`;
 
   try {
-    const appId       = process.env.INSTAGRAM_APP_ID    || metaAppId();
-    const appSecret   = process.env.INSTAGRAM_APP_SECRET || metaAppSecret();
+    const appId       = metaAppId();
+    const appSecret   = metaAppSecret();
     const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
-    if (!appSecret) throw new Error('INSTAGRAM_APP_SECRET / META_APP_SECRET not configured');
+    if (!appSecret) throw new Error('META_APP_SECRET not configured');
 
-    // Step 1: exchange code → short-lived token
-    const postBody = new URLSearchParams({ client_id: appId, client_secret: appSecret, grant_type: 'authorization_code', redirect_uri: redirectUri, code });
-    console.log('[Instagram callback] token exchange POST body (raw):', postBody.toString().replace(appSecret, '***'));
-    console.log('[Instagram callback] redirectUri bytes:', Buffer.from(redirectUri).toString('hex'));
-    const tkRes  = await fetch('https://api.instagram.com/oauth/access_token', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body:    postBody,
-    });
+    // Step 1: exchange code → short-lived Facebook token
+    const tkRes  = await fetch(
+      `${FB_BASE}/oauth/access_token`
+      + `?client_id=${encodeURIComponent(appId)}`
+      + `&client_secret=${encodeURIComponent(appSecret)}`
+      + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+      + `&code=${encodeURIComponent(code)}`
+    );
     const tkData = await tkRes.json();
-    console.log('[Instagram callback] short token:', { user_id: tkData.user_id, has_token: !!tkData.access_token, error: tkData.error_message });
-    if (!tkData.access_token) throw new Error(tkData.error_message || 'Token exchange failed');
+    console.log('[Instagram callback] short token:', { has_token: !!tkData.access_token, error: tkData.error?.message });
+    if (!tkData.access_token) throw new Error(tkData.error?.message || 'Token exchange failed');
 
     // Step 2: exchange → long-lived token (60 days)
     const llRes  = await fetch(
-      `https://graph.instagram.com/access_token`
-      + `?grant_type=ig_exchange_token`
+      `${FB_BASE}/oauth/access_token`
+      + `?grant_type=fb_exchange_token`
+      + `&client_id=${encodeURIComponent(appId)}`
       + `&client_secret=${encodeURIComponent(appSecret)}`
-      + `&access_token=${encodeURIComponent(tkData.access_token)}`
+      + `&fb_exchange_token=${encodeURIComponent(tkData.access_token)}`
     );
     const llData = await llRes.json();
-    console.log('[Instagram callback] long token:', { expires_in: llData.expires_in, has_token: !!llData.access_token, error: llData.error?.message });
+    console.log('[Instagram callback] long token:', { has_token: !!llData.access_token, error: llData.error?.message });
     const longToken = llData.access_token || tkData.access_token;
 
-    // Step 3: get Instagram user info
-    const meRes  = await fetch(
-      `https://graph.instagram.com/v21.0/me`
-      + `?fields=user_id,name,username,profile_picture_url`
+    // Step 3: get Instagram Business accounts linked to the user
+    const igListRes  = await fetch(
+      `${FB_BASE}/me/instagram_business_accounts`
+      + `?fields=id,username,name,profile_picture_url`
       + `&access_token=${encodeURIComponent(longToken)}`
     );
-    const meData = await meRes.json();
-    console.log('[Instagram callback] me:', JSON.stringify(meData));
-    const igAccountId = String(meData.user_id || meData.id || '');
-    if (!igAccountId) throw new Error(meData.error?.message || 'Could not retrieve Instagram user info');
+    const igListData = await igListRes.json();
+    console.log('[Instagram callback] instagram_business_accounts:', JSON.stringify(igListData));
 
-    const igUsername = meData.username || null;
-    const igName     = meData.name     || null;
+    const igAccount = igListData.data?.[0];
+    if (!igAccount?.id) throw new Error('No Instagram Business account found for this user. Make sure your Instagram account is a Professional account.');
+
+    const igAccountId = igAccount.id;
+    const igUsername  = igAccount.username || null;
+    const igName      = igAccount.name     || null;
 
     // Step 4: save to DB
     const row = {

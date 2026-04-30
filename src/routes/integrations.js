@@ -754,34 +754,51 @@ router.get('/instagram/callback', async (req, res) => {
     console.log('[Instagram callback] long token:', { has_token: !!llData.access_token, error: llData.error?.message });
     const longToken = llData.access_token || tkData.access_token;
 
-    // Step 3: get pages the user manages
-    const pagesRes  = await fetch(
-      `${FB_BASE}/me/accounts?fields=id,name,access_token&access_token=${encodeURIComponent(longToken)}`
-    );
-    const pagesData = await pagesRes.json();
-    console.log('[Instagram callback] pages:', pagesData.data?.map(p => ({ id: p.id, name: p.name })));
+    // Step 3: try /me/instagram_business_accounts (works when business_management scope granted)
+    let igAccountId = null, igUsername = null, igName = null, chosenPageToken = longToken;
 
-    // Step 4: for each page, find the Instagram account linked to it
-    let igAccountId = null, igUsername = null, igName = null, chosenPageToken = null;
-    for (const page of (pagesData.data || [])) {
-      const igRes  = await fetch(
-        `${FB_BASE}/${page.id}/instagram_business_accounts`
-        + `?fields=id,username,name,profile_picture_url`
-        + `&access_token=${encodeURIComponent(page.access_token)}`
+    const igUserRes  = await fetch(
+      `${FB_BASE}/me/instagram_business_accounts`
+      + `?fields=id,username,name,profile_picture_url`
+      + `&access_token=${encodeURIComponent(longToken)}`
+    );
+    const igUserData = await igUserRes.json();
+    console.log('[Instagram callback] /me/instagram_business_accounts:', JSON.stringify(igUserData));
+    const igFromUser = igUserData.data?.[0];
+    if (igFromUser?.id) {
+      igAccountId = igFromUser.id;
+      igUsername  = igFromUser.username || null;
+      igName      = igFromUser.name     || null;
+    }
+
+    // Step 4: fallback — iterate pages and query instagram_business_account field
+    if (!igAccountId) {
+      const pagesRes  = await fetch(
+        `${FB_BASE}/me/accounts?fields=id,name,access_token&access_token=${encodeURIComponent(longToken)}`
       );
-      const igData = await igRes.json();
-      console.log(`[Instagram callback] page ${page.id} (${page.name}) ig_accounts:`, JSON.stringify(igData));
-      const ig = igData.data?.[0];
-      if (ig?.id) {
-        igAccountId     = ig.id;
-        igUsername      = ig.username || null;
-        igName          = ig.name     || null;
-        chosenPageToken = page.access_token;
-        break;
+      const pagesData = await pagesRes.json();
+      console.log('[Instagram callback] pages:', pagesData.data?.map(p => ({ id: p.id, name: p.name })));
+
+      for (const page of (pagesData.data || [])) {
+        const igRes  = await fetch(
+          `${FB_BASE}/${page.id}`
+          + `?fields=instagram_business_account%7Bid%2Cusername%2Cname%2Cprofile_picture_url%7D`
+          + `&access_token=${encodeURIComponent(page.access_token)}`
+        );
+        const igData = await igRes.json();
+        console.log(`[Instagram callback] page ${page.id} (${page.name}) instagram_business_account:`, JSON.stringify(igData));
+        const ig = igData.instagram_business_account;
+        if (ig?.id) {
+          igAccountId     = ig.id;
+          igUsername      = ig.username || null;
+          igName          = ig.name     || null;
+          chosenPageToken = page.access_token;
+          break;
+        }
       }
     }
 
-    if (!igAccountId) throw new Error('No Instagram Business account found on any of your Facebook Pages.');
+    if (!igAccountId) throw new Error('No Instagram Business account found. Make sure your Instagram is a Professional account linked to your Facebook Page.');
 
     // Step 5: save to DB
     const row = {

@@ -245,7 +245,7 @@ export default function ChannelsPage() {
 
         if (savedChannels?.length > 0) {
           setChannels((prev: any[]) => {
-            let updated = [...prev];
+            const updated = [...prev];
             for (const saved of savedChannels) {
               const idx = updated.findIndex((c: any) => c.id === saved.channel.id);
               if (idx >= 0) updated[idx] = saved.channel;

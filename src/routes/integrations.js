@@ -735,6 +735,7 @@ router.get('/instagram/callback', async (req, res) => {
     if (!appSecret) throw new Error('INSTAGRAM_APP_SECRET / META_APP_SECRET not configured');
 
     // Step 1: exchange code → short-lived token
+    console.log('[Instagram callback] token exchange body:', { client_id: appId, redirect_uri: redirectUri, grant_type: 'authorization_code', code: code?.slice(0,20) + '...' });
     const tkRes  = await fetch('https://api.instagram.com/oauth/access_token', {
       method:  'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

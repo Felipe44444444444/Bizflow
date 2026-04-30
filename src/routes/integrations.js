@@ -754,23 +754,36 @@ router.get('/instagram/callback', async (req, res) => {
     console.log('[Instagram callback] long token:', { has_token: !!llData.access_token, error: llData.error?.message });
     const longToken = llData.access_token || tkData.access_token;
 
-    // Step 3: get Instagram Business accounts linked to the user
-    const igListRes  = await fetch(
-      `${FB_BASE}/me/instagram_business_accounts`
-      + `?fields=id,username,name,profile_picture_url`
-      + `&access_token=${encodeURIComponent(longToken)}`
+    // Step 3: get pages the user manages
+    const pagesRes  = await fetch(
+      `${FB_BASE}/me/accounts?fields=id,name,access_token&access_token=${encodeURIComponent(longToken)}`
     );
-    const igListData = await igListRes.json();
-    console.log('[Instagram callback] instagram_business_accounts:', JSON.stringify(igListData));
+    const pagesData = await pagesRes.json();
+    console.log('[Instagram callback] pages:', pagesData.data?.map(p => ({ id: p.id, name: p.name })));
 
-    const igAccount = igListData.data?.[0];
-    if (!igAccount?.id) throw new Error('No Instagram Business account found for this user. Make sure your Instagram account is a Professional account.');
+    // Step 4: for each page, find the Instagram account linked to it
+    let igAccountId = null, igUsername = null, igName = null, chosenPageToken = null;
+    for (const page of (pagesData.data || [])) {
+      const igRes  = await fetch(
+        `${FB_BASE}/${page.id}/instagram_business_accounts`
+        + `?fields=id,username,name,profile_picture_url`
+        + `&access_token=${encodeURIComponent(page.access_token)}`
+      );
+      const igData = await igRes.json();
+      console.log(`[Instagram callback] page ${page.id} (${page.name}) ig_accounts:`, JSON.stringify(igData));
+      const ig = igData.data?.[0];
+      if (ig?.id) {
+        igAccountId     = ig.id;
+        igUsername      = ig.username || null;
+        igName          = ig.name     || null;
+        chosenPageToken = page.access_token;
+        break;
+      }
+    }
 
-    const igAccountId = igAccount.id;
-    const igUsername  = igAccount.username || null;
-    const igName      = igAccount.name     || null;
+    if (!igAccountId) throw new Error('No Instagram Business account found on any of your Facebook Pages.');
 
-    // Step 4: save to DB
+    // Step 5: save to DB
     const row = {
       organization_id:   organizationId,
       agent_id:          agentId || undefined,
@@ -778,7 +791,7 @@ router.get('/instagram/callback', async (req, res) => {
       ig_username:       igUsername,
       page_id:           null,
       page_name:         null,
-      page_access_token: longToken,
+      page_access_token: chosenPageToken,
       is_active:         true,
       updated_at:        new Date().toISOString(),
     };
@@ -793,7 +806,7 @@ router.get('/instagram/callback', async (req, res) => {
         organizationId,
         type:           'instagram',
         name:           `Instagram — ${igUsername || igName || igAccountId}`,
-        config:         { access_token: longToken, ig_account_id: igAccountId, page_id: null },
+        config:         { access_token: chosenPageToken, ig_account_id: igAccountId, page_id: null },
       });
     }
 

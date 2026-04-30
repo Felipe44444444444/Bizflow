@@ -499,20 +499,50 @@ router.post('/instagram/link-from-facebook', authMiddleware, async (req, res) =>
   const { access_token, page_id } = fbChannel.config;
   console.log(`[IG link-from-FB] org=${req.organizationId} agent=${agent_id} page_id=${page_id} token_prefix=${access_token?.slice(0,20)}`);
 
-  const igRes = await fetch(
-    `https://graph.facebook.com/v19.0/${page_id}` +
-    `?fields=instagram_business_account{id,username,name,followers_count,profile_picture_url}` +
-    `&access_token=${access_token}`
-  );
-  const igData = await igRes.json();
-  console.log('[IG link-from-FB] full igData:', JSON.stringify(igData));
-  console.log('[IG link-from-FB] ig_found:', !!igData.instagram_business_account?.id, '| error:', igData.error?.message || 'none');
+  const FB = 'https://graph.facebook.com/v19.0';
+  let igAccountId = null, igUsername = null, igName = null, igPicture = null;
 
-  if (igData.error) {
-    return res.status(400).json({ error: igData.error.message, code: igData.error.code });
+  // Method 1: instagram_business_account (Business accounts)
+  const r1 = await fetch(`${FB}/${page_id}?fields=instagram_business_account%7Bid,username,name,followers_count,profile_picture_url%7D&access_token=${access_token}`);
+  const d1 = await r1.json();
+  console.log('[IG link-from-FB] method1 (instagram_business_account):', JSON.stringify(d1));
+  if (d1.instagram_business_account?.id) {
+    igAccountId = d1.instagram_business_account.id;
+    igUsername  = d1.instagram_business_account.username || null;
+    igName      = d1.instagram_business_account.name || null;
+    igPicture   = d1.instagram_business_account.profile_picture_url || null;
   }
 
-  if (!igData.instagram_business_account?.id) {
+  // Method 2: connected_instagram_account (Creator accounts)
+  if (!igAccountId) {
+    const r2 = await fetch(`${FB}/${page_id}?fields=connected_instagram_account%7Bid,username,name,profile_picture_url%7D&access_token=${access_token}`);
+    const d2 = await r2.json();
+    console.log('[IG link-from-FB] method2 (connected_instagram_account):', JSON.stringify(d2));
+    if (d2.connected_instagram_account?.id) {
+      igAccountId = d2.connected_instagram_account.id;
+      igUsername  = d2.connected_instagram_account.username || null;
+      igName      = d2.connected_instagram_account.name || null;
+      igPicture   = d2.connected_instagram_account.profile_picture_url || null;
+    }
+  }
+
+  // Method 3: /{page-id}/instagram_accounts edge
+  if (!igAccountId) {
+    const r3 = await fetch(`${FB}/${page_id}/instagram_accounts?fields=id,username,name,profile_picture_url&access_token=${access_token}`);
+    const d3 = await r3.json();
+    console.log('[IG link-from-FB] method3 (instagram_accounts edge):', JSON.stringify(d3));
+    const first = d3.data?.[0];
+    if (first?.id) {
+      igAccountId = first.id;
+      igUsername  = first.username || null;
+      igName      = first.name || null;
+      igPicture   = first.profile_picture_url || null;
+    }
+  }
+
+  console.log(`[IG link-from-FB] result: ig_found=${!!igAccountId} ig_id=${igAccountId} ig_username=${igUsername}`);
+
+  if (!igAccountId) {
     return res.status(400).json({
       error: 'NO_IG_LINKED',
       message: 'Tu página de Facebook no tiene una cuenta de Instagram Business vinculada.',
@@ -524,7 +554,7 @@ router.post('/instagram/link-from-facebook', authMiddleware, async (req, res) =>
     });
   }
 
-  const ig = igData.instagram_business_account;
+  const ig = { id: igAccountId, username: igUsername, name: igName, profile_picture_url: igPicture };
   const verifyToken = require('crypto').randomBytes(16).toString('hex');
 
   const igConfig = {

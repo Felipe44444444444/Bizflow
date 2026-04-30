@@ -686,11 +686,12 @@ router.get('/instagram/connect', authMiddleware, (req, res) => {
     : req.organizationId;
 
   const scope = [
-    'instagram_business_basic',
-    'instagram_business_manage_messages',
-    'instagram_business_manage_comments',
     'pages_show_list',
     'pages_read_engagement',
+    'pages_messaging',
+    'instagram_manage_messages',
+    'instagram_manage_comments',
+    'business_management',
   ].join(',');
 
   const url = `https://www.facebook.com/v21.0/dialog/oauth`

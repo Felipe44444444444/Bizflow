@@ -201,7 +201,7 @@ export default function ChannelsPage() {
     openModal('instagram');
   }
 
-  // Fetch OAuth URL and open Meta popup
+  // Fetch OAuth URL and open Meta popup (Facebook)
   async function startMetaOAuth() {
     setMetaConnecting(true); setVerifyResult(null);
     try {
@@ -213,10 +213,33 @@ export default function ChannelsPage() {
     }
   }
 
+  // Open Instagram Business Login popup (direct OAuth — no Facebook Page required)
+  async function startInstagramOAuth() {
+    setMetaConnecting(true); setVerifyResult(null);
+    try {
+      const result = await api.get(`/api/integrations/instagram/connect?agent_id=${agentId}`, orgId);
+      window.open(result.url, "instagram_oauth", "width=600,height=700,scrollbars=yes,resizable=yes");
+    } catch (e: any) {
+      setVerifyResult({ verified: false, detail: e.message });
+      setMetaConnecting(false);
+    }
+  }
+
   // Listen for postMessage from the Meta OAuth popup
   useEffect(() => {
     function handleMessage(e: MessageEvent) {
-      if (e.data?.type === "meta_connected") {
+      if (e.data?.type === "instagram_connected") {
+        setMetaConnecting(false);
+        // Reload channels to pick up the newly saved instagram channel
+        api.get(`/api/channels?agent_id=${agentId}`, orgId)
+          .then((data: any) => { if (data?.channels) setChannels(data.channels); })
+          .catch(() => {});
+        setVerifyResult({ verified: true, detail: `@${e.data.ig_username || e.data.ig_account_id} conectado exitosamente` });
+        setTimeout(() => setActiveType(null), 1800);
+      } else if (e.data?.type === "instagram_error") {
+        setVerifyResult({ verified: false, detail: e.data.error || "Error en OAuth de Instagram" });
+        setMetaConnecting(false);
+      } else if (e.data?.type === "meta_connected") {
         const { savedChannels, noInstagram } = e.data;
         setMetaConnecting(false);
 
@@ -451,10 +474,10 @@ export default function ChannelsPage() {
                   {isIG ? "cuenta de Instagram Business" : "página de Facebook"}.
                   Se abrirá una ventana de autorización y el canal se guardará automáticamente.
                 </p>
-                <Button className="w-full" onClick={startMetaOAuth} disabled={metaConnecting}>
+                <Button className="w-full" onClick={isIG ? startInstagramOAuth : startMetaOAuth} disabled={metaConnecting}>
                   {metaConnecting
                     ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Conectando, espera...</>
-                    : <><ExternalLink className="h-4 w-4 mr-2" />Conectar con Meta</>
+                    : <><ExternalLink className="h-4 w-4 mr-2" />{isIG ? "Conectar con Instagram" : "Conectar con Meta"}</>
                   }
                 </Button>
                 <VerifyBanner />

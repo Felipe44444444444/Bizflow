@@ -691,6 +691,16 @@ router.get('/instagram/connect', authMiddleware, (req, res) => {
     'instagram_business_manage_comments',
   ].join(',');
 
+  const url = `https://www.instagram.com/oauth/authorize`
+    + `?client_id=${encodeURIComponent(appId)}`
+    + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+    + `&scope=${encodeURIComponent(scope)}`
+    + `&response_type=code`
+    + `&state=${encodeURIComponent(state)}`;
+
+  console.log('[Instagram connect] app_id:', appId, '| redirect_uri:', redirectUri, '| scope:', scope);
+  console.log('[Instagram connect] full URL:', url);
+
   res.json({
     url: `https://www.instagram.com/oauth/authorize`
       + `?client_id=${encodeURIComponent(appId)}`

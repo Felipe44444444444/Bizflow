@@ -296,7 +296,7 @@ router.get('/meta/auth-url', async (req, res) => {
   if (!agent) return res.status(404).json({ error: 'Agent not found' });
 
   const state  = `${agentId}_${req.organizationId}`;
-  const scope  = 'pages_messaging,pages_show_list,pages_read_engagement,pages_manage_metadata,instagram_basic,instagram_manage_messages,instagram_manage_comments';
+  const scope  = 'pages_messaging,pages_show_list,pages_read_engagement,pages_manage_metadata,instagram_manage_messages,instagram_manage_comments';
   const url    = `https://www.facebook.com/v19.0/dialog/oauth`
     + `?client_id=${META_APP_ID}`
     + `&redirect_uri=${encodeURIComponent(META_REDIRECT)}`

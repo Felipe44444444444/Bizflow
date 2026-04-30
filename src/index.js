@@ -98,6 +98,33 @@ app.listen(PORT, '0.0.0.0', () => {
     });
 
     console.log('All routes loaded successfully');
+
+    // ── Lead scan cron — every 2 hours, also 60s after startup ────────────────
+    const { scanAbandonedConversations } = require('./services/retargetingService');
+    const { supabaseAdmin } = require('./config/supabase');
+
+    async function runLeadScan() {
+      try {
+        const { data: agents } = await supabaseAdmin
+          .from('agents')
+          .select('id, organization_id')
+          .eq('is_active', true);
+
+        if (!agents?.length) return;
+
+        let total = 0;
+        for (const agent of agents) {
+          const leads = await scanAbandonedConversations(agent.id, agent.organization_id);
+          total += leads.length;
+        }
+        console.log(`[Lead Scan] Scanned ${agents.length} agents — ${total} leads upserted`);
+      } catch (err) {
+        console.error('[Lead Scan] Error:', err.message);
+      }
+    }
+
+    setTimeout(runLeadScan, 60_000);                    // 1 min after startup
+    setInterval(runLeadScan, 2 * 60 * 60 * 1000);      // every 2 hours
   } catch (err) {
     console.error('[startup] Route loading failed:', err.message, err.stack);
     // Server stays up and /health keeps responding even if routes fail

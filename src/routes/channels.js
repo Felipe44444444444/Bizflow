@@ -479,7 +479,7 @@ router.get('/meta/callback', async (req, res) => {
 });
 
 // POST /instagram/link-from-facebook — usa el canal de FB ya conectado para vincular IG
-router.post('/instagram/link-from-facebook', async (req, res) => {
+router.post('/instagram/link-from-facebook', authMiddleware, async (req, res) => {
   const { agent_id } = req.body;
   if (!agent_id) return res.status(400).json({ error: 'agent_id requerido' });
 

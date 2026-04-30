@@ -686,7 +686,6 @@ router.get('/instagram/connect', authMiddleware, (req, res) => {
     : req.organizationId;
 
   const scope = [
-    'instagram_basic',
     'instagram_manage_messages',
     'instagram_manage_comments',
     'pages_messaging',

@@ -497,6 +497,7 @@ router.post('/instagram/link-from-facebook', authMiddleware, async (req, res) =>
   }
 
   const { access_token, page_id } = fbChannel.config;
+  console.log(`[IG link-from-FB] org=${req.organizationId} agent=${agent_id} page_id=${page_id} token_prefix=${access_token?.slice(0,20)}`);
 
   const igRes = await fetch(
     `https://graph.facebook.com/v19.0/${page_id}` +
@@ -504,7 +505,8 @@ router.post('/instagram/link-from-facebook', authMiddleware, async (req, res) =>
     `&access_token=${access_token}`
   );
   const igData = await igRes.json();
-  console.log('[IG link-from-FB] igData:', JSON.stringify(igData));
+  console.log('[IG link-from-FB] full igData:', JSON.stringify(igData));
+  console.log('[IG link-from-FB] ig_found:', !!igData.instagram_business_account?.id, '| error:', igData.error?.message || 'none');
 
   if (igData.error) {
     return res.status(400).json({ error: igData.error.message, code: igData.error.code });

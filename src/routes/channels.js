@@ -296,7 +296,7 @@ router.get('/meta/auth-url', async (req, res) => {
   if (!agent) return res.status(404).json({ error: 'Agent not found' });
 
   const state  = `${agentId}_${req.organizationId}`;
-  const scope  = 'pages_messaging,instagram_manage_messages,pages_show_list,pages_read_engagement,pages_manage_metadata';
+  const scope  = 'pages_messaging,pages_show_list,pages_read_engagement,pages_manage_metadata,instagram_basic,instagram_manage_messages,instagram_manage_comments';
   const url    = `https://www.facebook.com/v19.0/dialog/oauth`
     + `?client_id=${META_APP_ID}`
     + `&redirect_uri=${encodeURIComponent(META_REDIRECT)}`
@@ -356,7 +356,7 @@ router.get('/meta/callback', async (req, res) => {
   const pagesRes  = await fetch(
     `https://graph.facebook.com/v19.0/me/accounts`
     + `?access_token=${longLivedToken}`
-    + `&fields=id,name,access_token,category`
+    + `&fields=id,name,access_token,category,instagram_business_account`
   );
   const pagesData = await pagesRes.json();
   if (pagesData.error) {

@@ -443,6 +443,9 @@ router.get('/facebook/connect', authMiddleware, (req, res) => {
     'pages_show_list',
     'pages_read_engagement',
     'pages_manage_metadata',
+    'instagram_basic',
+    'instagram_manage_messages',
+    'instagram_manage_comments',
   ].join(',');
 
   res.json({

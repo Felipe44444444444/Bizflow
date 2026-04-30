@@ -57,6 +57,7 @@ export default function ChannelsPage() {
   const [metaForm,      setMetaForm]      = useState({ pageId: "", accessToken: "", igUserId: "", verifyToken: genVerifyToken() });
   const [oauthPages,    setOauthPages]    = useState<any[]>([]);
   const [metaConnecting, setMetaConnecting] = useState(false);
+  const [igFastLoading, setIgFastLoading] = useState(false);
   const [waForm,    setWaForm]    = useState({ phoneNumberId: "", accessToken: "", businessAccountId: "" });
   const [slackForm, setSlackForm] = useState({ botToken: "", signingSecret: "" });
 
@@ -161,6 +162,43 @@ export default function ChannelsPage() {
     } catch (e: any) {
       setVerifyResult({ verified: false, detail: e.message });
     } finally { setSaving(false); }
+  }
+
+  // Fast path: use stored FB token to link Instagram without re-OAuth
+  async function handleInstagramConnect() {
+    setIgFastLoading(true);
+    try {
+      const result = await api.post('/api/channels/instagram/link-from-facebook', { agent_id: agentId }, orgId);
+      if (result.success) {
+        setChannels((prev: any[]) => {
+          const idx = prev.findIndex((c: any) => c.type === 'instagram');
+          if (idx >= 0) { const u = [...prev]; u[idx] = result.channel; return u; }
+          return [...prev, result.channel];
+        });
+        setIgFastLoading(false);
+        return;
+      }
+    } catch (err: any) {
+      const msg: string = err.message ?? '';
+      if (msg.includes('NO_IG_LINKED')) {
+        // Open modal at step 3 and show the instructions
+        openModal('instagram');
+        setStep(3);
+        setVerifyResult({ verified: false, detail: 'Tu página de Facebook no tiene Instagram Business vinculado. Ve a Facebook → tu Página → Configuración → Instagram → Conectar cuenta. Luego haz clic en "Conectar con Meta".' });
+        setIgFastLoading(false);
+        return;
+      }
+      if (!msg.includes('No hay Facebook conectado')) {
+        openModal('instagram');
+        setStep(3);
+        setVerifyResult({ verified: false, detail: msg || 'Error al conectar Instagram' });
+        setIgFastLoading(false);
+        return;
+      }
+      // No FB connected → fall through to normal OAuth modal
+    }
+    setIgFastLoading(false);
+    openModal('instagram');
   }
 
   // Fetch OAuth URL and open Meta popup
@@ -722,9 +760,13 @@ export default function ChannelsPage() {
                       <Button
                         size="sm" className="flex-1"
                         variant={channel ? "outline" : "default"}
-                        onClick={() => openModal(type)}
+                        disabled={type === "instagram" && !channel && igFastLoading}
+                        onClick={() => type === "instagram" && !channel ? handleInstagramConnect() : openModal(type)}
                       >
-                        {channel ? "Ver configuración" : "Conectar"}
+                        {type === "instagram" && !channel && igFastLoading
+                          ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Conectando...</>
+                          : channel ? "Ver configuración" : "Conectar"
+                        }
                       </Button>
                       {channel && (
                         <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"

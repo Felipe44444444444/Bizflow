@@ -478,4 +478,88 @@ router.get('/meta/callback', async (req, res) => {
   });
 });
 
+// POST /instagram/link-from-facebook — usa el canal de FB ya conectado para vincular IG
+router.post('/instagram/link-from-facebook', async (req, res) => {
+  const { agent_id } = req.body;
+  if (!agent_id) return res.status(400).json({ error: 'agent_id requerido' });
+
+  const { data: fbChannel } = await supabaseAdmin
+    .from('channels')
+    .select('*')
+    .eq('agent_id', agent_id)
+    .eq('organization_id', req.organizationId)
+    .eq('type', 'facebook')
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (!fbChannel?.config?.access_token || !fbChannel?.config?.page_id) {
+    return res.status(404).json({ error: 'No hay Facebook conectado para este agente.' });
+  }
+
+  const { access_token, page_id } = fbChannel.config;
+
+  const igRes = await fetch(
+    `https://graph.facebook.com/v19.0/${page_id}` +
+    `?fields=instagram_business_account{id,username,name,followers_count,profile_picture_url}` +
+    `&access_token=${access_token}`
+  );
+  const igData = await igRes.json();
+  console.log('[IG link-from-FB] igData:', JSON.stringify(igData));
+
+  if (igData.error) {
+    return res.status(400).json({ error: igData.error.message, code: igData.error.code });
+  }
+
+  if (!igData.instagram_business_account?.id) {
+    return res.status(400).json({
+      error: 'NO_IG_LINKED',
+      message: 'Tu página de Facebook no tiene una cuenta de Instagram Business vinculada.',
+      steps: [
+        '1. Abre Instagram → Perfil → Menú → Configuración → Cuenta → Cambiar a cuenta profesional → Empresa',
+        '2. Abre Facebook → tu Página → Configuración → Instagram → Conectar cuenta',
+        '3. Vuelve aquí y haz clic en Conectar Instagram nuevamente',
+      ],
+    });
+  }
+
+  const ig = igData.instagram_business_account;
+  const verifyToken = require('crypto').randomBytes(16).toString('hex');
+
+  const igConfig = {
+    ig_user_id:          ig.id,
+    ig_username:         ig.username,
+    ig_name:             ig.name,
+    page_id,
+    access_token,
+    verify_token:        verifyToken,
+    profile_picture_url: ig.profile_picture_url || null,
+  };
+
+  const { data: existing } = await supabaseAdmin
+    .from('channels')
+    .select('id')
+    .eq('organization_id', req.organizationId)
+    .eq('agent_id', agent_id)
+    .eq('type', 'instagram')
+    .maybeSingle();
+
+  let channel;
+  if (existing) {
+    const { data, error } = await supabaseAdmin.from('channels')
+      .update({ config: igConfig, is_active: true, connected_at: new Date().toISOString(), name: ig.username || 'Instagram' })
+      .eq('id', existing.id).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    channel = data;
+  } else {
+    const { data, error } = await supabaseAdmin.from('channels')
+      .insert({ organization_id: req.organizationId, agent_id: agent_id, type: 'instagram', name: ig.username || 'Instagram', is_active: true, connected_at: new Date().toISOString(), config: igConfig })
+      .select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    channel = data;
+  }
+
+  console.log(`[IG link-from-FB] Connected @${ig.username} (${ig.id}) agent=${agent_id}`);
+  res.json({ success: true, channel, ig_username: ig.username, ig_id: ig.id });
+});
+
 module.exports = router;

@@ -714,6 +714,7 @@ router.get('/instagram/connect', authMiddleware, (req, res) => {
 // ── GET /api/integrations/instagram/callback ──────────────────────────────────
 router.get('/instagram/callback', async (req, res) => {
   const { code, state, error } = req.query;
+  console.log('[Instagram callback] raw req.url:', req.url);
   console.log('[Instagram callback] params:', { code: code ? 'present' : 'missing', state, error });
   if (error) {
     const agentId = String(state || '').split(':')[1] || null;
@@ -735,11 +736,13 @@ router.get('/instagram/callback', async (req, res) => {
     if (!appSecret) throw new Error('INSTAGRAM_APP_SECRET / META_APP_SECRET not configured');
 
     // Step 1: exchange code → short-lived token
-    console.log('[Instagram callback] token exchange body:', { client_id: appId, redirect_uri: redirectUri, grant_type: 'authorization_code', code: code?.slice(0,20) + '...' });
+    const postBody = new URLSearchParams({ client_id: appId, client_secret: appSecret, grant_type: 'authorization_code', redirect_uri: redirectUri, code });
+    console.log('[Instagram callback] token exchange POST body (raw):', postBody.toString().replace(appSecret, '***'));
+    console.log('[Instagram callback] redirectUri bytes:', Buffer.from(redirectUri).toString('hex'));
     const tkRes  = await fetch('https://api.instagram.com/oauth/access_token', {
       method:  'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body:    new URLSearchParams({ client_id: appId, client_secret: appSecret, grant_type: 'authorization_code', redirect_uri: redirectUri, code }),
+      body:    postBody,
     });
     const tkData = await tkRes.json();
     console.log('[Instagram callback] short token:', { user_id: tkData.user_id, has_token: !!tkData.access_token, error: tkData.error_message });

@@ -481,7 +481,7 @@ router.get('/facebook/callback', async (req, res) => {
     const longToken = llData.access_token || tkData.access_token;
 
     // Pages list — store all, auto-select first
-    const pgRes  = await fetch(`${FB_BASE}/me/accounts?access_token=${encodeURIComponent(longToken)}`);
+    const pgRes  = await fetch(`${FB_BASE}/me/accounts?fields=instagram_business_account,name,access_token&access_token=${encodeURIComponent(longToken)}`);
     const pgData = await pgRes.json();
     const pages  = pgData.data || [];
     if (pages.length === 0) throw new Error('No tienes páginas de Facebook administradas. Crea una página primero.');
@@ -725,10 +725,10 @@ router.get('/instagram/callback', async (req, res) => {
     const llData = await llRes.json();
     const longToken = llData.access_token || tkData.access_token;
 
-    const pgRes  = await fetch(`${FB_BASE}/me/accounts?access_token=${encodeURIComponent(longToken)}`);
+    const pgRes  = await fetch(`${FB_BASE}/me/accounts?fields=instagram_business_account,name,access_token&access_token=${encodeURIComponent(longToken)}`);
     const pgData = await pgRes.json();
     const rawPages = pgData.data || [];
-    console.log('[Instagram callback] pages found:', rawPages.length, rawPages.map(p => ({ id: p.id, name: p.name })));
+    console.log('[Instagram callback] pages found:', rawPages.length, rawPages.map(p => ({ id: p.id, name: p.name, ig: p.instagram_business_account?.id })));
     const pages = rawPages;
     if (pages.length === 0) {
       const errorMsg = encodeURIComponent(
@@ -739,8 +739,20 @@ router.get('/instagram/callback', async (req, res) => {
     }
 
     // Find the first page that has an Instagram Business account
+    // Check field already returned by /me/accounts, then fallback to individual page query
     let igAccountId = null, igUsername = null, chosenPageId = null, chosenPageName = null, chosenPageToken = null;
     for (const page of pages) {
+      // Fast path: field came directly from /me/accounts?fields=instagram_business_account
+      if (page.instagram_business_account?.id) {
+        igAccountId     = page.instagram_business_account.id;
+        igUsername      = page.instagram_business_account.username || null;
+        chosenPageId    = page.id;
+        chosenPageName  = page.name;
+        chosenPageToken = page.access_token;
+        console.log(`[Instagram callback] page ${page.id} (${page.name}) ig from accounts field:`, igAccountId);
+        break;
+      }
+      // Fallback: query the page individually
       try {
         const igRes  = await fetch(`${FB_BASE}/${page.id}?fields=instagram_business_account{id,username}&access_token=${encodeURIComponent(page.access_token)}`);
         const igData = await igRes.json();

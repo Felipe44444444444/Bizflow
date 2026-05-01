@@ -803,9 +803,10 @@ router.get('/instagram/callback', async (req, res) => {
       });
     }
 
-    // Subscribe this account to receive webhook message events
+    // Subscribe this account to receive webhook message events.
+    // Must use /{ig-user-id}/subscribed_apps — /me alias is not reliable here.
     const subRes = await fetch(
-      `${IG_BASE}/v21.0/me/subscribed_apps?subscribed_fields=messages&access_token=${encodeURIComponent(longToken)}`,
+      `${IG_BASE}/v21.0/${igAccountId}/subscribed_apps?subscribed_fields=messages&access_token=${encodeURIComponent(longToken)}`,
       { method: 'POST' }
     );
     const subData = await subRes.json();

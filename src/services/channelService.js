@@ -52,10 +52,19 @@ async function sendMetaMessenger(channel, recipientId, text) {
   const token = channel.config?.access_token;
   if (!token) throw new Error('Missing Meta access token in channel config');
 
-  // Instagram Business Login tokens use the Instagram Graph API endpoint
-  const endpoint = channel.type === 'instagram'
-    ? 'https://graph.instagram.com/v21.0/me/messages'
-    : 'https://graph.facebook.com/v19.0/me/messages';
+  // For Instagram Business Login: use the explicit IG account ID in the path.
+  // The /me alias is NOT reliable on graph.instagram.com — must use /{ig-user-id}/messages.
+  // For Facebook Messenger: standard page-level /me/messages endpoint.
+  let endpoint;
+  if (channel.type === 'instagram') {
+    const igId = channel.config?.ig_account_id || channel.config?.ig_user_id;
+    if (!igId) throw new Error('Missing ig_account_id in Instagram channel config');
+    endpoint = `https://graph.instagram.com/v21.0/${igId}/messages`;
+  } else {
+    endpoint = 'https://graph.facebook.com/v19.0/me/messages';
+  }
+
+  console.log(`[sendMetaMessenger] type=${channel.type} endpoint=${endpoint} recipient=${recipientId}`);
 
   // Split messages longer than 2000 chars to avoid API rejection
   const chunks = splitText(text, 2000);
@@ -73,12 +82,16 @@ async function sendMetaMessenger(channel, recipientId, text) {
       }),
     });
 
+    const responseText = await res.text();
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(`Meta Messenger API error: ${JSON.stringify(err)}`);
+      console.error(`[sendMetaMessenger] HTTP ${res.status} error:`, responseText);
+      let parsed = {};
+      try { parsed = JSON.parse(responseText); } catch {}
+      throw new Error(`Meta Messenger API error ${res.status}: ${JSON.stringify(parsed?.error || parsed)}`);
     }
-    last = await res.json();
+    try { last = JSON.parse(responseText); } catch { last = {}; }
   }
+  console.log(`[sendMetaMessenger] sent OK to ${recipientId}:`, JSON.stringify(last));
   return last;
 }
 

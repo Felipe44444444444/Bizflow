@@ -692,7 +692,6 @@ router.get('/instagram/connect', authMiddleware, (req, res) => {
   const scope = [
     'instagram_business_basic',
     'instagram_business_manage_messages',
-    'instagram_business_manage_comments',
   ].join(',');
 
   const url = `https://www.instagram.com/oauth/authorize`

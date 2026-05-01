@@ -48,7 +48,8 @@ app.use((req, res, next) => {
     req.path.startsWith('/api/webhooks/whatsapp') ||
     req.path === '/api/integrations/slack/events' ||
     req.path === '/api/integrations/facebook/webhook' ||
-    req.path === '/api/integrations/whatsapp/webhook';
+    req.path === '/api/integrations/whatsapp/webhook'  ||
+    req.path === '/api/integrations/instagram/webhook';
 
   if (!needsRawBody) return express.json({ limit: '10mb' })(req, res, next);
 

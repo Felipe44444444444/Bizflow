@@ -99,6 +99,10 @@ async function sendTypingIndicator(channel, recipientId) {
   const token = channel.config?.access_token;
   if (!token) return;
 
+  // Instagram Business Login uses a different endpoint — typing indicators
+  // are not supported on graph.instagram.com, so skip silently for IG.
+  if (channel.type === 'instagram') return;
+
   await fetch('https://graph.facebook.com/v19.0/me/messages', {
     method: 'POST',
     headers: {

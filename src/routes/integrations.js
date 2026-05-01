@@ -615,24 +615,32 @@ router.post('/facebook/webhook', (req, res) => {
 
   const body = req.body;
   setImmediate(async () => {
-    if (body.object === 'page') {
-      for (const entry of (body.entry || [])) {
-        for (const evt of (entry.messaging || [])) {
-          if (!evt.message?.text || evt.message?.is_echo) continue;
-          if (dedupEvent(evt.message.mid)) continue;
-          await handleMetaMessage({ lookupField: 'page_id', lookupValue: entry.id, senderId: evt.sender.id, text: evt.message.text, platform: 'facebook' })
-            .catch(e => console.error('[FB Webhook]', e.message));
+    try {
+      console.log(`[Meta Webhook] object=${body.object} entries=${body.entry?.length}`);
+      if (body.object === 'page') {
+        for (const entry of (body.entry || [])) {
+          for (const evt of (entry.messaging || [])) {
+            if (!evt.message?.text || evt.message?.is_echo) continue;
+            if (dedupEvent(evt.message.mid)) continue;
+            await handleMetaMessage({ lookupField: 'page_id', lookupValue: entry.id, senderId: evt.sender.id, text: evt.message.text, platform: 'facebook' })
+              .catch(e => console.error('[FB Webhook]', e.message));
+          }
         }
-      }
-    } else if (body.object === 'instagram') {
-      for (const entry of (body.entry || [])) {
-        for (const evt of (entry.messaging || [])) {
-          if (!evt.message?.text || evt.message?.is_echo) continue;
-          if (dedupEvent(evt.message.mid)) continue;
-          await handleMetaMessage({ lookupField: 'ig_account_id', lookupValue: entry.id, senderId: evt.sender.id, text: evt.message.text, platform: 'instagram' })
-            .catch(e => console.error('[IG Webhook]', e.message));
+      } else if (body.object === 'instagram') {
+        for (const entry of (body.entry || [])) {
+          console.log(`[IG Webhook] entry.id=${entry.id} messaging_count=${entry.messaging?.length}`);
+          for (const evt of (entry.messaging || [])) {
+            if (!evt.message?.text || evt.message?.is_echo) continue;
+            if (dedupEvent(evt.message.mid)) continue;
+            await handleMetaMessage({ lookupField: 'ig_account_id', lookupValue: entry.id, senderId: evt.sender.id, text: evt.message.text, platform: 'instagram' })
+              .catch(e => console.error('[IG Webhook]', e.message));
+          }
         }
+      } else {
+        console.log('[Meta Webhook] unhandled object type:', body.object);
       }
+    } catch (e) {
+      console.error('[Meta Webhook] unhandled error:', e.message);
     }
   });
 });
@@ -818,6 +826,41 @@ router.get('/instagram/callback', async (req, res) => {
     console.error('[Instagram callback] error:', err.message);
     res.redirect(errDest(err.message));
   }
+});
+
+// ── GET /api/integrations/instagram/webhook (verify — for IG Business Login app) ─
+router.get('/instagram/webhook', (req, res) => {
+  const { 'hub.mode': mode, 'hub.verify_token': token, 'hub.challenge': challenge } = req.query;
+  if (mode === 'subscribe' && token === metaVerifyToken()) return res.send(challenge);
+  res.sendStatus(403);
+});
+
+// ── POST /api/integrations/instagram/webhook (IG Business Login app webhooks) ──
+router.post('/instagram/webhook', (req, res) => {
+  const sig = req.headers['x-hub-signature-256'];
+  if (!verifyMetaSig(req.rawBody, igAppSecret(), sig) && !verifyMetaSig(req.rawBody, metaAppSecret(), sig)) {
+    console.warn('[IG Webhook] Invalid signature — rejected');
+    return res.sendStatus(401);
+  }
+  res.sendStatus(200);
+
+  const body = req.body;
+  setImmediate(async () => {
+    try {
+      console.log(`[IG Webhook] object=${body.object} entries=${body.entry?.length}`);
+      for (const entry of (body.entry || [])) {
+        console.log(`[IG Webhook] entry.id=${entry.id} messaging_count=${entry.messaging?.length}`);
+        for (const evt of (entry.messaging || [])) {
+          if (!evt.message?.text || evt.message?.is_echo) continue;
+          if (dedupEvent(evt.message.mid)) continue;
+          await handleMetaMessage({ lookupField: 'ig_account_id', lookupValue: entry.id, senderId: evt.sender.id, text: evt.message.text, platform: 'instagram' })
+            .catch(e => console.error('[IG Webhook]', e.message));
+        }
+      }
+    } catch (e) {
+      console.error('[IG Webhook] unhandled error:', e.message);
+    }
+  });
 });
 
 // ── GET /api/integrations/instagram/status?agent_id=xxx ──────────────────────

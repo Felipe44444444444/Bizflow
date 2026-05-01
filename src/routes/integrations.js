@@ -604,7 +604,10 @@ router.get('/facebook/webhook', (req, res) => {
 
 // ── POST /api/integrations/facebook/webhook (Messenger + Instagram DM) ───────
 router.post('/facebook/webhook', (req, res) => {
-  if (!verifyMetaSig(req.rawBody, metaAppSecret(), req.headers['x-hub-signature-256'])) {
+  const sig = req.headers['x-hub-signature-256'];
+  const validFb = verifyMetaSig(req.rawBody, metaAppSecret(), sig);
+  const validIg = verifyMetaSig(req.rawBody, igAppSecret(), sig);
+  if (!validFb && !validIg) {
     console.warn('[FB Webhook] Invalid signature — rejected');
     return res.sendStatus(401);
   }
@@ -799,6 +802,14 @@ router.get('/instagram/callback', async (req, res) => {
         config:         { access_token: longToken, ig_account_id: igAccountId, page_id: null },
       });
     }
+
+    // Subscribe this account to receive webhook message events
+    const subRes = await fetch(
+      `${IG_BASE}/v21.0/me/subscribed_apps?subscribed_fields=messages&access_token=${encodeURIComponent(longToken)}`,
+      { method: 'POST' }
+    );
+    const subData = await subRes.json();
+    console.log('[Instagram OAuth] webhook subscription:', JSON.stringify(subData));
 
     console.log(`[Instagram OAuth] Connected: @${igUsername} (ig=${igAccountId}) org=${organizationId}`);
     res.redirect(`${cbUrl}?ig_account_id=${encodeURIComponent(igAccountId)}&ig_username=${encodeURIComponent(igUsername || '')}&agent_id=${agentId || ''}`);

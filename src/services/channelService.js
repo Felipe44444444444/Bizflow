@@ -52,11 +52,16 @@ async function sendMetaMessenger(channel, recipientId, text) {
   const token = channel.config?.access_token;
   if (!token) throw new Error('Missing Meta access token in channel config');
 
+  // Instagram Business Login tokens use the Instagram Graph API endpoint
+  const endpoint = channel.type === 'instagram'
+    ? 'https://graph.instagram.com/v21.0/me/messages'
+    : 'https://graph.facebook.com/v19.0/me/messages';
+
   // Split messages longer than 2000 chars to avoid API rejection
   const chunks = splitText(text, 2000);
   let last;
   for (const chunk of chunks) {
-    const res = await fetch('https://graph.facebook.com/v19.0/me/messages', {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,

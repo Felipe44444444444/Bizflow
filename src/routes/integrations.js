@@ -679,10 +679,11 @@ async function handleMetaMessage({ lookupField, lookupValue, senderId, text, pla
 
 // ── GET /api/integrations/instagram/connect?agent_id=xxx ─────────────────────
 // Uses Instagram Business Login — works without a Facebook Page connection
+const IG_REDIRECT_URI = 'https://api.conectaachat.com/api/integrations/instagram/callback';
+
 router.get('/instagram/connect', authMiddleware, (req, res) => {
-  const appId       = igAppId();
-  const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
-  if (!appId || !redirectUri) return res.status(500).json({ error: 'Instagram app not configured' });
+  const appId = igAppId();
+  if (!appId) return res.status(500).json({ error: 'Instagram app not configured' });
 
   const state = req.query.agent_id
     ? `${req.organizationId}:${req.query.agent_id}`
@@ -696,12 +697,12 @@ router.get('/instagram/connect', authMiddleware, (req, res) => {
 
   const url = `https://www.instagram.com/oauth/authorize`
     + `?client_id=${encodeURIComponent(appId)}`
-    + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+    + `&redirect_uri=${encodeURIComponent(IG_REDIRECT_URI)}`
     + `&scope=${encodeURIComponent(scope)}`
     + `&response_type=code`
     + `&state=${encodeURIComponent(state)}`;
 
-  console.log('[Instagram connect] ig_app_id:', appId, '| redirect_uri:', redirectUri);
+  console.log('[Instagram connect] ig_app_id:', appId, '| redirect_uri:', IG_REDIRECT_URI);
   console.log('[Instagram connect] full URL:', url);
   res.json({ url });
 });
@@ -725,9 +726,8 @@ router.get('/instagram/callback', async (req, res) => {
   const errDest = (m) => `${cbUrl}?error=${encodeURIComponent(m)}&agent_id=${agentId || ''}`;
 
   try {
-    const appId       = igAppId();
-    const appSecret   = igAppSecret();
-    const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
+    const appId     = igAppId();
+    const appSecret = igAppSecret();
     if (!appId || !appSecret) throw new Error('Instagram app not configured');
 
     // Step 1: exchange code → short-lived Instagram token
@@ -735,7 +735,7 @@ router.get('/instagram/callback', async (req, res) => {
       client_id:     appId,
       client_secret: appSecret,
       grant_type:    'authorization_code',
-      redirect_uri:  redirectUri,
+      redirect_uri:  IG_REDIRECT_URI,
       code,
     });
     const tkRes  = await fetch('https://api.instagram.com/oauth/access_token', {

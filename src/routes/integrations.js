@@ -391,11 +391,14 @@ async function handleSlackEvent({ team_id, userId, slackChannel, text, threadTs 
 // ══════════════════════════════════════════════════════════════════════════════
 
 const FB_BASE = 'https://graph.facebook.com/v18.0';
+const IG_BASE = 'https://graph.instagram.com';
 
 // Railway uses META_APP_SECRET / META_VERIFY_TOKEN; fall back to FACEBOOK_ variants
 const metaAppSecret   = () => process.env.META_APP_SECRET   || process.env.FACEBOOK_APP_SECRET   || '';
 const metaVerifyToken = () => process.env.META_VERIFY_TOKEN || process.env.FACEBOOK_VERIFY_TOKEN  || '';
 const metaAppId       = () => process.env.FACEBOOK_APP_ID   || process.env.META_APP_ID            || '';
+const igAppId         = () => process.env.INSTAGRAM_APP_ID  || metaAppId();
+const igAppSecret     = () => process.env.INSTAGRAM_APP_SECRET || metaAppSecret();
 
 // ── Meta webhook signature verification ──────────────────────────────────────
 function verifyMetaSig(rawBody, secret, sig) {
@@ -675,9 +678,9 @@ async function handleMetaMessage({ lookupField, lookupValue, senderId, text, pla
 // ═════════════════════════ INSTAGRAM ══════════════════════════════════════════
 
 // ── GET /api/integrations/instagram/connect?agent_id=xxx ─────────────────────
-// Uses Facebook Login with Instagram Business scopes — proven token exchange path
+// Uses Instagram Business Login — works without a Facebook Page connection
 router.get('/instagram/connect', authMiddleware, (req, res) => {
-  const appId       = metaAppId();
+  const appId       = igAppId();
   const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
   if (!appId || !redirectUri) return res.status(500).json({ error: 'Instagram app not configured' });
 
@@ -686,22 +689,19 @@ router.get('/instagram/connect', authMiddleware, (req, res) => {
     : req.organizationId;
 
   const scope = [
-    'pages_show_list',
-    'pages_read_engagement',
-    'pages_messaging',
-    'instagram_manage_messages',
-    'instagram_manage_comments',
-    'business_management',
+    'instagram_business_basic',
+    'instagram_business_manage_messages',
+    'instagram_business_manage_comments',
   ].join(',');
 
-  const url = `https://www.facebook.com/v21.0/dialog/oauth`
+  const url = `https://www.instagram.com/oauth/authorize`
     + `?client_id=${encodeURIComponent(appId)}`
     + `&redirect_uri=${encodeURIComponent(redirectUri)}`
     + `&scope=${encodeURIComponent(scope)}`
     + `&response_type=code`
     + `&state=${encodeURIComponent(state)}`;
 
-  console.log('[Instagram connect] app_id:', appId, '| redirect_uri:', redirectUri);
+  console.log('[Instagram connect] ig_app_id:', appId, '| redirect_uri:', redirectUri);
   console.log('[Instagram connect] full URL:', url);
   res.json({ url });
 });
@@ -725,111 +725,50 @@ router.get('/instagram/callback', async (req, res) => {
   const errDest = (m) => `${cbUrl}?error=${encodeURIComponent(m)}&agent_id=${agentId || ''}`;
 
   try {
-    const appId       = metaAppId();
-    const appSecret   = metaAppSecret();
+    const appId       = igAppId();
+    const appSecret   = igAppSecret();
     const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
-    if (!appSecret) throw new Error('META_APP_SECRET not configured');
+    if (!appId || !appSecret) throw new Error('Instagram app not configured');
 
-    // Step 1: exchange code → short-lived Facebook token
-    const tkRes  = await fetch(
-      `${FB_BASE}/oauth/access_token`
-      + `?client_id=${encodeURIComponent(appId)}`
-      + `&client_secret=${encodeURIComponent(appSecret)}`
-      + `&redirect_uri=${encodeURIComponent(redirectUri)}`
-      + `&code=${encodeURIComponent(code)}`
-    );
+    // Step 1: exchange code → short-lived Instagram token
+    const tkBody = new URLSearchParams({
+      client_id:     appId,
+      client_secret: appSecret,
+      grant_type:    'authorization_code',
+      redirect_uri:  redirectUri,
+      code,
+    });
+    const tkRes  = await fetch('https://api.instagram.com/oauth/access_token', {
+      method: 'POST',
+      body:   tkBody,
+    });
     const tkData = await tkRes.json();
-    console.log('[Instagram callback] short token:', { has_token: !!tkData.access_token, error: tkData.error?.message });
-    if (!tkData.access_token) throw new Error(tkData.error?.message || 'Token exchange failed');
+    console.log('[Instagram callback] short token:', { has_token: !!tkData.access_token, user_id: tkData.user_id, error: tkData.error_message });
+    if (!tkData.access_token) throw new Error(tkData.error_message || 'Instagram token exchange failed');
 
     // Step 2: exchange → long-lived token (60 days)
     const llRes  = await fetch(
-      `${FB_BASE}/oauth/access_token`
-      + `?grant_type=fb_exchange_token`
+      `${IG_BASE}/access_token`
+      + `?grant_type=ig_exchange_token`
       + `&client_id=${encodeURIComponent(appId)}`
       + `&client_secret=${encodeURIComponent(appSecret)}`
-      + `&fb_exchange_token=${encodeURIComponent(tkData.access_token)}`
+      + `&access_token=${encodeURIComponent(tkData.access_token)}`
     );
     const llData = await llRes.json();
     console.log('[Instagram callback] long token:', { has_token: !!llData.access_token, error: llData.error?.message });
     const longToken = llData.access_token || tkData.access_token;
 
-    // Step 3: try /me/instagram_business_accounts (works when business_management scope granted)
-    let igAccountId = null, igUsername = null, igName = null, chosenPageToken = longToken;
-    let chosenPageId = null, chosenPageName = null;
-
-    const igUserRes  = await fetch(
-      `${FB_BASE}/me/instagram_business_accounts`
-      + `?fields=id,username,name,profile_picture_url`
-      + `&access_token=${encodeURIComponent(longToken)}`
+    // Step 3: get Instagram user info
+    const meRes  = await fetch(
+      `${IG_BASE}/me?fields=id,username,name,profile_picture_url&access_token=${encodeURIComponent(longToken)}`
     );
-    const igUserData = await igUserRes.json();
-    console.log('[Instagram callback] /me/instagram_business_accounts:', JSON.stringify(igUserData));
-    const igFromUser = igUserData.data?.[0];
-    if (igFromUser?.id) {
-      igAccountId = igFromUser.id;
-      igUsername  = igFromUser.username || null;
-      igName      = igFromUser.name     || null;
-    }
+    const meData = await meRes.json();
+    console.log('[Instagram callback] me:', JSON.stringify(meData));
+    if (!meData.id) throw new Error(meData.error?.message || 'Could not retrieve Instagram account info');
 
-    // Step 4: fallback — iterate pages, check both instagram_business_account and connected_instagram_account
-    if (!igAccountId) {
-      const pagesRes  = await fetch(
-        `${FB_BASE}/me/accounts?fields=id,name,access_token&access_token=${encodeURIComponent(longToken)}`
-      );
-      const pagesData = await pagesRes.json();
-      console.log('[Instagram callback] pages:', pagesData.data?.map(p => ({ id: p.id, name: p.name })));
-
-      for (const page of (pagesData.data || [])) {
-        const fields = [
-          'instagram_business_account{id,username,name,profile_picture_url}',
-          'connected_instagram_account{id,username,name,profile_picture_url}',
-        ].join(',');
-        const igRes  = await fetch(
-          `${FB_BASE}/${page.id}?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(page.access_token)}`
-        );
-        const igData = await igRes.json();
-        console.log(`[Instagram callback] page ${page.id} (${page.name}):`, JSON.stringify(igData));
-        const ig = igData.instagram_business_account || igData.connected_instagram_account;
-        if (ig?.id) {
-          igAccountId     = ig.id;
-          igUsername      = ig.username || null;
-          igName          = ig.name     || null;
-          chosenPageToken = page.access_token;
-          chosenPageId    = page.id;
-          chosenPageName  = page.name;
-          break;
-        }
-      }
-    }
-
-    // Step 5: fallback via Business Manager — works when business_management scope granted
-    if (!igAccountId) {
-      const bizRes  = await fetch(
-        `${FB_BASE}/me/businesses?fields=id,name&access_token=${encodeURIComponent(longToken)}`
-      );
-      const bizData = await bizRes.json();
-      console.log('[Instagram callback] businesses:', bizData.data?.map(b => ({ id: b.id, name: b.name })));
-
-      for (const biz of (bizData.data || [])) {
-        const igBizRes  = await fetch(
-          `${FB_BASE}/${biz.id}/instagram_accounts`
-          + `?fields=id,username,name,profile_picture_url`
-          + `&access_token=${encodeURIComponent(longToken)}`
-        );
-        const igBizData = await igBizRes.json();
-        console.log(`[Instagram callback] business ${biz.id} (${biz.name}) ig_accounts:`, JSON.stringify(igBizData));
-        const ig = igBizData.data?.[0];
-        if (ig?.id) {
-          igAccountId = ig.id;
-          igUsername  = ig.username || null;
-          igName      = ig.name     || null;
-          break;
-        }
-      }
-    }
-
-    if (!igAccountId) throw new Error('No Instagram Business account found. Make sure your Instagram is a Professional account linked to your Facebook Page.');
+    const igAccountId = meData.id;
+    const igUsername  = meData.username || null;
+    const igName      = meData.name     || null;
 
     // Save to DB
     const row = {
@@ -837,9 +776,9 @@ router.get('/instagram/callback', async (req, res) => {
       agent_id:          agentId || undefined,
       ig_account_id:     igAccountId,
       ig_username:       igUsername,
-      page_id:           chosenPageId,
-      page_name:         chosenPageName,
-      page_access_token: chosenPageToken,
+      page_id:           null,
+      page_name:         null,
+      page_access_token: longToken,
       is_active:         true,
       updated_at:        new Date().toISOString(),
     };
@@ -854,7 +793,7 @@ router.get('/instagram/callback', async (req, res) => {
         organizationId,
         type:           'instagram',
         name:           `Instagram — ${igUsername || igName || igAccountId}`,
-        config:         { access_token: chosenPageToken, ig_account_id: igAccountId, page_id: null },
+        config:         { access_token: longToken, ig_account_id: igAccountId, page_id: null },
       });
     }
 

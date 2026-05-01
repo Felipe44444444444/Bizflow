@@ -756,6 +756,7 @@ router.get('/instagram/callback', async (req, res) => {
 
     // Step 3: try /me/instagram_business_accounts (works when business_management scope granted)
     let igAccountId = null, igUsername = null, igName = null, chosenPageToken = longToken;
+    let chosenPageId = null, chosenPageName = null;
 
     const igUserRes  = await fetch(
       `${FB_BASE}/me/instagram_business_accounts`
@@ -771,7 +772,7 @@ router.get('/instagram/callback', async (req, res) => {
       igName      = igFromUser.name     || null;
     }
 
-    // Step 4: fallback — iterate pages and query instagram_business_account field
+    // Step 4: fallback — iterate pages, check both instagram_business_account and connected_instagram_account
     if (!igAccountId) {
       const pagesRes  = await fetch(
         `${FB_BASE}/me/accounts?fields=id,name,access_token&access_token=${encodeURIComponent(longToken)}`
@@ -780,19 +781,49 @@ router.get('/instagram/callback', async (req, res) => {
       console.log('[Instagram callback] pages:', pagesData.data?.map(p => ({ id: p.id, name: p.name })));
 
       for (const page of (pagesData.data || [])) {
+        const fields = [
+          'instagram_business_account{id,username,name,profile_picture_url}',
+          'connected_instagram_account{id,username,name,profile_picture_url}',
+        ].join(',');
         const igRes  = await fetch(
-          `${FB_BASE}/${page.id}`
-          + `?fields=instagram_business_account%7Bid%2Cusername%2Cname%2Cprofile_picture_url%7D`
-          + `&access_token=${encodeURIComponent(page.access_token)}`
+          `${FB_BASE}/${page.id}?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(page.access_token)}`
         );
         const igData = await igRes.json();
-        console.log(`[Instagram callback] page ${page.id} (${page.name}) instagram_business_account:`, JSON.stringify(igData));
-        const ig = igData.instagram_business_account;
+        console.log(`[Instagram callback] page ${page.id} (${page.name}):`, JSON.stringify(igData));
+        const ig = igData.instagram_business_account || igData.connected_instagram_account;
         if (ig?.id) {
           igAccountId     = ig.id;
           igUsername      = ig.username || null;
           igName          = ig.name     || null;
           chosenPageToken = page.access_token;
+          chosenPageId    = page.id;
+          chosenPageName  = page.name;
+          break;
+        }
+      }
+    }
+
+    // Step 5: fallback via Business Manager — works when business_management scope granted
+    if (!igAccountId) {
+      const bizRes  = await fetch(
+        `${FB_BASE}/me/businesses?fields=id,name&access_token=${encodeURIComponent(longToken)}`
+      );
+      const bizData = await bizRes.json();
+      console.log('[Instagram callback] businesses:', bizData.data?.map(b => ({ id: b.id, name: b.name })));
+
+      for (const biz of (bizData.data || [])) {
+        const igBizRes  = await fetch(
+          `${FB_BASE}/${biz.id}/instagram_accounts`
+          + `?fields=id,username,name,profile_picture_url`
+          + `&access_token=${encodeURIComponent(longToken)}`
+        );
+        const igBizData = await igBizRes.json();
+        console.log(`[Instagram callback] business ${biz.id} (${biz.name}) ig_accounts:`, JSON.stringify(igBizData));
+        const ig = igBizData.data?.[0];
+        if (ig?.id) {
+          igAccountId = ig.id;
+          igUsername  = ig.username || null;
+          igName      = ig.name     || null;
           break;
         }
       }
@@ -800,14 +831,14 @@ router.get('/instagram/callback', async (req, res) => {
 
     if (!igAccountId) throw new Error('No Instagram Business account found. Make sure your Instagram is a Professional account linked to your Facebook Page.');
 
-    // Step 5: save to DB
+    // Save to DB
     const row = {
       organization_id:   organizationId,
       agent_id:          agentId || undefined,
       ig_account_id:     igAccountId,
       ig_username:       igUsername,
-      page_id:           null,
-      page_name:         null,
+      page_id:           chosenPageId,
+      page_name:         chosenPageName,
       page_access_token: chosenPageToken,
       is_active:         true,
       updated_at:        new Date().toISOString(),

@@ -43,7 +43,7 @@ function InstagramCallbackInner() {
       {status === "success" && <CheckCircle2 className="h-10 w-10 text-emerald-500" />}
       {status === "error"   && <XCircle      className="h-10 w-10 text-destructive" />}
       <p className="text-sm text-muted-foreground max-w-xs text-center">{message}</p>
-      {status === "error" && (
+      {(status === "error" || status === "success") && (
         <button onClick={() => window.close()} className="text-xs text-primary underline mt-2">
           Cerrar ventana
         </button>

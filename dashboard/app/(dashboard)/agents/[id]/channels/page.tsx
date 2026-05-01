@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/header";
@@ -57,6 +57,7 @@ export default function ChannelsPage() {
   const [metaForm,      setMetaForm]      = useState({ pageId: "", accessToken: "", igUserId: "", verifyToken: genVerifyToken() });
   const [oauthPages,    setOauthPages]    = useState<any[]>([]);
   const [metaConnecting, setMetaConnecting] = useState(false);
+  const igPopupRef = useRef<Window | null>(null);
   const [waForm,    setWaForm]    = useState({ phoneNumberId: "", accessToken: "", businessAccountId: "" });
   const [slackForm, setSlackForm] = useState({ botToken: "", signingSecret: "" });
 
@@ -182,7 +183,7 @@ export default function ChannelsPage() {
     setMetaConnecting(true); setVerifyResult(null);
     try {
       const result = await api.get(`/api/integrations/instagram/connect?agent_id=${agentId}`, orgId);
-      window.open(result.url, "instagram_oauth", "width=600,height=700,scrollbars=yes,resizable=yes");
+      igPopupRef.current = window.open(result.url, "instagram_oauth", "width=600,height=700,scrollbars=yes,resizable=yes");
     } catch (e: any) {
       setVerifyResult({ verified: false, detail: e.message });
       setMetaConnecting(false);
@@ -193,6 +194,8 @@ export default function ChannelsPage() {
   useEffect(() => {
     function handleMessage(e: MessageEvent) {
       if (e.data?.type === "instagram_connected") {
+        igPopupRef.current?.close();
+        igPopupRef.current = null;
         setMetaConnecting(false);
         // Reload channels to pick up the newly saved instagram channel
         api.get(`/api/channels?agent_id=${agentId}`, orgId)

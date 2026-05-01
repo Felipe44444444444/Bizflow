@@ -1083,6 +1083,50 @@ async function handleWhatsAppMessage({ phoneNumberId, fromPhone, text }) {
   }
 }
 
+// ── POST /api/integrations/meta/data-deletion ─────────────────────────────────
+// Required by Meta for App Review. Called when a user requests data deletion
+// via Facebook's platform. Verifies signed_request, removes user data, returns
+// a status URL.
+router.post('/meta/data-deletion', async (req, res) => {
+  const { signed_request } = req.body;
+  if (!signed_request) return res.status(400).json({ error: 'Missing signed_request' });
+
+  try {
+    const [encodedSig, payload] = signed_request.split('.');
+    const secret = igAppSecret() || metaAppSecret();
+    if (!secret) throw new Error('App secret not configured');
+
+    const expectedSig = crypto
+      .createHmac('sha256', secret)
+      .update(payload)
+      .digest('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+    if (encodedSig !== expectedSig) {
+      return res.status(403).json({ error: 'Invalid signature' });
+    }
+
+    const data = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
+    const userId = data.user_id;
+
+    // Delete all data associated with this Meta user ID (best effort across tables)
+    await Promise.allSettled([
+      supabaseAdmin.from('instagram_integrations').delete().or(`ig_account_id.eq.${userId}`),
+      supabaseAdmin.from('facebook_integrations').delete().or(`page_id.eq.${userId}`),
+    ]);
+
+    console.log(`[Data Deletion] Processed request for Meta user_id=${userId}`);
+
+    const confirmationCode = `del_${userId}_${Date.now()}`;
+    const statusUrl = `${FRONTEND}/data-deletion?code=${confirmationCode}`;
+
+    res.json({ url: statusUrl, confirmation_code: confirmationCode });
+  } catch (err) {
+    console.error('[Data Deletion] error:', err.message);
+    res.status(500).json({ error: 'Failed to process deletion request' });
+  }
+});
+
 // POST /instagram/connect-via-facebook — usa el token de FB ya almacenado para conectar IG
 router.post('/instagram/connect-via-facebook', authMiddleware, async (req, res) => {
   const { agent_id } = req.body;

@@ -126,6 +126,62 @@ app.listen(PORT, '0.0.0.0', () => {
 
     setTimeout(runLeadScan, 60_000);                    // 1 min after startup
     setInterval(runLeadScan, 2 * 60 * 60 * 1000);      // every 2 hours
+
+    // ── Instagram token refresh — daily, tokens expire after 60 days ──────────
+    // Refreshes any long-lived IG token that was last updated > 30 days ago.
+    async function refreshInstagramTokens() {
+      try {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: rows } = await supabaseAdmin
+          .from('instagram_integrations')
+          .select('id, ig_account_id, page_access_token, updated_at')
+          .eq('is_active', true)
+          .lt('updated_at', thirtyDaysAgo);
+
+        if (!rows?.length) return;
+
+        let refreshed = 0;
+        for (const row of rows) {
+          try {
+            const res = await fetch(
+              `https://graph.instagram.com/refresh_access_token`
+              + `?grant_type=ig_refresh_token`
+              + `&access_token=${encodeURIComponent(row.page_access_token)}`
+            );
+            const data = await res.json();
+            if (data.access_token) {
+              await supabaseAdmin.from('instagram_integrations')
+                .update({ page_access_token: data.access_token, updated_at: new Date().toISOString() })
+                .eq('id', row.id);
+              // Also update channels table so the token stays in sync
+              // Update channel config access_token
+              const { data: ch } = await supabaseAdmin
+                .from('channels')
+                .select('id, config')
+                .eq('type', 'instagram')
+                .filter('config->>ig_account_id', 'eq', row.ig_account_id)
+                .maybeSingle();
+              if (ch) {
+                await supabaseAdmin.from('channels')
+                  .update({ config: { ...ch.config, access_token: data.access_token } })
+                  .eq('id', ch.id);
+              }
+              refreshed++;
+            } else {
+              console.warn(`[IG Token Refresh] Failed for ig_id=${row.ig_account_id}:`, JSON.stringify(data));
+            }
+          } catch (e) {
+            console.error(`[IG Token Refresh] Error for ig_id=${row.ig_account_id}:`, e.message);
+          }
+        }
+        console.log(`[IG Token Refresh] Refreshed ${refreshed}/${rows.length} tokens`);
+      } catch (err) {
+        console.error('[IG Token Refresh] Error:', err.message);
+      }
+    }
+
+    setInterval(refreshInstagramTokens, 24 * 60 * 60 * 1000); // every 24 hours
+    setTimeout(refreshInstagramTokens, 5 * 60 * 1000);         // 5 min after startup
   } catch (err) {
     console.error('[startup] Route loading failed:', err.message, err.stack);
     // Server stays up and /health keeps responding even if routes fail

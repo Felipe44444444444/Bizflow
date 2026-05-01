@@ -738,12 +738,16 @@ router.get('/instagram/callback', async (req, res) => {
       redirect_uri:  IG_REDIRECT_URI,
       code,
     });
+    console.log('[Instagram callback] POST body:', tkBody.toString());
+    console.log('[Instagram callback] client_id used:', appId);
+    console.log('[Instagram callback] redirect_uri used:', IG_REDIRECT_URI);
     const tkRes  = await fetch('https://api.instagram.com/oauth/access_token', {
       method: 'POST',
       body:   tkBody,
     });
-    const tkData = await tkRes.json();
-    console.log('[Instagram callback] short token:', { has_token: !!tkData.access_token, user_id: tkData.user_id, error: tkData.error_message });
+    const tkRaw  = await tkRes.text();
+    console.log('[Instagram callback] token raw response:', tkRaw);
+    const tkData = JSON.parse(tkRaw);
     if (!tkData.access_token) throw new Error(tkData.error_message || 'Instagram token exchange failed');
 
     // Step 2: exchange → long-lived token (60 days)

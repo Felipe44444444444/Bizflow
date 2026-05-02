@@ -10,14 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Zap, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [email,         setEmail]         = useState("");
+  const [password,      setPassword]      = useState("");
+  const [loading,       setLoading]       = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [success, setSuccess] = useState("");
-  const router = useRouter();
+  const [error,         setError]         = useState("");
+  const [mode,          setMode]          = useState<"login" | "signup">("login");
+  const [success,       setSuccess]       = useState("");
+  const router   = useRouter();
   const supabase = createClient();
 
   async function handleEmailAuth(e: React.FormEvent) {
@@ -25,7 +25,6 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     setSuccess("");
-
     try {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -35,12 +34,11 @@ export default function LoginPage() {
       } else {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) { setError(error.message); return; }
-        // If email confirmation is required, show message instead of redirecting
         if (data.session) {
           router.push("/dashboard");
           router.refresh();
         } else {
-          setSuccess("¡Cuenta creada! Revisa tu email para confirmar tu registro y luego inicia sesión.");
+          setSuccess("¡Cuenta creada! Revisa tu email para confirmar y luego inicia sesión.");
         }
       }
     } catch {
@@ -52,52 +50,65 @@ export default function LoginPage() {
 
   async function handleGoogle() {
     setGoogleLoading(true);
-    await supabase.auth.signInWithOAuth({
+    setError("");
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${location.origin}/auth/callback` },
+      options: { redirectTo: "https://app.conectaachat.com/auth/callback" },
     });
+    if (error) { setError(error.message); setGoogleLoading(false); }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background">
-      {/* Background glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-purple-500/10 blur-3xl" />
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-space">
+      {/* Ambient blobs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-48 -right-48 h-96 w-96 rounded-full bg-neon-cyan/10 blur-[100px]" />
+        <div className="absolute -bottom-48 -left-48 h-96 w-96 rounded-full bg-neon-purple/10 blur-[100px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-neon-pink/5 blur-[80px]" />
       </div>
 
-      <div className="relative w-full max-w-sm p-8">
+      {/* Subtle grid overlay */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,245,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,245,255,1) 1px, transparent 1px)",
+          backgroundSize: "60px 60px",
+        }}
+      />
+
+      <div className="relative w-full max-w-sm px-4 animate-scale-in">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-primary glow">
-            <Zap className="h-5 w-5 text-white" />
+          <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-neon-cyan/10 border border-neon-cyan/20">
+            <Zap className="h-5 w-5 text-neon-cyan" />
+            <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-neon-cyan animate-pulse-glow border-2 border-space" />
           </div>
-          <span className="text-2xl font-bold">Conectachat</span>
+          <span className="font-display text-2xl font-bold text-white">Conectachat</span>
         </div>
 
-        <div className="glass rounded-2xl p-6 space-y-6">
+        {/* Card */}
+        <div className="rounded-2xl border border-neon-cyan/15 bg-space-card p-7 space-y-5"
+          style={{ boxShadow: "0 0 60px rgba(0,245,255,0.04), 0 24px 48px rgba(0,0,0,0.5)" }}>
           <div className="text-center space-y-1">
-            <h1 className="text-xl font-semibold">
-              {mode === "login" ? "Bienvenido de vuelta" : "Crear cuenta"}
+            <h1 className="font-display text-xl font-bold text-white">
+              {mode === "login" ? "Bienvenido de vuelta" : "Crear cuenta gratis"}
             </h1>
-            <p className="text-sm text-muted-foreground">
-              {mode === "login"
-                ? "Ingresa a tu dashboard"
-                : "Empieza gratis hoy"}
+            <p className="text-sm text-[#A0AEC0]">
+              {mode === "login" ? "Accede a tu dashboard" : "Sin tarjeta de crédito"}
             </p>
           </div>
 
           {/* Google OAuth */}
           <Button
             variant="outline"
-            className="w-full"
+            className="w-full border-neon-cyan/15 bg-space-el hover:bg-space-hover hover:border-neon-cyan/30 text-white h-10 font-medium"
             onClick={handleGoogle}
             disabled={googleLoading}
           >
             {googleLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin text-neon-cyan" />
             ) : (
-              <svg viewBox="0 0 24 24" className="h-4 w-4">
+              <svg viewBox="0 0 24 24" className="h-4 w-4 mr-2">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
@@ -109,65 +120,76 @@ export default function LoginPage() {
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
+              <div className="w-full border-t border-neon-cyan/10" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-card px-2 text-muted-foreground">o con email</span>
+              <span className="bg-space-card px-3 text-[#4A5568]">o con email</span>
             </div>
           </div>
 
           {/* Email form */}
           <form onSubmit={handleEmailAuth} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-[#A0AEC0]">Email</Label>
               <Input
-                id="email"
                 type="email"
                 placeholder="tu@empresa.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="bg-space-el border-neon-cyan/15 text-white placeholder-[#4A5568] h-10 focus:border-neon-cyan/40"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-[#A0AEC0]">Contraseña</Label>
               <Input
-                id="password"
                 type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="bg-space-el border-neon-cyan/15 text-white placeholder-[#4A5568] h-10 focus:border-neon-cyan/40"
               />
             </div>
 
             {error && (
-              <p className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+              <p className="text-xs text-neon-red bg-neon-red/10 border border-neon-red/20 rounded-lg p-3">
                 {error}
               </p>
             )}
             {success && (
-              <p className="text-xs text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded-lg p-3">
+              <p className="text-xs text-neon-green bg-neon-green/10 border border-neon-green/20 rounded-lg p-3">
                 {success}
               </p>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            <Button
+              type="submit"
+              className="w-full h-10 bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 hover:border-neon-cyan/50 font-semibold transition-all"
+              disabled={loading}
+            >
+              {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               {mode === "login" ? "Iniciar sesión" : "Crear cuenta"}
             </Button>
           </form>
 
-          <p className="text-center text-xs text-muted-foreground">
+          <p className="text-center text-xs text-[#4A5568]">
             {mode === "login" ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
             <button
-              onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }}
-              className="text-primary hover:underline"
+              onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); setSuccess(""); }}
+              className="text-neon-cyan hover:underline font-medium"
             >
               {mode === "login" ? "Crear cuenta" : "Iniciar sesión"}
             </button>
           </p>
         </div>
+
+        <p className="text-center text-[10px] text-[#4A5568] mt-6">
+          Al continuar aceptas nuestros{" "}
+          <a href="https://conectaachat.com/terms" className="hover:text-neon-cyan transition-colors">Términos</a>
+          {" "}y{" "}
+          <a href="https://conectaachat.com/privacy" className="hover:text-neon-cyan transition-colors">Privacidad</a>
+        </p>
       </div>
     </div>
   );

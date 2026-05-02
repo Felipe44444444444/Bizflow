@@ -1,5 +1,5 @@
 import { buildStyles } from './styles.js';
-import { createLauncher, createWindow, appendMessage, showTyping, hideTyping, autoResize } from './ui.js';
+import { createLauncher, createWindow, appendMessage, showTyping, hideTyping, autoResize, showChat, hasPrechat, bindQuickReplies } from './ui.js';
 import { sendMessage } from './api.js';
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
@@ -25,6 +25,17 @@ function setConversationId(apiKey, id) {
   localStorage.setItem(storageKey(apiKey, 'cid'), id);
 }
 
+function getContactInfo(apiKey) {
+  try {
+    const raw = localStorage.getItem(storageKey(apiKey, 'contact'));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function setContactInfo(apiKey, info) {
+  localStorage.setItem(storageKey(apiKey, 'contact'), JSON.stringify(info));
+}
+
 // ── Widget class ──────────────────────────────────────────────────────────────
 class Widget {
   constructor(cfg) {
@@ -33,6 +44,7 @@ class Widget {
     this.isThinking = false;
     this.visitorId = getVisitorId(cfg.apiKey);
     this.conversationId = getConversationId(cfg.apiKey);
+    this.contactInfo = getContactInfo(cfg.apiKey) || {};
 
     this._injectStyles();
     this._buildDOM();
@@ -57,6 +69,17 @@ class Widget {
     this.messagesEl = this.window.querySelector('#cc-messages');
     this.inputEl    = this.window.querySelector('#cc-input');
     this.sendBtn    = this.window.querySelector('#cc-send');
+
+    // If contact info already collected (returning visitor), skip pre-chat
+    if (hasPrechat(this.window) && (this.contactInfo.name || this.contactInfo.email || this.contactInfo.phone || this.conversationId)) {
+      showChat(this.window);
+    }
+
+    // Bind quick reply buttons
+    bindQuickReplies(this.window, (text) => {
+      this.inputEl.value = text;
+      this._submit();
+    });
   }
 
   _bindEvents() {
@@ -65,6 +88,20 @@ class Widget {
 
     // Close button inside window
     this.window.querySelector('#cc-close-btn').addEventListener('click', () => this.close());
+
+    // Pre-chat form "Iniciar chat" button
+    const prechatStart = this.window.querySelector('#cc-prechat-start');
+    if (prechatStart) {
+      prechatStart.addEventListener('click', () => this._submitPrechat());
+    }
+
+    // Pre-chat: also allow Enter on last field
+    const prechatPhone = this.window.querySelector('#cc-prechat-phone');
+    if (prechatPhone) {
+      prechatPhone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') this._submitPrechat();
+      });
+    }
 
     // Send on button click
     this.sendBtn.addEventListener('click', () => this._submit());
@@ -90,6 +127,18 @@ class Widget {
     });
   }
 
+  _submitPrechat() {
+    const name  = (this.window.querySelector('#cc-prechat-name')?.value  || '').trim();
+    const email = (this.window.querySelector('#cc-prechat-email')?.value || '').trim();
+    const phone = (this.window.querySelector('#cc-prechat-phone')?.value || '').trim();
+
+    this.contactInfo = { name: name || null, email: email || null, phone: phone || null };
+    setContactInfo(this.cfg.apiKey, this.contactInfo);
+
+    showChat(this.window);
+    setTimeout(() => this.inputEl.focus(), 100);
+  }
+
   async _submit() {
     const text = this.inputEl.value.trim();
     if (!text || this.isThinking) return;
@@ -113,6 +162,9 @@ class Widget {
         message:        text,
         conversationId: this.conversationId,
         visitorId:      this.visitorId,
+        contactName:    this.contactInfo.name  || undefined,
+        contactEmail:   this.contactInfo.email || undefined,
+        contactPhone:   this.contactInfo.phone || undefined,
       });
 
       // Persist conversation
@@ -150,7 +202,13 @@ class Widget {
     this.launcher.classList.add('cc-open');
     this.launcher.setAttribute('aria-label', 'Cerrar chat');
     this.window.classList.add('cc-visible');
-    setTimeout(() => this.inputEl.focus(), 300);
+
+    // Focus: pre-chat name field if visible, else input
+    const prechatName = this.window.querySelector('#cc-prechat-name');
+    const focusEl = prechatName && this.window.querySelector('#cc-prechat')?.style.display !== 'none'
+      ? prechatName
+      : this.inputEl;
+    setTimeout(() => focusEl.focus(), 300);
   }
 
   close() {

@@ -10,23 +10,46 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api";
-import { Loader2, CreditCard, Users, Building, Check, ExternalLink } from "lucide-react";
+import { formatDate } from "@/lib/utils";
+import { Loader2, CreditCard, Users, Building, Check, ExternalLink, Zap, TrendingUp, ShoppingCart } from "lucide-react";
 
 const PLANS = [
-  { id: "free", name: "Free", price: "$0", features: ["1 agente", "500 mensajes/mes", "1 canal", "Soporte por email"] },
-  { id: "starter", name: "Starter", price: "$29", features: ["3 agentes", "5,000 mensajes/mes", "5 canales", "RAG incluido", "Soporte prioritario"] },
-  { id: "pro", name: "Pro", price: "$99", features: ["10 agentes", "50,000 mensajes/mes", "Canales ilimitados", "Analytics avanzado", "SLA garantizado"] },
-  { id: "enterprise", name: "Enterprise", price: "Custom", features: ["Agentes ilimitados", "Mensajes ilimitados", "Onboarding dedicado", "SSO", "SLA 99.9%"] },
+  {
+    id: "starter", name: "Starter", price: "$29", credits: "1,000",
+    features: ["1 agente IA", "1,000 créditos/mes", "2 canales", "RAG incluido"],
+  },
+  {
+    id: "pro", name: "Pro", price: "$79", credits: "10,000",
+    features: ["5 agentes IA", "10,000 créditos/mes", "Todos los canales", "Analytics avanzado", "Handoff humano"],
+  },
+  {
+    id: "enterprise", name: "Enterprise", price: "$249", credits: "Ilimitados",
+    features: ["Agentes ilimitados", "Créditos ilimitados", "SLA garantizado", "Onboarding dedicado"],
+  },
 ];
+
+const CREDIT_PACKS = [
+  { credits: "1,000", price: "$9", value: 1000 },
+  { credits: "5,000", price: "$39", value: 5000 },
+  { credits: "20,000", price: "$129", value: 20000 },
+];
+
+const TRANSACTION_LABELS: Record<string, string> = {
+  plan_grant: "Créditos del plan",
+  message: "Mensaje procesado",
+  document: "Documento procesado",
+  purchase: "Compra de créditos",
+  refund: "Reembolso",
+};
 
 export default function SettingsPage() {
   const supabase = createClient();
-  const [token, setToken] = useState("");
   const [orgId, setOrgId] = useState("");
   const [org, setOrg] = useState<any>(null);
   const [sub, setSub] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
-  const [_loading, setLoading] = useState(true);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -35,7 +58,6 @@ export default function SettingsPage() {
     async function load() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      setToken(session.access_token);
       const { data: m } = await supabase
         .from("organization_members")
         .select("organization_id, role, organizations(*)")
@@ -46,12 +68,20 @@ export default function SettingsPage() {
       setOrgId(m.organization_id);
       setOrg(m.organizations);
 
-      const [subData, membersData] = await Promise.all([
-        api.get("/api/billing/subscription", session.access_token, m.organization_id),
+      const [subData, membersData, txData] = await Promise.all([
+        api.get("/api/billing/subscription", m.organization_id).catch(() => null),
         supabase.from("organization_members").select("*, profiles:user_id(email)").eq("organization_id", m.organization_id),
+        supabase
+          .from("credit_transactions")
+          .select("*")
+          .eq("organization_id", m.organization_id)
+          .order("created_at", { ascending: false })
+          .limit(30),
       ]);
+
       setSub(subData);
       setMembers(membersData.data || []);
+      setTransactions(txData.data || []);
       setLoading(false);
     }
     load();
@@ -59,164 +89,373 @@ export default function SettingsPage() {
 
   async function openPortal() {
     setLoadingPortal(true);
-    const { url } = await api.post("/api/billing/portal", {}, token, orgId);
-    window.open(url, "_blank");
-    setLoadingPortal(false);
+    try {
+      const { url } = await api.post("/api/billing/portal", {}, orgId);
+      window.open(url, "_blank");
+    } finally {
+      setLoadingPortal(false);
+    }
   }
 
   async function checkout(plan: string) {
     setLoadingCheckout(plan);
-    const { url } = await api.post("/api/billing/checkout", { plan }, token, orgId);
-    window.location.href = url;
+    try {
+      const { url } = await api.post("/api/billing/checkout", { plan }, orgId);
+      window.location.href = url;
+    } finally {
+      setLoadingCheckout(null);
+    }
   }
 
-  const currentPlan = sub?.plan ?? org?.plan ?? "free";
+  const currentPlan = sub?.plan ?? org?.plan ?? "starter";
+  const creditsBalance = org?.credits_balance ?? 0;
+  const creditsUsed = org?.credits_used ?? 0;
+  const creditsLimit = org?.plan_credits_limit ?? 1000;
+  const creditsPercent = creditsLimit > 0 ? Math.min(100, Math.round((creditsUsed / creditsLimit) * 100)) : 0;
 
   return (
     <div>
-      <Header title="Configuración" description="Gestiona tu plan, equipo y organización" />
+      <Header title="Configuración" description="Plan, créditos, equipo y organización" />
 
       <div className="p-6">
-        <Tabs defaultValue="billing">
-          <TabsList>
-            <TabsTrigger value="billing"><CreditCard className="h-3.5 w-3.5 mr-1.5" />Suscripción</TabsTrigger>
-            <TabsTrigger value="team"><Users className="h-3.5 w-3.5 mr-1.5" />Equipo</TabsTrigger>
-            <TabsTrigger value="org"><Building className="h-3.5 w-3.5 mr-1.5" />Organización</TabsTrigger>
+        <Tabs defaultValue="credits">
+          <TabsList className="bg-space-el rounded-xl p-1 border border-neon-cyan/[0.08] mb-6">
+            <TabsTrigger
+              value="credits"
+              className="data-[state=active]:bg-space-card data-[state=active]:text-neon-cyan data-[state=active]:shadow-sm rounded-lg text-[#4A5568] hover:text-[#A0AEC0] gap-1.5"
+            >
+              <Zap className="h-3.5 w-3.5" />Créditos
+            </TabsTrigger>
+            <TabsTrigger
+              value="billing"
+              className="data-[state=active]:bg-space-card data-[state=active]:text-neon-cyan data-[state=active]:shadow-sm rounded-lg text-[#4A5568] hover:text-[#A0AEC0] gap-1.5"
+            >
+              <CreditCard className="h-3.5 w-3.5" />Suscripción
+            </TabsTrigger>
+            <TabsTrigger
+              value="team"
+              className="data-[state=active]:bg-space-card data-[state=active]:text-neon-cyan data-[state=active]:shadow-sm rounded-lg text-[#4A5568] hover:text-[#A0AEC0] gap-1.5"
+            >
+              <Users className="h-3.5 w-3.5" />Equipo
+            </TabsTrigger>
+            <TabsTrigger
+              value="org"
+              className="data-[state=active]:bg-space-card data-[state=active]:text-neon-cyan data-[state=active]:shadow-sm rounded-lg text-[#4A5568] hover:text-[#A0AEC0] gap-1.5"
+            >
+              <Building className="h-3.5 w-3.5" />Organización
+            </TabsTrigger>
           </TabsList>
 
-          {/* Billing */}
-          <TabsContent value="billing" className="space-y-6">
-            <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="p-5 flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Plan actual</p>
-                  <p className="text-2xl font-bold capitalize mt-1">{currentPlan}</p>
-                  {sub?.current_period_end && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Próxima facturación: {new Date(sub.current_period_end).toLocaleDateString("es-ES")}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant={sub?.status === "active" ? "success" : "warning"}>
-                    {sub?.status ?? "Activo"}
-                  </Badge>
-                  {currentPlan !== "free" && (
-                    <Button variant="outline" size="sm" onClick={openPortal} disabled={loadingPortal}>
-                      {loadingPortal ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />}
-                      Gestionar
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          {/* ── CRÉDITOS ───────────────────────────────────────────────── */}
+          <TabsContent value="credits" className="space-y-6">
 
-            <div className="grid md:grid-cols-4 gap-4">
+            {/* Credit balance card */}
+            <div className="rounded-xl border border-neon-cyan/[0.08] bg-space-card p-6">
+              <div className="flex items-start justify-between mb-5">
+                <div>
+                  <p className="text-sm text-[#4A5568]">Créditos disponibles</p>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <p className="font-display text-5xl font-bold text-white">{creditsBalance.toLocaleString()}</p>
+                    <p className="text-sm text-[#4A5568]">/ {creditsLimit.toLocaleString()}</p>
+                  </div>
+                  <p className="text-xs text-[#4A5568] mt-1">
+                    {creditsUsed.toLocaleString()} créditos usados este período
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-neon-cyan/10 border border-neon-cyan/20">
+                  <TrendingUp className="h-6 w-6 text-neon-cyan" />
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="space-y-1.5">
+                <div className="h-2 w-full bg-space-el rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${creditsPercent}%`,
+                      background: creditsPercent > 80
+                        ? "linear-gradient(90deg, #FFB800, #FF3860)"
+                        : "linear-gradient(90deg, #00F5FF, #7B2FFF)",
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-[#4A5568] text-right">{creditsPercent}% utilizado</p>
+              </div>
+
+              <div className="mt-5 grid grid-cols-3 gap-3 text-center">
+                <div className="bg-space-el rounded-xl p-3 border border-neon-cyan/[0.06]">
+                  <p className="font-display text-lg font-bold text-white">{creditsUsed.toLocaleString()}</p>
+                  <p className="text-[10px] text-[#4A5568] uppercase tracking-wide">Usados</p>
+                </div>
+                <div className="bg-space-el rounded-xl p-3 border border-neon-cyan/[0.06]">
+                  <p className="font-display text-lg font-bold text-white">{creditsBalance.toLocaleString()}</p>
+                  <p className="text-[10px] text-[#4A5568] uppercase tracking-wide">Restantes</p>
+                </div>
+                <div className="bg-space-el rounded-xl p-3 border border-neon-cyan/[0.06]">
+                  <p className="font-display text-lg font-bold text-neon-cyan capitalize">{currentPlan}</p>
+                  <p className="text-[10px] text-[#4A5568] uppercase tracking-wide">Plan</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Credit packs */}
+            <div>
+              <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4 text-[#4A5568]" />
+                Comprar créditos adicionales
+              </h2>
+              <div className="grid md:grid-cols-3 gap-4">
+                {CREDIT_PACKS.map((pack) => (
+                  <div
+                    key={pack.value}
+                    className="rounded-xl border border-neon-cyan/[0.08] bg-space-card hover:border-neon-cyan/25 transition-all cursor-pointer card-hover p-5 text-center space-y-3"
+                  >
+                    <p className="font-display text-2xl font-bold text-white">{pack.credits}</p>
+                    <p className="text-xs text-[#4A5568]">créditos</p>
+                    <p className="font-display text-3xl font-bold text-neon-cyan">{pack.price}</p>
+                    <p className="text-[11px] text-[#4A5568]">
+                      {pack.value >= 5000
+                        ? `$${(parseInt(pack.price.slice(1)) / pack.value * 1000).toFixed(2)}/1k créditos`
+                        : "$9.00/1k créditos"}
+                    </p>
+                    <Button
+                      size="sm"
+                      className="w-full bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 hover:border-neon-cyan/50 font-semibold"
+                      onClick={() => checkout(`credits_${pack.value}`)}
+                      disabled={!!loadingCheckout}
+                    >
+                      {loadingCheckout === `credits_${pack.value}` && (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      )}
+                      Comprar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Transaction history */}
+            <div className="rounded-xl border border-neon-cyan/[0.08] bg-space-card">
+              <div className="p-5 border-b border-neon-cyan/[0.06]">
+                <h3 className="text-sm font-semibold text-white">Historial de transacciones</h3>
+                <p className="text-xs text-[#4A5568] mt-0.5">Últimas 30 transacciones</p>
+              </div>
+              <div className="p-5">
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin text-neon-cyan" />
+                  </div>
+                ) : transactions.length === 0 ? (
+                  <p className="text-sm text-[#4A5568] text-center py-8">Sin transacciones aún</p>
+                ) : (
+                  <div className="space-y-0">
+                    {transactions.map((tx) => (
+                      <div
+                        key={tx.id}
+                        className="flex items-center justify-between py-3 border-b border-neon-cyan/[0.06] last:border-0"
+                      >
+                        <div>
+                          <p className="text-sm text-white">{TRANSACTION_LABELS[tx.type] ?? tx.type}</p>
+                          {tx.description && (
+                            <p className="text-xs text-[#4A5568]">{tx.description}</p>
+                          )}
+                          <p className="text-[10px] text-[#4A5568] mt-0.5">
+                            {formatDate(tx.created_at)}
+                          </p>
+                        </div>
+                        <span className={`text-sm font-semibold tabular-nums ${tx.amount > 0 ? "text-neon-green" : "text-[#A0AEC0]"}`}>
+                          {tx.amount > 0 ? "+" : ""}{tx.amount.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ── SUSCRIPCIÓN ────────────────────────────────────────────── */}
+          <TabsContent value="billing" className="space-y-6">
+            <div className="rounded-xl border border-neon-cyan/20 bg-neon-cyan/5 p-5 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-[#4A5568]">Plan actual</p>
+                <p className="font-display text-2xl font-bold text-white capitalize mt-1">{currentPlan}</p>
+                {sub?.current_period_end && (
+                  <p className="text-xs text-[#4A5568] mt-1">
+                    Próxima facturación: {new Date(sub.current_period_end).toLocaleDateString("es-ES")}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${
+                  sub?.status === "active"
+                    ? "bg-neon-green/10 text-neon-green border-neon-green/20"
+                    : "bg-neon-yellow/10 text-neon-yellow border-neon-yellow/20"
+                }`}>
+                  {sub?.status ?? "Activo"}
+                </span>
+                {currentPlan !== "free" && currentPlan !== "starter" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/10 gap-1.5"
+                    onClick={openPortal}
+                    disabled={loadingPortal}
+                  >
+                    {loadingPortal ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />}
+                    Gestionar
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4">
               {PLANS.map((plan) => {
                 const isCurrent = plan.id === currentPlan;
                 return (
-                  <Card key={plan.id} className={`relative ${isCurrent ? "border-primary/40 bg-primary/5" : ""}`}>
+                  <div
+                    key={plan.id}
+                    className={`relative rounded-xl border bg-space-card p-5 space-y-4 ${
+                      isCurrent ? "border-neon-cyan/30 bg-neon-cyan/5" : "border-neon-cyan/[0.08]"
+                    }`}
+                  >
                     {isCurrent && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <Badge className="text-[10px]">Plan actual</Badge>
+                        <span className="bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/30 text-[10px] rounded-full px-3 py-0.5 font-medium">
+                          Plan actual
+                        </span>
                       </div>
                     )}
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">{plan.name}</CardTitle>
-                      <p className="text-2xl font-bold">{plan.price}<span className="text-xs text-muted-foreground font-normal">{plan.id !== "enterprise" && "/mes"}</span></p>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <ul className="space-y-1.5">
-                        {plan.features.map((f) => (
-                          <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Check className="h-3 w-3 text-primary shrink-0" />{f}
-                          </li>
-                        ))}
-                      </ul>
-                      {!isCurrent && plan.id !== "free" && (
-                        <Button
-                          size="sm"
-                          className="w-full"
-                          variant={plan.id === "pro" ? "default" : "outline"}
-                          onClick={() => checkout(plan.id)}
-                          disabled={!!loadingCheckout}
-                        >
-                          {loadingCheckout === plan.id && <Loader2 className="h-3 w-3 animate-spin" />}
-                          {plan.id === "enterprise" ? "Contactar" : "Actualizar"}
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
+                    <div className="pt-1">
+                      <p className="text-sm font-semibold text-white">{plan.name}</p>
+                      <div className="flex items-baseline gap-1 mt-1">
+                        <span className="font-display text-2xl font-bold text-white">{plan.price}</span>
+                        <span className="text-xs text-[#4A5568] font-normal">/mes</span>
+                      </div>
+                      <p className="text-xs text-neon-cyan font-medium mt-0.5">{plan.credits} créditos/mes</p>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {plan.features.map((f) => (
+                        <li key={f} className="flex items-center gap-2 text-xs text-[#4A5568]">
+                          <Check className="h-3 w-3 text-neon-cyan shrink-0" />{f}
+                        </li>
+                      ))}
+                    </ul>
+                    {!isCurrent && (
+                      <Button
+                        size="sm"
+                        className={`w-full font-semibold ${
+                          plan.id === "pro"
+                            ? "bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 hover:border-neon-cyan/50"
+                            : "border border-neon-cyan/[0.08] bg-space-el text-[#A0AEC0] hover:border-neon-cyan/20 hover:text-white"
+                        }`}
+                        onClick={() => checkout(plan.id)}
+                        disabled={!!loadingCheckout}
+                      >
+                        {loadingCheckout === plan.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                        {plan.id === "enterprise" ? "Contactar ventas" : "Actualizar plan"}
+                      </Button>
+                    )}
+                  </div>
                 );
               })}
             </div>
           </TabsContent>
 
-          {/* Team */}
+          {/* ── EQUIPO ─────────────────────────────────────────────────── */}
           <TabsContent value="team" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Miembros del equipo ({members.length})</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
+            <div className="rounded-xl border border-neon-cyan/[0.08] bg-space-card">
+              <div className="p-5 border-b border-neon-cyan/[0.06]">
+                <h3 className="text-sm font-semibold text-white">Miembros del equipo ({members.length})</h3>
+              </div>
+              <div className="p-5 space-y-2">
                 {members.map((m: any) => (
-                  <div key={m.id} className="flex items-center justify-between p-3 rounded-lg bg-accent/30">
+                  <div key={m.id} className="flex items-center justify-between p-3 rounded-xl bg-space-el border border-neon-cyan/[0.06]">
                     <div>
-                      <p className="text-sm font-medium">{m.profiles?.email ?? "—"}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{m.role}</p>
+                      <p className="text-sm font-medium text-white">{m.profiles?.email ?? "—"}</p>
+                      <p className="text-xs text-[#4A5568] capitalize">{m.role}</p>
                     </div>
-                    <Badge variant="secondary" className="capitalize">{m.role}</Badge>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full border bg-space-el text-[#A0AEC0] border-neon-cyan/[0.08] capitalize">
+                      {m.role}
+                    </span>
                   </div>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Invitar miembro</CardTitle>
-                <CardDescription className="text-xs">El usuario debe crear su cuenta primero</CardDescription>
-              </CardHeader>
-              <CardContent className="flex gap-2">
+            <div className="rounded-xl border border-neon-cyan/[0.08] bg-space-card">
+              <div className="p-5 border-b border-neon-cyan/[0.06]">
+                <h3 className="text-sm font-semibold text-white">Invitar miembro</h3>
+                <p className="text-xs text-[#4A5568] mt-0.5">El usuario debe crear su cuenta primero</p>
+              </div>
+              <div className="p-5 flex gap-2">
                 <Input
                   placeholder="email@empresa.com"
                   type="email"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
+                  className="bg-space-el border-neon-cyan/15 text-white placeholder-[#4A5568] h-9 focus:border-neon-cyan/40"
                 />
-                <Button size="sm" disabled={!inviteEmail}>Invitar</Button>
-              </CardContent>
-            </Card>
+                <Button
+                  size="sm"
+                  className="bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 hover:border-neon-cyan/50 font-semibold shrink-0"
+                  disabled={!inviteEmail}
+                >
+                  Invitar
+                </Button>
+              </div>
+            </div>
           </TabsContent>
 
-          {/* Org */}
+          {/* ── ORGANIZACIÓN ───────────────────────────────────────────── */}
           <TabsContent value="org" className="space-y-4">
-            <Card>
-              <CardHeader><CardTitle className="text-sm">Datos de la organización</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Nombre</Label>
-                  <Input defaultValue={org?.name ?? ""} />
+            <div className="rounded-xl border border-neon-cyan/[0.08] bg-space-card">
+              <div className="p-5 border-b border-neon-cyan/[0.06]">
+                <h3 className="text-sm font-semibold text-white">Datos de la organización</h3>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-[#A0AEC0]">Nombre</Label>
+                  <Input
+                    defaultValue={org?.name ?? ""}
+                    className="bg-space-el border-neon-cyan/15 text-white placeholder-[#4A5568] h-9 focus:border-neon-cyan/40"
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label>Slug</Label>
-                  <Input defaultValue={org?.slug ?? ""} disabled className="font-mono text-xs" />
-                  <p className="text-xs text-muted-foreground">El slug no puede modificarse</p>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-[#A0AEC0]">Slug</Label>
+                  <Input
+                    defaultValue={org?.slug ?? ""}
+                    disabled
+                    className="bg-space-el border-neon-cyan/[0.08] text-[#4A5568] h-9 font-mono text-xs opacity-60"
+                  />
+                  <p className="text-xs text-[#4A5568]">El slug no puede modificarse</p>
                 </div>
-                <Button size="sm">Guardar cambios</Button>
-              </CardContent>
-            </Card>
+                <Button
+                  size="sm"
+                  className="bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 hover:border-neon-cyan/50 font-semibold"
+                >
+                  Guardar cambios
+                </Button>
+              </div>
+            </div>
 
-            <Separator />
+            <div className="border-t border-neon-cyan/[0.06]" />
 
-            <Card className="border-destructive/30">
-              <CardHeader>
-                <CardTitle className="text-sm text-destructive">Zona de peligro</CardTitle>
-                <CardDescription className="text-xs">Estas acciones son irreversibles</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="destructive" size="sm">Eliminar organización</Button>
-              </CardContent>
-            </Card>
+            <div className="rounded-xl border border-neon-red/20 bg-neon-red/5">
+              <div className="p-5 border-b border-neon-red/10">
+                <h3 className="text-sm font-semibold text-neon-red">Zona de peligro</h3>
+                <p className="text-xs text-[#4A5568] mt-0.5">Estas acciones son irreversibles</p>
+              </div>
+              <div className="p-5">
+                <Button
+                  size="sm"
+                  className="bg-neon-red/10 border border-neon-red/30 text-neon-red hover:bg-neon-red/20 hover:border-neon-red/50 font-semibold"
+                >
+                  Eliminar organización
+                </Button>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

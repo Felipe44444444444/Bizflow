@@ -25,7 +25,13 @@ app.set('trust proxy', 1);
 const ALLOWED_ORIGINS = (process.env.FRONTEND_URL || 'https://app.conectaachat.com')
   .split(',')
   .map((o) => o.trim())
-  .concat(['https://conectachat-dashboard.vercel.app', 'http://localhost:3001', 'http://localhost:3000']);
+  .concat([
+    'https://conectachat-dashboard.vercel.app',
+    'https://conectaachat.com',
+    'https://www.conectaachat.com',
+    'http://localhost:3001',
+    'http://localhost:3000',
+  ]);
 
 app.use(
   cors({
@@ -86,6 +92,7 @@ app.listen(PORT, '0.0.0.0', () => {
     app.use('/api/billing',        require('./routes/billing'));
     app.use('/api/retargeting',    require('./routes/retargeting'));
     app.use('/api/integrations',   require('./routes/integrations'));
+    app.use('/api/landing',        require('./routes/landing'));
 
     app.use((req, res) => {
       res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });

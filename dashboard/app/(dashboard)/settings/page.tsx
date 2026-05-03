@@ -13,52 +13,32 @@ import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { Loader2, CreditCard, Users, Building, Check, ExternalLink, Zap, TrendingUp, ShoppingCart } from "lucide-react";
 
-const PLANS = [
-  {
-    id: "starter",
-    name: "Starter",
-    price: "$299",
-    bimonthly: "$499",
-    savePct: "16%",
-    subtitle: "bimestral",
-    messages: "500 mensajes/mes",
-    popular: false,
-    features: ["1 agente IA", "Widget web", "Soporte por email", "1 usuario"],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "$799",
-    bimonthly: "$1,299",
-    savePct: "19%",
-    subtitle: "bimestral",
-    messages: "3,000 mensajes/mes",
-    popular: true,
-    features: ["3 agentes IA", "Widget + Slack + FB + IG", "RAG ilimitado", "Analytics básico", "Soporte prioritario", "3 usuarios"],
-  },
-  {
-    id: "business",
-    name: "Business",
-    price: "$1,999",
-    bimonthly: "$3,199",
-    savePct: "20%",
-    subtitle: "bimestral",
-    messages: "15,000 mensajes/mes",
-    popular: false,
-    features: ["10 agentes IA", "Todos los canales + WhatsApp Business", "Analytics avanzado + exportar leads", "API access", "Soporte dedicado + onboarding", "Usuarios ilimitados", "SLA 99.9%"],
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: "Personalizado",
-    bimonthly: null,
-    savePct: null,
-    subtitle: "",
-    messages: "Mensajes ilimitados",
-    popular: false,
-    features: ["Agentes ilimitados", "Infraestructura dedicada", "Integración custom", "Account manager dedicado"],
-  },
-];
+// Plans are fetched from /api/plans at runtime
+interface PlanRow {
+  id: string;
+  name: string;
+  price_mxn: number;
+  price_mxn_bimonthly: number;
+  messages_limit: number;
+  features: string[];
+  is_popular: boolean;
+}
+
+function formatMXN(centavos: number): string {
+  if (!centavos) return "Personalizado";
+  return "$" + (centavos / 100).toLocaleString("es-MX");
+}
+
+function savingsPercent(monthly: number, bimonthly: number): string | null {
+  if (!monthly || !bimonthly) return null;
+  const saved = monthly * 2 - bimonthly;
+  return Math.round((saved / (monthly * 2)) * 100) + "%";
+}
+
+function messagesLabel(limit: number): string {
+  if (limit < 0) return "Mensajes ilimitados";
+  return limit.toLocaleString("es-MX") + " mensajes/mes";
+}
 
 const CREDIT_PACKS = [
   { credits: "1,000", price: "$9", value: 1000 },
@@ -79,6 +59,7 @@ export default function SettingsPage() {
   const [orgId, setOrgId] = useState("");
   const [org, setOrg] = useState<any>(null);
   const [sub, setSub] = useState<any>(null);
+  const [plans, setPlans] = useState<PlanRow[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,7 +81,7 @@ export default function SettingsPage() {
       setOrgId(m.organization_id);
       setOrg(m.organizations);
 
-      const [subData, membersData, txData] = await Promise.all([
+      const [subData, membersData, txData, plansData] = await Promise.all([
         api.get("/api/billing/subscription", m.organization_id).catch(() => null),
         supabase.from("organization_members").select("*, profiles:user_id(email)").eq("organization_id", m.organization_id),
         supabase
@@ -109,11 +90,13 @@ export default function SettingsPage() {
           .eq("organization_id", m.organization_id)
           .order("created_at", { ascending: false })
           .limit(30),
+        api.get("/api/billing/plans", m.organization_id).catch(() => []),
       ]);
 
       setSub(subData);
       setMembers(membersData.data || []);
       setTransactions(txData.data || []);
+      if (Array.isArray(plansData) && plansData.length > 0) setPlans(plansData);
       setLoading(false);
     }
     load();
@@ -342,84 +325,97 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
-              {PLANS.map((plan) => {
-                const isCurrent = plan.id === currentPlan;
-                return (
-                  <div
-                    key={plan.id}
-                    className={`relative rounded-xl border bg-space-card p-5 space-y-4 flex flex-col ${
-                      plan.popular
-                        ? "border-neon-cyan/40 bg-neon-cyan/[0.03]"
-                        : isCurrent
-                        ? "border-neon-cyan/30 bg-neon-cyan/5"
-                        : "border-neon-cyan/[0.08]"
-                    }`}
-                  >
-                    {plan.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span className="bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/40 text-[10px] rounded-full px-3 py-0.5 font-semibold">
-                          ⭐ Popular
-                        </span>
-                      </div>
-                    )}
-                    {isCurrent && !plan.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span className="bg-space-el text-[#A0AEC0] border border-neon-cyan/20 text-[10px] rounded-full px-3 py-0.5 font-medium">
-                          Plan actual
-                        </span>
-                      </div>
-                    )}
+            {plans.length === 0 ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="h-5 w-5 animate-spin text-neon-cyan" />
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {plans.map((plan) => {
+                  const isCurrent  = plan.id === currentPlan;
+                  const priceLabel = plan.price_mxn ? formatMXN(plan.price_mxn) : "Personalizado";
+                  const bimLabel   = plan.price_mxn_bimonthly ? formatMXN(plan.price_mxn_bimonthly) : null;
+                  const savePct    = savingsPercent(plan.price_mxn, plan.price_mxn_bimonthly);
+                  const features   = Array.isArray(plan.features) ? plan.features : [];
 
-                    <div className="pt-1">
-                      <p className="text-sm font-semibold text-white">{plan.name}</p>
-                      <div className="flex items-baseline gap-1 mt-1">
-                        <span className="font-display text-2xl font-bold text-white">{plan.price}</span>
-                        {plan.id !== "enterprise" && (
-                          <span className="text-xs text-[#4A5568] font-normal">MXN/mes</span>
-                        )}
-                      </div>
-                      {plan.bimonthly && (
-                        <p className="text-xs text-[#4A5568] mt-0.5">
-                          {plan.bimonthly} MXN bimestral —{" "}
-                          <span className="text-neon-cyan font-medium">ahorra {plan.savePct}</span>
-                        </p>
+                  return (
+                    <div
+                      key={plan.id}
+                      className={`relative rounded-xl border bg-space-card p-5 space-y-4 flex flex-col ${
+                        plan.is_popular
+                          ? "border-neon-cyan/40 bg-neon-cyan/[0.03]"
+                          : isCurrent
+                          ? "border-neon-cyan/30 bg-neon-cyan/5"
+                          : "border-neon-cyan/[0.08]"
+                      }`}
+                    >
+                      {plan.is_popular && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                          <span className="bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/40 text-[10px] rounded-full px-3 py-0.5 font-semibold">
+                            ⭐ Popular
+                          </span>
+                        </div>
                       )}
-                      <p className="text-xs text-[#A0AEC0] font-medium mt-1">{plan.messages}</p>
+                      {isCurrent && !plan.is_popular && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                          <span className="bg-space-el text-[#A0AEC0] border border-neon-cyan/20 text-[10px] rounded-full px-3 py-0.5 font-medium">
+                            Plan actual
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="pt-1">
+                        <p className="text-sm font-semibold text-white">{plan.name}</p>
+                        <div className="flex items-baseline gap-1 mt-1">
+                          <span className="font-display text-2xl font-bold text-white">{priceLabel}</span>
+                          {plan.price_mxn > 0 && (
+                            <span className="text-xs text-[#4A5568] font-normal">MXN/mes</span>
+                          )}
+                        </div>
+                        {bimLabel && savePct && (
+                          <p className="text-xs text-[#4A5568] mt-0.5">
+                            {bimLabel} MXN bimestral —{" "}
+                            <span className="text-neon-cyan font-medium">ahorra {savePct}</span>
+                          </p>
+                        )}
+                        <p className="text-xs text-[#A0AEC0] font-medium mt-1">
+                          {messagesLabel(plan.messages_limit)}
+                        </p>
+                      </div>
+
+                      <ul className="space-y-1.5 flex-1">
+                        {features.map((f) => (
+                          <li key={f} className="flex items-start gap-2 text-xs text-[#4A5568]">
+                            <Check className="h-3 w-3 text-neon-cyan shrink-0 mt-0.5" />{f}
+                          </li>
+                        ))}
+                      </ul>
+
+                      {!isCurrent && (
+                        <Button
+                          size="sm"
+                          className={`w-full font-semibold mt-auto ${
+                            plan.is_popular
+                              ? "bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 hover:border-neon-cyan/50"
+                              : plan.id === "enterprise"
+                              ? "border border-neon-cyan/[0.08] bg-space-el text-[#A0AEC0] hover:border-neon-cyan/20 hover:text-white"
+                              : "border border-neon-cyan/[0.08] bg-space-el text-[#A0AEC0] hover:border-neon-cyan/20 hover:text-white"
+                          }`}
+                          onClick={() => plan.id !== "enterprise" && checkout(plan.id)}
+                          disabled={!!loadingCheckout}
+                        >
+                          {loadingCheckout === plan.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                          {plan.id === "enterprise" ? "Contactar ventas" : "Seleccionar plan"}
+                        </Button>
+                      )}
+                      {isCurrent && (
+                        <div className="text-center text-xs text-neon-cyan font-medium py-1">✓ Plan actual</div>
+                      )}
                     </div>
-
-                    <ul className="space-y-1.5 flex-1">
-                      {plan.features.map((f) => (
-                        <li key={f} className="flex items-start gap-2 text-xs text-[#4A5568]">
-                          <Check className="h-3 w-3 text-neon-cyan shrink-0 mt-0.5" />{f}
-                        </li>
-                      ))}
-                    </ul>
-
-                    {!isCurrent && (
-                      <Button
-                        size="sm"
-                        className={`w-full font-semibold mt-auto ${
-                          plan.popular
-                            ? "bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 hover:border-neon-cyan/50"
-                            : plan.id === "enterprise"
-                            ? "border border-neon-cyan/[0.08] bg-space-el text-[#A0AEC0] hover:border-neon-cyan/20 hover:text-white"
-                            : "border border-neon-cyan/[0.08] bg-space-el text-[#A0AEC0] hover:border-neon-cyan/20 hover:text-white"
-                        }`}
-                        onClick={() => plan.id !== "enterprise" && checkout(plan.id)}
-                        disabled={!!loadingCheckout}
-                      >
-                        {loadingCheckout === plan.id && <Loader2 className="h-3 w-3 animate-spin" />}
-                        {plan.id === "enterprise" ? "Contactar ventas" : "Seleccionar plan"}
-                      </Button>
-                    )}
-                    {isCurrent && (
-                      <div className="text-center text-xs text-neon-cyan font-medium py-1">✓ Plan actual</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
 
           {/* ── EQUIPO ─────────────────────────────────────────────────── */}

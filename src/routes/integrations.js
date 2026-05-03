@@ -5,6 +5,7 @@ const { supabaseAdmin }  = require('../config/supabase');
 const { authMiddleware } = require('../middleware/auth');
 const agentService   = require('../services/agentService');
 const channelService = require('../services/channelService');
+const { upsertLead, notifyNewLead } = require('../services/leadService');
 
 const FRONTEND = process.env.FRONTEND_URL || 'https://app.conectaachat.com';
 
@@ -384,6 +385,51 @@ async function handleSlackEvent({ team_id, userId, slackChannel, text, threadTs 
     const opts = threadTs ? { thread_ts: threadTs } : {};
     await channelService.sendMessage(channelWithToken, slackChannel, result.message, opts);
   }
+
+  // 8. Capture lead (fire and forget)
+  setImmediate(() => captureSlackLead({
+    orgId:          integration.organization_id,
+    agentId,
+    teamId:         team_id,
+    userId,
+    text,
+    token:          integration.slack_access_token,
+  }).catch(e => console.error('[Slack Lead]', e.message)));
+}
+
+async function captureSlackLead({ orgId, agentId, teamId, userId, text, token }) {
+  let nombre = null, email = null, telefono = null;
+
+  try {
+    const infoRes = await fetch(`https://slack.com/api/users.info?user=${encodeURIComponent(userId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const info = await infoRes.json();
+    if (info.ok && info.user) {
+      nombre   = info.user.real_name || info.user.profile?.real_name || null;
+      email    = info.user.profile?.email  || null;
+      telefono = info.user.profile?.phone  || null;
+    }
+  } catch {}
+
+  const { lead, isNew } = await upsertLead({
+    orgId,
+    agentId,
+    canal:         'slack',
+    canalUserId:   `${teamId}_${userId}`,
+    canalUsername: nombre,
+    nombre,
+    email,
+    telefono,
+    adSource:      'organic',
+    primerMensaje: text,
+  });
+
+  if (isNew && lead) {
+    const { data: agent } = await supabaseAdmin.from('agents').select('name').eq('id', agentId).maybeSingle();
+    notifyNewLead({ lead, agentName: agent?.name, orgId }).catch(() => {});
+    console.log(`[Lead] new Slack lead — org=${orgId} user=${userId}`);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -622,8 +668,11 @@ router.post('/facebook/webhook', (req, res) => {
           for (const evt of (entry.messaging || [])) {
             if (!evt.message?.text || evt.message?.is_echo) continue;
             if (dedupEvent(evt.message.mid)) continue;
-            await handleMetaMessage({ lookupField: 'page_id', lookupValue: entry.id, senderId: evt.sender.id, text: evt.message.text, platform: 'facebook' })
-              .catch(e => console.error('[FB Webhook]', e.message));
+            await handleMetaMessage({
+              lookupField: 'page_id', lookupValue: entry.id,
+              senderId: evt.sender.id, text: evt.message.text, platform: 'facebook',
+              referral: evt.referral || null,
+            }).catch(e => console.error('[FB Webhook]', e.message));
           }
         }
       } else if (body.object === 'instagram') {
@@ -632,8 +681,11 @@ router.post('/facebook/webhook', (req, res) => {
           for (const evt of (entry.messaging || [])) {
             if (!evt.message?.text || evt.message?.is_echo) continue;
             if (dedupEvent(evt.message.mid)) continue;
-            await handleMetaMessage({ lookupField: 'ig_account_id', lookupValue: entry.id, senderId: evt.sender.id, text: evt.message.text, platform: 'instagram' })
-              .catch(e => console.error('[IG Webhook]', e.message));
+            await handleMetaMessage({
+              lookupField: 'ig_account_id', lookupValue: entry.id,
+              senderId: evt.sender.id, text: evt.message.text, platform: 'instagram',
+              referral: evt.referral || null,
+            }).catch(e => console.error('[IG Webhook]', e.message));
           }
         }
       } else {
@@ -645,9 +697,8 @@ router.post('/facebook/webhook', (req, res) => {
   });
 });
 
-async function handleMetaMessage({ lookupField, lookupValue, senderId, text, platform }) {
+async function handleMetaMessage({ lookupField, lookupValue, senderId, text, platform, referral }) {
   const table = platform === 'instagram' ? 'instagram_integrations' : 'facebook_integrations';
-  // Use limit(1) — maybeSingle() throws if multiple rows share the same page/ig_account
   const { data: rows } = await supabaseAdmin
     .from(table)
     .select('*')
@@ -683,6 +734,63 @@ async function handleMetaMessage({ lookupField, lookupValue, senderId, text, pla
   const result = await agentService.processMessage({ agentId, conversationId, userMessage: text, organizationId: integration.organization_id });
   if (!result.handoffRequested) {
     await channelService.sendMessage(fakeChannel, senderId, result.message);
+  }
+
+  // Capture lead (fire and forget)
+  setImmediate(() => captureMetaLead({
+    orgId:        integration.organization_id,
+    agentId,
+    platform,
+    senderId,
+    text,
+    referral,
+    integration,
+    conversationId,
+    lookupValue,
+  }).catch(e => console.error(`[${platform} Lead]`, e.message)));
+}
+
+async function captureMetaLead({ orgId, agentId, platform, senderId, text, referral, integration, conversationId, lookupValue }) {
+  const token = integration.page_access_token;
+
+  // Fetch user profile from Graph API
+  let nombre = null;
+  try {
+    const fields = platform === 'instagram' ? 'name,username' : 'name';
+    const profileRes = await fetch(`${FB_BASE}/${senderId}?fields=${fields}&access_token=${encodeURIComponent(token)}`);
+    const profileData = await profileRes.json();
+    nombre = profileData.name || profileData.username || null;
+  } catch {}
+
+  // Extract ad/referral data
+  const adId         = referral?.ad_id    || null;
+  const adName       = referral?.headline || null;
+  const campaignId   = referral?.ref      || null;
+  const adSource     = referral?.source === 'ADS' ? `${platform}_ad` : 'organic';
+  const referralUrl  = referral?.ref_type === 'OPEN_THREAD' ? null : (referral?.referral_url || null);
+
+  const { lead, isNew } = await upsertLead({
+    orgId,
+    agentId,
+    canal:          platform,
+    canalUserId:    senderId,
+    canalUsername:  nombre,
+    nombre,
+    adId,
+    adName,
+    campaignId,
+    adSource,
+    referralUrl,
+    primerMensaje:  text,
+    conversationId,
+    fbPageId:       platform === 'facebook' ? lookupValue : null,
+    igAccountId:    platform === 'instagram' ? lookupValue : null,
+  });
+
+  if (isNew && lead) {
+    const { data: agent } = await supabaseAdmin.from('agents').select('name').eq('id', agentId).maybeSingle();
+    notifyNewLead({ lead, agentName: agent?.name, orgId }).catch(() => {});
+    console.log(`[Lead] new ${platform} lead — org=${orgId} sender=${senderId}`);
   }
 }
 
@@ -1038,15 +1146,21 @@ router.post('/whatsapp/webhook', (req, res) => {
         for (const msg of (val.messages || [])) {
           if (msg.type !== 'text') continue;
           if (dedupEvent(msg.id)) continue;
-          await handleWhatsAppMessage({ phoneNumberId: val.metadata?.phone_number_id, fromPhone: msg.from, text: msg.text?.body })
-            .catch(e => console.error('[WA Webhook]', e.message));
+          const contactName = val.contacts?.find(c => c.wa_id === msg.from)?.profile?.name || null;
+          await handleWhatsAppMessage({
+            phoneNumberId: val.metadata?.phone_number_id,
+            fromPhone:     msg.from,
+            text:          msg.text?.body,
+            contactName,
+            referral:      msg.referral || null,
+          }).catch(e => console.error('[WA Webhook]', e.message));
         }
       }
     }
   });
 });
 
-async function handleWhatsAppMessage({ phoneNumberId, fromPhone, text }) {
+async function handleWhatsAppMessage({ phoneNumberId, fromPhone, text, contactName, referral }) {
   if (!text || !phoneNumberId) return;
 
   const { data: rows } = await supabaseAdmin
@@ -1074,12 +1188,53 @@ async function handleWhatsAppMessage({ phoneNumberId, fromPhone, text }) {
     agentId, channelId, organizationId: integration.organization_id,
     externalId:    `${phoneNumberId}_${fromPhone}`,
     contactPhone:  fromPhone,
+    contactName,
     sourceChannel: 'whatsapp',
   });
 
   const result = await agentService.processMessage({ agentId, conversationId, userMessage: text, organizationId: integration.organization_id });
   if (!result.handoffRequested) {
     await channelService.sendMessage(fakeChannel, fromPhone, result.message);
+  }
+
+  // Capture lead (fire and forget)
+  setImmediate(() => captureWhatsAppLead({
+    orgId:         integration.organization_id,
+    agentId,
+    fromPhone,
+    contactName,
+    text,
+    referral,
+    conversationId,
+    waPhoneNumber: integration.display_phone,
+  }).catch(e => console.error('[WA Lead]', e.message)));
+}
+
+async function captureWhatsAppLead({ orgId, agentId, fromPhone, contactName, text, referral, conversationId, waPhoneNumber }) {
+  const adId        = referral?.source_id || null;
+  const adName      = referral?.headline  || null;
+  const adSource    = referral?.source_type === 'AD' ? 'whatsapp_ad' : 'organic';
+
+  const { lead, isNew } = await upsertLead({
+    orgId,
+    agentId,
+    canal:          'whatsapp',
+    canalUserId:    fromPhone,
+    canalUsername:  contactName,
+    nombre:         contactName,
+    telefono:       fromPhone,
+    adId,
+    adName,
+    adSource,
+    primerMensaje:  text,
+    conversationId,
+    waPhoneNumber,
+  });
+
+  if (isNew && lead) {
+    const { data: agent } = await supabaseAdmin.from('agents').select('name').eq('id', agentId).maybeSingle();
+    notifyNewLead({ lead, agentName: agent?.name, orgId }).catch(() => {});
+    console.log(`[Lead] new WhatsApp lead — org=${orgId} phone=${fromPhone}`);
   }
 }
 

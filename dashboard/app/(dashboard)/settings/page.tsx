@@ -15,16 +15,48 @@ import { Loader2, CreditCard, Users, Building, Check, ExternalLink, Zap, Trendin
 
 const PLANS = [
   {
-    id: "starter", name: "Starter", price: "$29", credits: "1,000",
-    features: ["1 agente IA", "1,000 créditos/mes", "2 canales", "RAG incluido"],
+    id: "starter",
+    name: "Starter",
+    price: "$299",
+    bimonthly: "$499",
+    savePct: "16%",
+    subtitle: "bimestral",
+    messages: "500 mensajes/mes",
+    popular: false,
+    features: ["1 agente IA", "Widget web", "Soporte por email", "1 usuario"],
   },
   {
-    id: "pro", name: "Pro", price: "$79", credits: "10,000",
-    features: ["5 agentes IA", "10,000 créditos/mes", "Todos los canales", "Analytics avanzado", "Handoff humano"],
+    id: "pro",
+    name: "Pro",
+    price: "$799",
+    bimonthly: "$1,299",
+    savePct: "19%",
+    subtitle: "bimestral",
+    messages: "3,000 mensajes/mes",
+    popular: true,
+    features: ["3 agentes IA", "Widget + Slack + FB + IG", "RAG ilimitado", "Analytics básico", "Soporte prioritario", "3 usuarios"],
   },
   {
-    id: "enterprise", name: "Enterprise", price: "$249", credits: "Ilimitados",
-    features: ["Agentes ilimitados", "Créditos ilimitados", "SLA garantizado", "Onboarding dedicado"],
+    id: "business",
+    name: "Business",
+    price: "$1,999",
+    bimonthly: "$3,199",
+    savePct: "20%",
+    subtitle: "bimestral",
+    messages: "15,000 mensajes/mes",
+    popular: false,
+    features: ["10 agentes IA", "Todos los canales + WhatsApp Business", "Analytics avanzado + exportar leads", "API access", "Soporte dedicado + onboarding", "Usuarios ilimitados", "SLA 99.9%"],
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    price: "Personalizado",
+    bimonthly: null,
+    savePct: null,
+    subtitle: "",
+    messages: "Mensajes ilimitados",
+    popular: false,
+    features: ["Agentes ilimitados", "Infraestructura dedicada", "Integración custom", "Account manager dedicado"],
   },
 ];
 
@@ -310,52 +342,79 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
               {PLANS.map((plan) => {
                 const isCurrent = plan.id === currentPlan;
                 return (
                   <div
                     key={plan.id}
-                    className={`relative rounded-xl border bg-space-card p-5 space-y-4 ${
-                      isCurrent ? "border-neon-cyan/30 bg-neon-cyan/5" : "border-neon-cyan/[0.08]"
+                    className={`relative rounded-xl border bg-space-card p-5 space-y-4 flex flex-col ${
+                      plan.popular
+                        ? "border-neon-cyan/40 bg-neon-cyan/[0.03]"
+                        : isCurrent
+                        ? "border-neon-cyan/30 bg-neon-cyan/5"
+                        : "border-neon-cyan/[0.08]"
                     }`}
                   >
-                    {isCurrent && (
+                    {plan.popular && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span className="bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/30 text-[10px] rounded-full px-3 py-0.5 font-medium">
+                        <span className="bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/40 text-[10px] rounded-full px-3 py-0.5 font-semibold">
+                          ⭐ Popular
+                        </span>
+                      </div>
+                    )}
+                    {isCurrent && !plan.popular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <span className="bg-space-el text-[#A0AEC0] border border-neon-cyan/20 text-[10px] rounded-full px-3 py-0.5 font-medium">
                           Plan actual
                         </span>
                       </div>
                     )}
+
                     <div className="pt-1">
                       <p className="text-sm font-semibold text-white">{plan.name}</p>
                       <div className="flex items-baseline gap-1 mt-1">
                         <span className="font-display text-2xl font-bold text-white">{plan.price}</span>
-                        <span className="text-xs text-[#4A5568] font-normal">/mes</span>
+                        {plan.id !== "enterprise" && (
+                          <span className="text-xs text-[#4A5568] font-normal">MXN/mes</span>
+                        )}
                       </div>
-                      <p className="text-xs text-neon-cyan font-medium mt-0.5">{plan.credits} créditos/mes</p>
+                      {plan.bimonthly && (
+                        <p className="text-xs text-[#4A5568] mt-0.5">
+                          {plan.bimonthly} MXN bimestral —{" "}
+                          <span className="text-neon-cyan font-medium">ahorra {plan.savePct}</span>
+                        </p>
+                      )}
+                      <p className="text-xs text-[#A0AEC0] font-medium mt-1">{plan.messages}</p>
                     </div>
-                    <ul className="space-y-1.5">
+
+                    <ul className="space-y-1.5 flex-1">
                       {plan.features.map((f) => (
-                        <li key={f} className="flex items-center gap-2 text-xs text-[#4A5568]">
-                          <Check className="h-3 w-3 text-neon-cyan shrink-0" />{f}
+                        <li key={f} className="flex items-start gap-2 text-xs text-[#4A5568]">
+                          <Check className="h-3 w-3 text-neon-cyan shrink-0 mt-0.5" />{f}
                         </li>
                       ))}
                     </ul>
+
                     {!isCurrent && (
                       <Button
                         size="sm"
-                        className={`w-full font-semibold ${
-                          plan.id === "pro"
+                        className={`w-full font-semibold mt-auto ${
+                          plan.popular
                             ? "bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 hover:border-neon-cyan/50"
+                            : plan.id === "enterprise"
+                            ? "border border-neon-cyan/[0.08] bg-space-el text-[#A0AEC0] hover:border-neon-cyan/20 hover:text-white"
                             : "border border-neon-cyan/[0.08] bg-space-el text-[#A0AEC0] hover:border-neon-cyan/20 hover:text-white"
                         }`}
-                        onClick={() => checkout(plan.id)}
+                        onClick={() => plan.id !== "enterprise" && checkout(plan.id)}
                         disabled={!!loadingCheckout}
                       >
                         {loadingCheckout === plan.id && <Loader2 className="h-3 w-3 animate-spin" />}
-                        {plan.id === "enterprise" ? "Contactar ventas" : "Actualizar plan"}
+                        {plan.id === "enterprise" ? "Contactar ventas" : "Seleccionar plan"}
                       </Button>
+                    )}
+                    {isCurrent && (
+                      <div className="text-center text-xs text-neon-cyan font-medium py-1">✓ Plan actual</div>
                     )}
                   </div>
                 );

@@ -12,13 +12,28 @@ function requireStripe() {
 }
 
 const PLAN_PRICES = {
-  starter: process.env.STRIPE_PRICE_STARTER,
-  pro: process.env.STRIPE_PRICE_PRO,
+  starter:    process.env.STRIPE_PRICE_STARTER,
+  pro:        process.env.STRIPE_PRICE_PRO,
+  business:   process.env.STRIPE_PRICE_BUSINESS,
   enterprise: process.env.STRIPE_PRICE_ENTERPRISE,
+};
+
+const CREDIT_PRICES = {
+  credits_1000: { priceId: process.env.STRIPE_PRICE_CREDITS_1K, credits: 1000 },
+  credits_5000: { priceId: process.env.STRIPE_PRICE_CREDITS_5K, credits: 5000 },
+  credits_20000: { priceId: process.env.STRIPE_PRICE_CREDITS_20K, credits: 20000 },
 };
 
 async function createCheckoutSession({ organizationId, plan, userId, email }) {
   requireStripe();
+
+  // Handle credit pack purchases (one-time payment)
+  if (plan.startsWith('credits_')) {
+    const pack = CREDIT_PRICES[plan];
+    if (!pack?.priceId) throw new Error(`Credit pack not configured: ${plan}`);
+    return createCreditPackSession({ organizationId, userId, email, pack, plan });
+  }
+
   if (!PLAN_PRICES[plan]) throw new Error(`Invalid plan: ${plan}`);
 
   const { data: sub } = await supabaseAdmin
@@ -47,6 +62,35 @@ async function createCheckoutSession({ organizationId, plan, userId, email }) {
     subscription_data: {
       metadata: { organization_id: organizationId },
     },
+  });
+
+  return { url: session.url, sessionId: session.id };
+}
+
+async function createCreditPackSession({ organizationId, userId, email, pack, plan }) {
+  const { data: sub } = await supabaseAdmin
+    .from('subscriptions')
+    .select('stripe_customer_id')
+    .eq('organization_id', organizationId)
+    .single();
+
+  let customerId = sub?.stripe_customer_id;
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email,
+      metadata: { organization_id: organizationId, user_id: userId },
+    });
+    customerId = customer.id;
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    payment_method_types: ['card'],
+    mode: 'payment',
+    line_items: [{ price: pack.priceId, quantity: 1 }],
+    success_url: `${process.env.FRONTEND_URL}/settings?tab=credits&success=1`,
+    cancel_url: `${process.env.FRONTEND_URL}/settings?tab=credits`,
+    metadata: { organization_id: organizationId, credits: pack.credits, type: 'credit_pack' },
   });
 
   return { url: session.url, sessionId: session.id };
@@ -102,6 +146,22 @@ async function handleWebhook(rawBody, signature) {
 }
 
 async function handleCheckoutComplete(session) {
+  // One-time credit pack purchase
+  if (session.metadata?.type === 'credit_pack') {
+    const orgId = session.metadata.organization_id;
+    const credits = parseInt(session.metadata.credits, 10);
+    if (!orgId || !credits) return;
+
+    await supabaseAdmin.rpc('add_credits', { p_org_id: orgId, p_amount: credits });
+    await supabaseAdmin.from('credit_transactions').insert({
+      organization_id: orgId,
+      amount: credits,
+      type: 'purchase',
+      description: `Compra de ${credits.toLocaleString()} créditos`,
+    });
+    return;
+  }
+
   const subscription = await stripe.subscriptions.retrieve(session.subscription);
   const orgId = subscription.metadata.organization_id;
   const plan = getPlanFromPriceId(subscription.items.data[0].price.id);
@@ -116,10 +176,14 @@ async function handleCheckoutComplete(session) {
     current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
   }, { onConflict: 'stripe_subscription_id' });
 
-  await supabaseAdmin
-    .from('organizations')
-    .update({ plan })
-    .eq('id', orgId);
+  // Update plan and grant monthly credits
+  await supabaseAdmin.rpc('grant_plan_credits', { p_org_id: orgId, p_plan: plan });
+  await supabaseAdmin.from('credit_transactions').insert({
+    organization_id: orgId,
+    amount: plan === 'starter' ? 1000 : plan === 'pro' ? 10000 : 999999,
+    type: 'plan_grant',
+    description: `Créditos del plan ${plan}`,
+  });
 }
 
 async function syncSubscription(subscription) {

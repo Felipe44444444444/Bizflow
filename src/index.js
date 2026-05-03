@@ -82,6 +82,7 @@ app.listen(PORT, '0.0.0.0', () => {
     const { standardLimiter } = require('./middleware/rateLimit');
     app.use('/api', standardLimiter);
 
+    app.use('/api/leads',         require('./routes/leads'));
     app.use('/api/agents',        require('./routes/agents'));
     app.use('/api/channels',      require('./routes/channels'));
     app.use('/api/conversations', require('./routes/conversations'));

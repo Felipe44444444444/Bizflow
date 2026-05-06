@@ -183,14 +183,34 @@ async function processMessage({ agentId, conversationId, userMessage, organizati
   return { message: assistantContent, handoffRequested, tokensUsed, cacheHit, conversationId };
 }
 
-async function findOrCreateConversation({ agentId, channelId, organizationId, externalId, contactName, contactEmail, contactPhone }) {
+// ── Auto-capture lead (fire-and-forget, never throws) ────────────────────────
+async function autoCaptureLead({ organizationId, agentId, conversationId, contactName, contactEmail, contactPhone, sourceChannel }) {
+  try {
+    await supabaseAdmin.from('leads').upsert({
+      organization_id: organizationId,
+      agent_id:        agentId,
+      conversation_id: conversationId,
+      name:            contactName    || null,
+      email:           contactEmail   || null,
+      phone:           contactPhone   || null,
+      source_channel:  sourceChannel  || null,
+      status:          'new',
+      metadata:        { captured_at: new Date().toISOString() },
+    }, { onConflict: 'conversation_id', ignoreDuplicates: true });
+    console.log(`[Lead] auto-captured — conv=${conversationId} channel=${sourceChannel}`);
+  } catch (err) {
+    console.error('[Lead] auto-capture error:', err.message);
+  }
+}
+
+async function findOrCreateConversation({ agentId, channelId, organizationId, externalId, contactName, contactEmail, contactPhone, sourceChannel }) {
   if (externalId) {
     const { data: existing } = await supabaseAdmin
       .from('conversations')
       .select('id, status')
       .eq('channel_id', channelId)
       .eq('external_id', externalId)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       if (existing.status === 'resolved') {
@@ -206,19 +226,32 @@ async function findOrCreateConversation({ agentId, channelId, organizationId, ex
   const { data: conversation, error } = await supabaseAdmin
     .from('conversations')
     .insert({
-      agent_id: agentId,
-      channel_id: channelId,
+      agent_id:        agentId,
+      channel_id:      channelId,
       organization_id: organizationId,
-      external_id: externalId || null,
-      contact_name: contactName || null,
-      contact_email: contactEmail || null,
-      contact_phone: contactPhone || null,
-      status: 'open',
+      external_id:     externalId    || null,
+      contact_name:    contactName   || null,
+      contact_email:   contactEmail  || null,
+      contact_phone:   contactPhone  || null,
+      source_channel:  sourceChannel || null,
+      status:          'open',
     })
     .select('id')
     .single();
 
   if (error) throw error;
+
+  // Auto-capture lead for every NEW conversation (non-blocking)
+  autoCaptureLead({
+    organizationId,
+    agentId,
+    conversationId: conversation.id,
+    contactName,
+    contactEmail,
+    contactPhone,
+    sourceChannel,
+  });
+
   return conversation.id;
 }
 

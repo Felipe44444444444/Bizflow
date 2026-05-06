@@ -151,6 +151,7 @@ async function handleMetaMessage({ channelType, pageId, senderId, text }) {
       channelId:      channel.id,
       organizationId: channel.organization_id,
       externalId:     senderId,
+      sourceChannel:  channelType,
     });
 
     const result = await agentService.processMessage({
@@ -225,6 +226,7 @@ async function processWhatsAppPayload(body) {
             organizationId: channel.organization_id,
             externalId:     senderPhone,
             contactPhone:   senderPhone,
+            sourceChannel:  'whatsapp',
           });
 
           const result = await agentService.processMessage({

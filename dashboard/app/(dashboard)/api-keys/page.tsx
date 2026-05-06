@@ -15,7 +15,6 @@ import { Plus, Key, Copy, Trash2, Loader2, Check } from "lucide-react";
 export default function ApiKeysPage() {
   const supabase = createClient();
   const [keys, setKeys] = useState<any[]>([]);
-  const [token, setToken] = useState("");
   const [orgId, setOrgId] = useState("");
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -28,11 +27,10 @@ export default function ApiKeysPage() {
     async function load() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      setToken(session.access_token);
       const { data: m } = await supabase.from("organization_members").select("organization_id").eq("user_id", session.user.id).limit(1).single();
       if (!m) return;
       setOrgId(m.organization_id);
-      const data = await api.get("/api/api-keys", session.access_token, m.organization_id);
+      const data = await api.get("/api/api-keys", m.organization_id);
       setKeys(data || []);
       setLoading(false);
     }
@@ -41,7 +39,7 @@ export default function ApiKeysPage() {
 
   async function createKey() {
     setSaving(true);
-    const data = await api.post("/api/api-keys", { name: keyName }, token, orgId);
+    const data = await api.post("/api/api-keys", { name: keyName }, orgId);
     setNewKey(data.key);
     setKeys((prev) => [{ ...data, key: undefined }, ...prev]);
     setKeyName("");
@@ -49,7 +47,7 @@ export default function ApiKeysPage() {
   }
 
   async function revokeKey(keyId: string) {
-    await api.del(`/api/api-keys/${keyId}`, token, orgId);
+    await api.del(`/api/api-keys/${keyId}`, orgId);
     setKeys((prev) => prev.map((k) => k.id === keyId ? { ...k, is_active: false } : k));
   }
 

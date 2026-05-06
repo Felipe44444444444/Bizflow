@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { api } from "@/lib/api";
+import { api, getAuthHeaders } from "@/lib/api";
 import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -148,9 +148,10 @@ export default function LeadsPage() {
     setExporting(true);
     try {
       const params = new URLSearchParams({ canal, status, period, search });
+      const BACKEND = process.env.NEXT_PUBLIC_API_URL || 'https://api.conectaachat.com';
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.conectaachat.com'}/api/leads/export.csv?${params}`,
-        { headers: { 'x-organization-id': orgId, Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` } }
+        `${BACKEND}/api/leads/export.csv?${params}`,
+        { headers: await getAuthHeaders(orgId) }
       );
       const blob = await response.blob();
       const url  = URL.createObjectURL(blob);

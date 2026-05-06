@@ -1,13 +1,16 @@
 const DEFAULT_BACKEND = 'http://localhost:3000';
 
-export async function sendMessage({ apiKey, backendUrl, message, conversationId, visitorId }) {
+export async function sendMessage({ apiKey, backendUrl, message, conversationId, visitorId, contactName, contactEmail, contactPhone }) {
   const url = `${backendUrl || DEFAULT_BACKEND}/api/messages/chat`;
 
   const body = {
     message,
     external_id: visitorId,
   };
-  if (conversationId) body.conversation_id = conversationId;
+  if (conversationId)  body.conversation_id = conversationId;
+  if (contactName)     body.contact_name    = contactName;
+  if (contactEmail)    body.contact_email   = contactEmail;
+  if (contactPhone)    body.contact_phone   = contactPhone;
 
   const res = await fetch(url, {
     method: 'POST',

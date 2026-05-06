@@ -1,6 +1,7 @@
 const OpenAI = require('openai');
 const { supabaseAdmin } = require('../config/supabase');
 const { chunkText, extractText } = require('../utils/chunker');
+const cheerio = require('cheerio');
 
 // Guard: OpenAI constructor may throw on invalid/missing key
 let openai;
@@ -52,9 +53,13 @@ async function processDocument(documentId) {
     let text = '';
 
     if (doc.type === 'url') {
-      const response = await fetch(doc.source_url);
-      text = await response.text();
-      text = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      const response = await fetch(doc.source_url, {
+        headers: { 'User-Agent': 'ConectachatBot/1.0 (+https://conectaachat.com)' },
+      });
+      const html = await response.text();
+      const $ = cheerio.load(html);
+      $('script, style, nav, footer, header, aside, noscript').remove();
+      text = $('body').text().replace(/\s+/g, ' ').trim();
     } else if (doc.storage_path) {
       const { data: fileData, error: downloadError } = await supabaseAdmin.storage
         .from('agent-documents')
@@ -105,7 +110,7 @@ async function processDocument(documentId) {
   } catch (err) {
     await supabaseAdmin
       .from('documents')
-      .update({ status: 'error' })
+      .update({ status: 'error', error_message: err.message })
       .eq('id', documentId);
     throw err;
   }

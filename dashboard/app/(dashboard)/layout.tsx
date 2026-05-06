@@ -13,14 +13,13 @@ function adminClient() {
 async function ensureOrganization(userId: string, userEmail: string) {
   const admin = adminClient();
 
-  // Auto-create org for new users
-  const orgName = userEmail.split("@")[0]
-    .replace(/[^a-zA-Z0-9 ]/g, " ")
-    .trim() || "Mi organización";
+  const orgName = userEmail.split("@")[0].replace(/[^a-zA-Z0-9 ]/g, " ").trim() || "Mi organización";
+  const slug = orgName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").slice(0, 40)
+    + "-" + Date.now().toString().slice(-8);
 
   const { data: org, error: orgErr } = await admin
     .from("organizations")
-    .insert({ name: orgName, plan: "free" })
+    .insert({ name: orgName, slug, plan: "starter", credits_balance: 1000, plan_credits_limit: 1000 })
     .select("id")
     .single();
 
@@ -30,6 +29,13 @@ async function ensureOrganization(userId: string, userEmail: string) {
     organization_id: org.id,
     user_id: userId,
     role: "owner",
+  });
+
+  await admin.from("credit_transactions").insert({
+    organization_id: org.id,
+    amount: 1000,
+    type: "plan_grant",
+    description: "Créditos iniciales plan Starter",
   });
 
   return org.id;
@@ -48,11 +54,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .limit(1)
     .single();
 
-  // New user — auto-create organization
   if (!membership) {
     const orgId = await ensureOrganization(user.id, user.email ?? "usuario");
     if (orgId) {
-      // Re-fetch with newly created org
       const { data: freshMembership } = await supabase
         .from("organization_members")
         .select("organization_id, role, organizations(id, name, plan)")

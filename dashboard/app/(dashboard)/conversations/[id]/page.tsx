@@ -29,7 +29,6 @@ export default function ConversationDetailPage() {
 
   const [conv, setConv] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
-  const [token, setToken] = useState("");
   const [orgId, setOrgId] = useState("");
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -39,12 +38,11 @@ export default function ConversationDetailPage() {
     async function load() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      setToken(session.access_token);
       const { data: m } = await supabase.from("organization_members").select("organization_id").eq("user_id", session.user.id).limit(1).single();
       if (!m) return;
       setOrgId(m.organization_id);
 
-      const data = await api.get(`/api/conversations/${id}`, session.access_token, m.organization_id);
+      const data = await api.get(`/api/conversations/${id}`, m.organization_id);
       setConv(data);
       setMessages(data.messages || []);
       setLoading(false);
@@ -78,14 +76,14 @@ export default function ConversationDetailPage() {
       conversation_id: id,
       content: text,
       role: "human_agent",
-    }, token, orgId);
+    }, orgId);
     setMessages((prev) => [...prev, msg]);
     setText("");
     setSending(false);
   }
 
   async function updateStatus(status: string) {
-    await api.patch(`/api/conversations/${id}/status`, { status }, token, orgId);
+    await api.patch(`/api/conversations/${id}/status`, { status }, orgId);
     setConv((prev: any) => ({ ...prev, status }));
   }
 

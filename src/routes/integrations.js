@@ -6,6 +6,7 @@ const { authMiddleware } = require('../middleware/auth');
 const agentService   = require('../services/agentService');
 const channelService = require('../services/channelService');
 const { upsertLead, notifyNewLead } = require('../services/leadService');
+const { scheduleRetargeting } = require('../services/retargetingService');
 const { webhookLimiter } = require('../middleware/rateLimit');
 
 const FRONTEND = process.env.FRONTEND_URL || 'https://app.conectaachat.com';
@@ -801,6 +802,7 @@ async function captureMetaLead({ orgId, agentId, platform, senderId, text, refer
   if (isNew && lead) {
     const { data: agent } = await supabaseAdmin.from('agents').select('name').eq('id', agentId).maybeSingle();
     notifyNewLead({ lead, agentName: agent?.name, orgId }).catch(() => {});
+    scheduleRetargeting(lead.id, agentId, orgId, platform).catch(e => console.error('[Meta Retargeting]', e.message));
     console.log(`[Lead] new ${platform} lead — org=${orgId} sender=${senderId}`);
   }
 }
@@ -1245,6 +1247,7 @@ async function captureWhatsAppLead({ orgId, agentId, fromPhone, contactName, tex
   if (isNew && lead) {
     const { data: agent } = await supabaseAdmin.from('agents').select('name').eq('id', agentId).maybeSingle();
     notifyNewLead({ lead, agentName: agent?.name, orgId }).catch(() => {});
+    scheduleRetargeting(lead.id, agentId, orgId, 'whatsapp').catch(e => console.error('[WA Retargeting]', e.message));
     console.log(`[Lead] new WhatsApp lead — org=${orgId} phone=${fromPhone}`);
   }
 }

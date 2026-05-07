@@ -152,7 +152,7 @@ async function startRetargetingQueue() {
       supabaseAdmin
         .from('notifications')
         .insert({
-          org: seq.organization_id,
+          organization_id: seq.organization_id,
           type: 'retargeting_sent',
           title: `Retargeting — Paso ${seq.step}`,
           body: `Mensaje de retargeting enviado al lead ${seq.lead_id} (paso ${seq.step})`,

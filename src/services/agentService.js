@@ -147,9 +147,17 @@ async function processMessage({ agentId, conversationId, userMessage, organizati
 
   const systemText = buildSystemPrompt(agent, ragContext, agent.handoff_enabled);
 
-  const claudeMessages = (history || [])
+  let claudeMessages = (history || [])
     .filter((m) => m.role === 'user' || m.role === 'assistant')
     .map((m) => ({ role: m.role, content: m.content }));
+
+  // Claude requires the conversation to end with a user message
+  while (claudeMessages.length > 0 && claudeMessages[claudeMessages.length - 1].role === 'assistant') {
+    claudeMessages.pop();
+  }
+  if (claudeMessages.length === 0 || claudeMessages[claudeMessages.length - 1].role !== 'user') {
+    claudeMessages = [{ role: 'user', content: userMessage }];
+  }
 
   const response = await anthropic.messages.create({
     model: MODEL,

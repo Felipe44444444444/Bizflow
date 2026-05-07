@@ -88,7 +88,6 @@ async function upsertLead({
         name:            nombre        || null,
         email:           email         || null,
         phone:           telefono      || null,
-        canal,
         source_channel:  canal,
         canal_user_id:   canalUserId   || null,
         canal_username:  canalUsername || null,
@@ -146,8 +145,8 @@ async function notifyNewLead({ lead, agentName, orgId }) {
     organization_id: orgId,
     type:            'new_lead',
     title:           `Nuevo lead: ${lead.name || lead.canal_username || 'Desconocido'}`,
-    body:            `Canal: ${CANAL_LABELS[lead.canal] || lead.canal} | ${(lead.primer_mensaje || '').slice(0, 100)}`,
-    metadata:        { lead_id: lead.id, canal: lead.canal, agent_name: agentName },
+    body:            `Canal: ${CANAL_LABELS[lead.source_channel] || lead.source_channel} | ${(lead.primer_mensaje || '').slice(0, 100)}`,
+    metadata:        { lead_id: lead.id, canal: lead.source_channel, agent_name: agentName },
     read:            false,
   }).then(() => {}).catch(e => console.error('[notifyNewLead] notification insert:', e.message));
 
@@ -177,7 +176,7 @@ async function notifyAdminWhatsApp({ lead, agentName, orgId }) {
 
   if (!adminPhone || !wa?.phone_number_id || !wa?.access_token) return;
 
-  const canalLabel    = CANAL_LABELS[lead.canal] || lead.canal || '—';
+  const canalLabel    = CANAL_LABELS[lead.source_channel] || lead.source_channel || '—';
   const nombreLead    = lead.name || lead.canal_username || 'Desconocido';
   const campania      = lead.campaign_name || lead.ad_name || 'Orgánico';
   const mensaje       = (lead.primer_mensaje || '').slice(0, 120);

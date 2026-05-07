@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
     .order('created_at', { ascending: false })
     .limit(200);
 
-  if (canal && canal !== 'all')     q = q.eq('canal', canal);
+  if (canal && canal !== 'all')     q = q.eq('source_channel', canal);
   if (status && status !== 'all')   q = q.eq('status', status);
   if (campaign_id)                  q = q.eq('campaign_id', campaign_id);
 
@@ -54,7 +54,7 @@ router.get('/metrics', async (req, res) => {
     supabaseAdmin.from('leads').select('id', { count: 'exact', head: true })
       .eq('organization_id', orgId)
       .gte('created_at', startPrev).lt('created_at', startOfMonth),
-    supabaseAdmin.from('leads').select('canal')
+    supabaseAdmin.from('leads').select('source_channel')
       .eq('organization_id', orgId).gte('created_at', startOfMonth),
     supabaseAdmin.from('leads').select('id', { count: 'exact', head: true })
       .eq('organization_id', orgId).gte('created_at', startOfMonth).not('ad_id', 'is', null),
@@ -69,7 +69,7 @@ router.get('/metrics', async (req, res) => {
 
   // Count by canal
   const canalMap = {};
-  for (const { canal } of (byCanal.data || [])) {
+  for (const { source_channel: canal } of (byCanal.data || [])) {
     if (canal) canalMap[canal] = (canalMap[canal] || 0) + 1;
   }
 
@@ -132,12 +132,12 @@ router.get('/export.csv', async (req, res) => {
 
   let q = supabaseAdmin
     .from('leads')
-    .select('name,email,phone,canal,canal_username,ad_name,campaign_name,status,primer_mensaje,first_seen_at,created_at')
+    .select('name,email,phone,source_channel,canal_username,ad_name,campaign_name,status,primer_mensaje,first_seen_at,created_at')
     .eq('organization_id', req.organizationId)
     .order('created_at', { ascending: false })
     .limit(5000);
 
-  if (canal  && canal  !== 'all') q = q.eq('canal', canal);
+  if (canal  && canal  !== 'all') q = q.eq('source_channel', canal);
   if (status && status !== 'all') q = q.eq('status', status);
   if (period) {
     const from = period === 'today'
@@ -154,7 +154,7 @@ router.get('/export.csv', async (req, res) => {
 
   const cols = ['Nombre','Email','Teléfono','Canal','Username','Anuncio','Campaña','Status','Primer mensaje','Primera visita','Creado'];
   const rows = (data || []).map(l => [
-    l.name, l.email, l.phone, l.canal, l.canal_username,
+    l.name, l.email, l.phone, l.source_channel, l.canal_username,
     l.ad_name, l.campaign_name, l.status,
     (l.primer_mensaje || '').replace(/"/g, '""'),
     l.first_seen_at, l.created_at,

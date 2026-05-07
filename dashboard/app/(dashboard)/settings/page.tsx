@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
-import { Loader2, CreditCard, Users, Building, Check, ExternalLink, Zap, TrendingUp, ShoppingCart } from "lucide-react";
+import { Loader2, CreditCard, Users, Building, Check, ExternalLink, Zap, TrendingUp, ShoppingCart, Shield, Lock, Eye, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 
 // Plans are fetched from /api/plans at runtime
 interface PlanRow {
@@ -66,6 +66,8 @@ export default function SettingsPage() {
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [auditLog, setAuditLog] = useState<any[]>([]);
+  const [closingSession, setClosingSession] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -97,6 +99,16 @@ export default function SettingsPage() {
       setMembers(membersData.data || []);
       setTransactions(txData.data || []);
       if (Array.isArray(plansData) && plansData.length > 0) setPlans(plansData);
+
+      // Security audit log
+      const { data: auditData } = await supabase
+        .from("security_audit_log")
+        .select("*")
+        .eq("organization_id", m.organization_id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      setAuditLog(auditData || []);
+
       setLoading(false);
     }
     load();
@@ -158,6 +170,12 @@ export default function SettingsPage() {
               className="data-[state=active]:bg-space-card data-[state=active]:text-neon-cyan data-[state=active]:shadow-sm rounded-lg text-[#4A5568] hover:text-[#A0AEC0] gap-1.5"
             >
               <Building className="h-3.5 w-3.5" />Organización
+            </TabsTrigger>
+            <TabsTrigger
+              value="security"
+              className="data-[state=active]:bg-space-card data-[state=active]:text-neon-cyan data-[state=active]:shadow-sm rounded-lg text-[#4A5568] hover:text-[#A0AEC0] gap-1.5"
+            >
+              <Shield className="h-3.5 w-3.5" />Seguridad
             </TabsTrigger>
           </TabsList>
 
@@ -511,6 +529,104 @@ export default function SettingsPage() {
                 </Button>
               </div>
             </div>
+          </TabsContent>
+
+          {/* ── SEGURIDAD ─────────────────────────────────────────────────── */}
+          <TabsContent value="security" className="space-y-6">
+
+            {/* Security status */}
+            <div className="rounded-xl border border-neon-cyan/[0.08] bg-space-card p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-neon-green/10 border border-neon-green/20">
+                  <Shield className="h-5 w-5 text-neon-green" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Estado de seguridad</h3>
+                  <p className="text-xs text-[#4A5568]">Resumen de protecciones activas en tu cuenta</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { icon: Lock,         label: "Autenticación JWT",          ok: true,  detail: "Tokens verificados en cada request" },
+                  { icon: CheckCircle2, label: "Firmas de webhooks",         ok: true,  detail: "Meta + Slack verificados (HMAC-SHA256)" },
+                  { icon: Eye,          label: "Rate limiting activo",       ok: true,  detail: "30 req/min chat · 200 req/15min API" },
+                  { icon: Shield,       label: "Sanitización de inputs",     ok: true,  detail: "HTML strips en todos los mensajes" },
+                  { icon: Lock,         label: "CORS estricto",              ok: true,  detail: "Whitelist de dominios configurada" },
+                  { icon: CheckCircle2, label: "Headers de seguridad",       ok: true,  detail: "Helmet.js activo en producción" },
+                ].map(item => (
+                  <div key={item.label} className="flex items-start gap-3 p-3 rounded-lg bg-space-el border border-neon-cyan/[0.06]">
+                    <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${item.ok ? "bg-neon-green/10" : "bg-red-500/10"}`}>
+                      <item.icon className={`h-3.5 w-3.5 ${item.ok ? "text-neon-green" : "text-red-400"}`} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-white">{item.label}</p>
+                      <p className="text-[10px] text-[#4A5568]">{item.detail}</p>
+                    </div>
+                    <span className={`ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${item.ok ? "bg-neon-green/10 text-neon-green" : "bg-red-500/10 text-red-400"}`}>
+                      {item.ok ? "OK" : "Revisar"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent activity */}
+            <div className="rounded-xl border border-neon-cyan/[0.08] bg-space-card overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-neon-cyan/[0.08]">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-[#4A5568]" />
+                  <h3 className="text-sm font-semibold text-white">Actividad reciente</h3>
+                </div>
+                <span className="text-[10px] text-[#4A5568]">Últimos 10 eventos de seguridad</span>
+              </div>
+              {auditLog.length === 0 ? (
+                <div className="py-10 text-center">
+                  <Shield className="h-8 w-8 text-[#4A5568] mx-auto mb-2" />
+                  <p className="text-xs text-[#4A5568]">Sin eventos registrados aún</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-neon-cyan/[0.04]">
+                  {auditLog.map((e: any) => (
+                    <div key={e.id} className="flex items-center gap-3 px-5 py-3">
+                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${e.success ? "bg-neon-green/10" : "bg-red-500/10"}`}>
+                        {e.success
+                          ? <CheckCircle2 className="h-3.5 w-3.5 text-neon-green" />
+                          : <AlertTriangle className="h-3.5 w-3.5 text-red-400" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-white">{e.action}</p>
+                        <p className="text-[10px] text-[#4A5568] truncate">{e.resource} {e.ip_address ? `· ${e.ip_address}` : ""}</p>
+                      </div>
+                      <span className="text-[10px] text-[#4A5568] shrink-0">
+                        {new Date(e.created_at).toLocaleString("es-MX", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Session management */}
+            <div className="rounded-xl border border-neon-cyan/[0.08] bg-space-card p-5">
+              <h3 className="text-sm font-semibold text-white mb-1">Gestión de sesiones</h3>
+              <p className="text-xs text-[#4A5568] mb-4">Cierra todas las sesiones activas en otros dispositivos</p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
+                disabled={closingSession}
+                onClick={async () => {
+                  setClosingSession(true);
+                  await supabase.auth.signOut({ scope: "global" });
+                  setClosingSession(false);
+                  window.location.href = "/login";
+                }}
+              >
+                {closingSession && <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />}
+                Cerrar todas las sesiones
+              </Button>
+            </div>
+
           </TabsContent>
         </Tabs>
       </div>

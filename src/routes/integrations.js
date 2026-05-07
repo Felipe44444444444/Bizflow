@@ -6,6 +6,7 @@ const { authMiddleware } = require('../middleware/auth');
 const agentService   = require('../services/agentService');
 const channelService = require('../services/channelService');
 const { upsertLead, notifyNewLead } = require('../services/leadService');
+const { webhookLimiter } = require('../middleware/rateLimit');
 
 const FRONTEND = process.env.FRONTEND_URL || 'https://app.conectaachat.com';
 
@@ -262,7 +263,7 @@ router.get('/slack/public-install/:agentId', async (req, res) => {
 });
 
 // ── POST /api/integrations/slack/events ──────────────────────────────────────
-router.post('/slack/events', async (req, res) => {
+router.post('/slack/events', webhookLimiter, async (req, res) => {
   const { type, challenge, team_id, event, event_id } = req.body;
   const secret = process.env.SLACK_SIGNING_SECRET;
   const ts     = req.headers['x-slack-request-timestamp'];
@@ -649,7 +650,7 @@ router.get('/facebook/webhook', (req, res) => {
 });
 
 // ── POST /api/integrations/facebook/webhook (Messenger + Instagram DM) ───────
-router.post('/facebook/webhook', (req, res) => {
+router.post('/facebook/webhook', webhookLimiter, (req, res) => {
   const sig = req.headers['x-hub-signature-256'];
   const validFb = verifyMetaSig(req.rawBody, metaAppSecret(), sig);
   const validIg = verifyMetaSig(req.rawBody, igAppSecret(), sig);
@@ -761,6 +762,16 @@ async function captureMetaLead({ orgId, agentId, platform, senderId, text, refer
     const profileData = await profileRes.json();
     nombre = profileData.name || profileData.username || null;
   } catch {}
+
+  // Update conversation contact_name if not set yet
+  if (nombre && conversationId) {
+    supabaseAdmin
+      .from('conversations')
+      .update({ contact_name: nombre })
+      .eq('id', conversationId)
+      .is('contact_name', null)
+      .then(() => {}).catch(() => {});
+  }
 
   // Extract ad/referral data
   const adId         = referral?.ad_id    || null;
@@ -944,7 +955,7 @@ router.get('/instagram/webhook', (req, res) => {
 });
 
 // ── POST /api/integrations/instagram/webhook (IG Business Login app webhooks) ──
-router.post('/instagram/webhook', (req, res) => {
+router.post('/instagram/webhook', webhookLimiter, (req, res) => {
   const sig = req.headers['x-hub-signature-256'];
   if (!verifyMetaSig(req.rawBody, igAppSecret(), sig) && !verifyMetaSig(req.rawBody, metaAppSecret(), sig)) {
     console.warn('[IG Webhook] Invalid signature — rejected');
@@ -1129,7 +1140,7 @@ router.get('/whatsapp/webhook', (req, res) => {
 });
 
 // ── POST /api/integrations/whatsapp/webhook ───────────────────────────────────
-router.post('/whatsapp/webhook', (req, res) => {
+router.post('/whatsapp/webhook', webhookLimiter, (req, res) => {
   if (!verifyMetaSig(req.rawBody, metaAppSecret(), req.headers['x-hub-signature-256'])) {
     console.warn('[WA Webhook] Invalid signature — rejected');
     return res.sendStatus(401);
@@ -1363,6 +1374,45 @@ router.post('/instagram/connect-via-facebook', authMiddleware, async (req, res) 
 
   console.log(`[IG via FB] Connected @${ig.username} (ig_user_id=${ig.id}) agent=${agent_id}`);
   res.json({ success: true, channel: result, ig_username: ig.username });
+});
+
+// ── POST /api/integrations/backfill-names ─────────────────────────────────────
+// Updates conversations.contact_name from leads table for rows where it's null
+router.post('/backfill-names', authMiddleware, async (req, res) => {
+  const { data: nullConvs } = await supabaseAdmin
+    .from('conversations')
+    .select('id')
+    .is('contact_name', null)
+    .eq('organization_id', req.organizationId)
+    .limit(500);
+
+  if (!nullConvs?.length) return res.json({ updated: 0 });
+
+  let updated = 0;
+  for (const conv of nullConvs) {
+    const { data: lead } = await supabaseAdmin
+      .from('leads')
+      .select('name, canal_username, source_channel, canal_user_id')
+      .eq('conversation_id', conv.id)
+      .not('name', 'is', null)
+      .maybeSingle();
+
+    if (lead?.name) {
+      await supabaseAdmin
+        .from('conversations')
+        .update({ contact_name: lead.name })
+        .eq('id', conv.id);
+      updated++;
+    } else if (lead?.canal_username) {
+      await supabaseAdmin
+        .from('conversations')
+        .update({ contact_name: '@' + lead.canal_username })
+        .eq('id', conv.id);
+      updated++;
+    }
+  }
+
+  res.json({ updated });
 });
 
 module.exports = router;

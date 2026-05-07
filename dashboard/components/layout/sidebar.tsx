@@ -8,7 +8,7 @@ import {
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 const NAV_MAIN = [
   { href: "/dashboard",      label: "Dashboard",       icon: LayoutDashboard },
@@ -28,7 +28,17 @@ const PLAN_COLORS: Record<string, string> = {
   enterprise: "text-neon-yellow border-neon-yellow/30 bg-neon-yellow/5",
 };
 
-function NavItem({ href, label, icon: Icon }: { href: string; label: string; icon: any }) {
+function NavItem({
+  href,
+  label,
+  icon: Icon,
+  badge,
+}: {
+  href: string;
+  label: string;
+  icon: any;
+  badge?: number;
+}) {
   const pathname = usePathname();
   const active = href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
 
@@ -49,8 +59,21 @@ function NavItem({ href, label, icon: Icon }: { href: string; label: string; ico
         )}
       />
       <span>{label}</span>
-      {active && (
-        <ChevronRight className="ml-auto h-3 w-3 text-neon-cyan/50" />
+      {badge != null && badge > 0 ? (
+        <span
+          className={cn(
+            "ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center",
+            href === "/handoff"
+              ? "bg-neon-red/20 text-neon-red border border-neon-red/30"
+              : "bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/25"
+          )}
+        >
+          {badge > 99 ? "99+" : badge}
+        </span>
+      ) : (
+        active && (
+          <ChevronRight className="ml-auto h-3 w-3 text-neon-cyan/50" />
+        )
       )}
     </Link>
   );
@@ -61,6 +84,38 @@ export function Sidebar() {
   const supabase = createClient();
   const [user,   setUser]   = useState<any>(null);
   const [org,    setOrg]    = useState<any>(null);
+  const [orgId,  setOrgId]  = useState<string>("");
+  const [badges, setBadges] = useState<Record<string, number>>({});
+
+  const refreshBadges = useCallback(async (currentOrgId: string) => {
+    const [
+      { count: openConvs },
+      { count: newLeads },
+      { count: handoffs },
+    ] = await Promise.all([
+      supabase
+        .from("conversations")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", currentOrgId)
+        .eq("status", "open"),
+      supabase
+        .from("leads")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", currentOrgId)
+        .eq("status", "nuevo"),
+      supabase
+        .from("conversations")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", currentOrgId)
+        .eq("status", "handed_off"),
+    ]);
+
+    setBadges({
+      "/conversations": openConvs || 0,
+      "/leads":         newLeads  || 0,
+      "/handoff":       handoffs  || 0,
+    });
+  }, [supabase]);
 
   useEffect(() => {
     async function load() {
@@ -69,11 +124,32 @@ export function Sidebar() {
       setUser(session.user);
       const { data: m } = await supabase
         .from("organization_members")
-        .select("role, organizations(name, plan)")
+        .select("organization_id, role, organizations(name, plan)")
         .eq("user_id", session.user.id)
         .limit(1)
         .single();
+      if (!m) return;
       if (m) setOrg(Array.isArray(m.organizations) ? m.organizations[0] : m.organizations);
+      const oid = m.organization_id;
+      setOrgId(oid);
+      await refreshBadges(oid);
+
+      // Real-time subscription to keep badges updated
+      const sub = supabase
+        .channel("sidebar_counts")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "conversations", filter: `organization_id=eq.${oid}` },
+          () => refreshBadges(oid)
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "leads", filter: `organization_id=eq.${oid}` },
+          () => refreshBadges(oid)
+        )
+        .subscribe();
+
+      return () => { supabase.removeChannel(sub); };
     }
     load();
   }, []);
@@ -114,7 +190,7 @@ export function Sidebar() {
           </p>
           <div className="space-y-0.5">
             {NAV_MAIN.map((item) => (
-              <NavItem key={item.href} {...item} />
+              <NavItem key={item.href} {...item} badge={badges[item.href]} />
             ))}
           </div>
         </div>

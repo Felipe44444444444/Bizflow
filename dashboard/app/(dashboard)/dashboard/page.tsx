@@ -1,11 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
-import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
+import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   MessageSquare, Users, Bot, TrendingUp, ArrowUpRight,
   Clock, Brain, Radio, Zap, ArrowUp, ArrowDown, Minus,
+  Activity,
 } from "lucide-react";
 import { formatRelative } from "@/lib/utils";
 import Link from "next/link";
@@ -24,6 +23,7 @@ async function getMetrics(orgId: string, supabase: ReturnType<typeof createClien
     { data: usage },
     { data: recentConvs },
     { count: agentCount },
+    { data: recentActivity },
   ] = await Promise.all([
     supabase.from("messages").select("*", { count: "exact", head: true }).eq("role", "user").gte("created_at", todayStart),
     supabase.from("messages").select("*", { count: "exact", head: true }).eq("role", "user").gte("created_at", yesterday).lt("created_at", todayStart),
@@ -32,9 +32,10 @@ async function getMetrics(orgId: string, supabase: ReturnType<typeof createClien
     supabase.from("usage_metrics").select("messages_count,tokens_used,conversations_count").eq("organization_id", orgId).gte("period_start", monthStart).single(),
     supabase.from("conversations").select("id,contact_name,status,last_message_at,channels(type)").eq("organization_id", orgId).order("last_message_at", { ascending: false }).limit(6),
     supabase.from("agents").select("*", { count: "exact", head: true }).eq("organization_id", orgId),
+    supabase.from("notifications").select("*").eq("organization_id", orgId).order("created_at", { ascending: false }).limit(8),
   ]);
 
-  return { msgsToday: msgsToday ?? 0, msgsYesterday: msgsYesterday ?? 0, activConvs: activConvs ?? 0, leads: leads ?? 0, usage, recentConvs, agentCount: agentCount ?? 0 };
+  return { msgsToday: msgsToday ?? 0, msgsYesterday: msgsYesterday ?? 0, activConvs: activConvs ?? 0, leads: leads ?? 0, usage, recentConvs, agentCount: agentCount ?? 0, recentActivity };
 }
 
 const statusMap: Record<string, { label: string; color: string }> = {
@@ -57,6 +58,35 @@ const channelBg: Record<string, string> = {
   api:        "bg-neon-purple/10 border-neon-purple/20",
 };
 
+// Notification type → display config
+const notifConfig: Record<string, { emoji: string; color: string }> = {
+  new_lead:      { emoji: "👤", color: "text-neon-green" },
+  new_message:   { emoji: "💬", color: "text-neon-cyan" },
+  handoff:       { emoji: "🔔", color: "text-neon-yellow" },
+  agent_error:   { emoji: "⚠️", color: "text-neon-red" },
+  campaign_sent: { emoji: "📢", color: "text-neon-purple" },
+};
+
+function ActivityItem({ notif }: { notif: any }) {
+  const cfg = notifConfig[notif.type] ?? { emoji: "🔔", color: "text-[#A0AEC0]" };
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-neon-cyan/[0.04] last:border-0">
+      <span className="text-base shrink-0 mt-0.5">{cfg.emoji}</span>
+      <div className="flex-1 min-w-0">
+        <p className={`text-xs font-medium truncate ${cfg.color}`}>
+          {notif.title || notif.type || "Notificación"}
+        </p>
+        {notif.body && (
+          <p className="text-[10px] text-[#4A5568] truncate">{notif.body}</p>
+        )}
+      </div>
+      <span className="text-[10px] text-[#4A5568] shrink-0 mt-0.5">
+        {notif.created_at ? formatRelative(notif.created_at) : ""}
+      </span>
+    </div>
+  );
+}
+
 function Trend({ now, prev }: { now: number; prev: number }) {
   if (prev === 0 && now === 0) return <span className="text-[#4A5568] text-xs flex items-center gap-0.5"><Minus className="h-3 w-3" />sin datos</span>;
   if (prev === 0) return <span className="text-neon-green text-xs flex items-center gap-0.5"><ArrowUp className="h-3 w-3" />nuevo</span>;
@@ -68,8 +98,7 @@ function Trend({ now, prev }: { now: number; prev: number }) {
 }
 
 export default async function DashboardPage() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const [user, supabase] = await Promise.all([getCachedUser(), Promise.resolve(createClient())]);
 
   const { data: membership } = await supabase
     .from("organization_members")
@@ -83,7 +112,7 @@ export default async function DashboardPage() {
     ? membership?.organizations[0]
     : membership?.organizations) as { name: string; plan: string; credits_balance: number; plan_credits_limit: number } | null;
 
-  const { msgsToday, msgsYesterday, activConvs, leads, usage, recentConvs, agentCount } =
+  const { msgsToday, msgsYesterday, activConvs, leads, usage, recentConvs, agentCount, recentActivity } =
     await getMetrics(orgId, supabase);
 
   const hour        = new Date().getHours();
@@ -91,6 +120,10 @@ export default async function DashboardPage() {
   const displayName = user?.email?.split("@")[0] ?? "usuario";
   const creditsUsed = (org?.plan_credits_limit ?? 1000) - (org?.credits_balance ?? 0);
   const creditsPct  = Math.min(100, Math.round((creditsUsed / (org?.plan_credits_limit ?? 1000)) * 100));
+
+  // Current date formatted
+  const dateStr = new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+  const dateDisplay = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
 
   // ── Onboarding (no agents yet) ─────────────────────────────────────────────
   if (agentCount === 0) {
@@ -105,7 +138,7 @@ export default async function DashboardPage() {
       <div className="min-h-full">
         <Header
           title={`${greeting}, ${displayName} 👋`}
-          description="Configura tu primer agente en 4 pasos"
+          description={dateDisplay}
         />
         <div className="p-6 max-w-2xl mx-auto animate-slide-in-up">
           {/* Hero */}
@@ -114,9 +147,11 @@ export default async function DashboardPage() {
               <Bot className="h-10 w-10 text-neon-cyan" />
               <div className="absolute inset-0 rounded-2xl glow-cyan opacity-50" />
             </div>
-            <h2 className="font-display text-2xl font-bold mb-2">
-              Automatiza tu atención al cliente
-            </h2>
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <h2 className="font-display text-2xl font-bold">
+                Automatiza tu atención al cliente
+              </h2>
+            </div>
             <p className="text-[#A0AEC0] text-sm max-w-sm mx-auto">
               Tu agente IA estará listo en minutos. Sin código. Sin complicaciones.
             </p>
@@ -128,6 +163,7 @@ export default async function DashboardPage() {
               <div
                 key={n}
                 className="flex items-center gap-4 p-4 rounded-xl border border-neon-cyan/[0.08] bg-space-card hover:border-neon-cyan/25 hover:bg-space-el transition-all duration-200 group"
+                style={{ animationDelay: `${n * 0.08}s` }}
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neon-cyan/10 border border-neon-cyan/20 font-display font-bold text-neon-cyan text-sm">
                   {n}
@@ -199,10 +235,23 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-full">
-      <Header
-        title={`${greeting}, ${displayName} 👋`}
-        description={`${org?.name ?? "Mi organización"} · Plan ${org?.plan ?? "starter"}`}
-      />
+      {/* Custom header with date + status chip */}
+      <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-neon-cyan/[0.06]">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="font-display text-2xl font-bold text-white">
+              {greeting}, {displayName} 👋
+            </h1>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-neon-green/10 border border-neon-green/20 text-neon-green text-[11px] font-medium">
+              <span className="h-1.5 w-1.5 rounded-full bg-neon-green animate-pulse" />
+              Sistema operativo
+            </span>
+          </div>
+          <p className="text-sm text-[#A0AEC0]">
+            {dateDisplay} · {org?.name ?? "Mi organización"} · Plan {org?.plan ?? "starter"}
+          </p>
+        </div>
+      </div>
 
       <div className="p-6 space-y-6">
         {/* Credits warning */}
@@ -226,7 +275,7 @@ export default async function DashboardPage() {
           {kpis.map(({ title, value, icon: Icon, color, bg, trend }, i) => (
             <div
               key={title}
-              className="relative rounded-xl border border-neon-cyan/[0.08] bg-space-card p-5 overflow-hidden card-hover group"
+              className="relative rounded-xl border border-neon-cyan/[0.08] bg-space-card p-5 overflow-hidden card-hover group animate-slide-in-up"
               style={{ animationDelay: `${i * 0.05}s` }}
             >
               {/* Ambient corner glow */}
@@ -249,83 +298,112 @@ export default async function DashboardPage() {
           ))}
         </div>
 
-        {/* Credits bar + recent convs */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          {/* Credits usage */}
-          <div className="rounded-xl border border-neon-cyan/[0.08] bg-space-card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-semibold text-white">Créditos</p>
-              <span className="text-xs text-[#A0AEC0]">{org?.plan ?? "starter"}</span>
-            </div>
-            <div className="flex items-end gap-1 mb-3">
-              <span className="font-display text-2xl font-bold text-neon-cyan">
-                {(org?.credits_balance ?? 0).toLocaleString()}
-              </span>
-              <span className="text-xs text-[#4A5568] mb-1">
-                / {(org?.plan_credits_limit ?? 1000).toLocaleString()}
-              </span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-space-el overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-neon-cyan to-neon-purple transition-all duration-700"
-                style={{ width: `${100 - creditsPct}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-[#4A5568] mt-2">{creditsPct}% usado este mes</p>
-            <Button asChild size="sm" variant="outline" className="w-full mt-4 border-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/5 text-xs">
-              <Link href="/settings?tab=billing">Recargar créditos</Link>
-            </Button>
-          </div>
-
-          {/* Recent conversations */}
-          <div className="xl:col-span-2 rounded-xl border border-neon-cyan/[0.08] bg-space-card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-[#4A5568]" />
-                <p className="text-sm font-semibold text-white">Conversaciones recientes</p>
+        {/* 2-column layout: left 60% + right 40% */}
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
+          {/* LEFT: Credits + Recent convs */}
+          <div className="xl:col-span-3 space-y-4">
+            {/* Credits usage */}
+            <div className="rounded-xl border border-neon-cyan/[0.08] bg-space-card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-semibold text-white">Créditos</p>
+                <span className="text-xs text-[#A0AEC0] capitalize">{org?.plan ?? "starter"}</span>
               </div>
-              <Button asChild variant="ghost" size="sm" className="text-xs text-neon-cyan hover:bg-neon-cyan/5">
-                <Link href="/conversations">Ver todas →</Link>
+              <div className="flex items-end gap-1 mb-3">
+                <span className="font-display text-2xl font-bold text-neon-cyan">
+                  {(org?.credits_balance ?? 0).toLocaleString()}
+                </span>
+                <span className="text-xs text-[#4A5568] mb-1">
+                  / {(org?.plan_credits_limit ?? 1000).toLocaleString()}
+                </span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-space-el overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-neon-cyan to-neon-purple transition-all duration-500"
+                  style={{ width: `${100 - creditsPct}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-[#4A5568] mt-2">{creditsPct}% usado este mes</p>
+              <Button asChild size="sm" variant="outline" className="w-full mt-4 border-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/5 text-xs">
+                <Link href="/settings?tab=billing">Recargar créditos</Link>
               </Button>
             </div>
 
-            {!recentConvs?.length ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-2">
-                <MessageSquare className="h-8 w-8 text-[#4A5568]" />
-                <p className="text-sm text-[#4A5568]">Aún no hay conversaciones</p>
+            {/* Recent conversations */}
+            <div className="rounded-xl border border-neon-cyan/[0.08] bg-space-card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-[#4A5568]" />
+                  <p className="text-sm font-semibold text-white">Conversaciones recientes</p>
+                </div>
+                <Button asChild variant="ghost" size="sm" className="text-xs text-neon-cyan hover:bg-neon-cyan/5">
+                  <Link href="/conversations">Ver todas →</Link>
+                </Button>
               </div>
-            ) : (
-              <div className="space-y-1">
-                {recentConvs.map((conv: any) => {
-                  const s  = statusMap[conv.status] ?? { label: conv.status, color: "text-[#A0AEC0]" };
-                  const ch = conv.channels as { type: string } | null;
-                  const chType = ch?.type ?? "api";
-                  return (
-                    <Link
-                      key={conv.id}
-                      href={`/conversations/${conv.id}`}
-                      className="flex items-center justify-between rounded-lg p-2.5 hover:bg-space-el transition-colors group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`h-8 w-8 rounded-lg border flex items-center justify-center text-sm ${channelBg[chType] ?? "bg-space-el border-white/10"}`}>
-                          {channelEmoji[chType] ?? "💬"}
+
+              {!recentConvs?.length ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-2">
+                  <MessageSquare className="h-8 w-8 text-[#4A5568]" />
+                  <p className="text-sm text-[#4A5568]">Aún no hay conversaciones</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {recentConvs.map((conv: any) => {
+                    const s  = statusMap[conv.status] ?? { label: conv.status, color: "text-[#A0AEC0]" };
+                    const ch = conv.channels as { type: string } | null;
+                    const chType = ch?.type ?? "api";
+                    return (
+                      <Link
+                        key={conv.id}
+                        href={`/conversations/${conv.id}`}
+                        className="flex items-center justify-between rounded-lg p-2.5 hover:bg-space-el transition-colors group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`h-8 w-8 rounded-lg border flex items-center justify-center text-sm ${channelBg[chType] ?? "bg-space-el border-white/10"}`}>
+                            {channelEmoji[chType] ?? "💬"}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-white group-hover:text-neon-cyan transition-colors">
+                              {conv.contact_name || "Visitante anónimo"}
+                            </p>
+                            <p className="text-[10px] text-[#4A5568]">{formatRelative(conv.last_message_at)}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-white group-hover:text-neon-cyan transition-colors">
-                            {conv.contact_name || "Visitante anónimo"}
-                          </p>
-                          <p className="text-[10px] text-[#4A5568]">{formatRelative(conv.last_message_at)}</p>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-medium ${s.color}`}>{s.label}</span>
+                          <ArrowUpRight className="h-3 w-3 text-[#4A5568] group-hover:text-neon-cyan transition-colors" />
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-medium ${s.color}`}>{s.label}</span>
-                        <ArrowUpRight className="h-3 w-3 text-[#4A5568] group-hover:text-neon-cyan transition-colors" />
-                      </div>
-                    </Link>
-                  );
-                })}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT: Activity Feed */}
+          <div className="xl:col-span-2">
+            <div className="rounded-xl border border-neon-cyan/[0.08] bg-space-card p-5 h-full">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-neon-green animate-pulse" />
+                  <p className="text-sm font-semibold text-white">Actividad reciente</p>
+                </div>
+                <Activity className="h-4 w-4 text-[#4A5568]" />
               </div>
-            )}
+
+              {!recentActivity?.length ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-2">
+                  <Activity className="h-8 w-8 text-[#4A5568]" />
+                  <p className="text-sm text-[#4A5568]">Sin actividad reciente</p>
+                </div>
+              ) : (
+                <div className="overflow-y-auto max-h-[400px]">
+                  {recentActivity.map((notif: any) => (
+                    <ActivityItem key={notif.id} notif={notif} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

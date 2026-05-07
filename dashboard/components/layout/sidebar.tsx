@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Bot, MessageSquare, Users, Key, Settings,
-  Zap, LogOut, ChevronRight, Activity,
+  Zap, LogOut, ChevronRight, Activity, PhoneCall,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -15,6 +15,7 @@ const NAV_MAIN = [
   { href: "/agents",         label: "Agentes",         icon: Bot             },
   { href: "/conversations",  label: "Conversaciones",  icon: MessageSquare   },
   { href: "/leads",          label: "Leads",           icon: Users           },
+  { href: "/handoff",        label: "Atención",        icon: PhoneCall       },
 ];
 const NAV_CONFIG = [
   { href: "/api-keys",  label: "API Keys",       icon: Key      },

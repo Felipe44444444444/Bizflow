@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
+import { NotificationBell } from "@/components/notifications/bell";
 
 function adminClient() {
   return createSupabaseAdmin(
@@ -87,7 +88,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex h-12 items-center justify-end gap-2 px-4 border-b border-neon-cyan/[0.06] bg-space-card shrink-0">
+          <NotificationBell orgId={membership.organization_id} />
+        </div>
+        <main className="flex-1 overflow-y-auto">{children}</main>
+      </div>
     </div>
   );
 }

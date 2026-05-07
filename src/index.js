@@ -69,6 +69,9 @@ app.use((req, res, next) => {
   });
 });
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// ── Input sanitization (strips HTML from all JSON bodies) ──────────────────
+const { sanitizeMiddleware } = require('./middleware/security');
+app.use(sanitizeMiddleware);
 
 // ── Bind port FIRST — Railway healthcheck passes as soon as this fires ────────
 const PORT = process.env.PORT || 3000;
@@ -94,6 +97,7 @@ app.listen(PORT, '0.0.0.0', () => {
     app.use('/api/retargeting',    require('./routes/retargeting'));
     app.use('/api/integrations',   require('./routes/integrations'));
     app.use('/api/landing',        require('./routes/landing'));
+    app.use('/api/handoff', require('./routes/handoff'));
 
     app.use((req, res) => {
       res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
@@ -134,6 +138,20 @@ app.listen(PORT, '0.0.0.0', () => {
 
     setTimeout(runLeadScan, 60_000);                    // 1 min after startup
     setInterval(runLeadScan, 2 * 60 * 60 * 1000);      // every 2 hours
+
+    // ── Retargeting queue — every 5 minutes ──────────────────────────────────
+    const { startRetargetingQueue } = require('./services/retargetingService');
+
+    async function runRetargetingQueue() {
+      try {
+        await startRetargetingQueue();
+      } catch (err) {
+        console.error('[Retargeting Queue] Error:', err.message);
+      }
+    }
+
+    setTimeout(runRetargetingQueue, 2 * 60 * 1000);           // 2 min after startup
+    setInterval(runRetargetingQueue, 5 * 60 * 1000);          // every 5 minutes
 
     // ── Instagram token refresh — daily, tokens expire after 60 days ──────────
     // Refreshes any long-lived IG token that was last updated > 30 days ago.

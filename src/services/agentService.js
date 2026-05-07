@@ -119,6 +119,15 @@ async function processMessage({ agentId, conversationId, userMessage, organizati
     content: userMessage,
   });
 
+  // Detect explicit handoff request in user message (backup detection)
+  const HANDOFF_RE = /\b(hablar con (un )?humano|quiero (un )?asesor|hablar con alguien|persona real|ayuda real|agente humano|necesito hablar con)\b/i;
+  const userRequestedHandoff = agent.handoff_enabled && HANDOFF_RE.test(userMessage);
+  if (userRequestedHandoff) {
+    createHandoffRequest({ conversationId, agentId, organizationId, canal: 'widget', contactName: null, lastMessage: userMessage, agent })
+      .catch(() => {});
+    await supabaseAdmin.from('conversations').update({ status: 'handed_off' }).eq('id', conversationId);
+  }
+
   await supabaseAdmin
     .from('conversations')
     .update({ last_message_at: new Date().toISOString() })
@@ -172,6 +181,17 @@ async function processMessage({ agentId, conversationId, userMessage, organizati
       .from('conversations')
       .update({ status: 'handed_off' })
       .eq('id', conversationId);
+
+    // Create handoff request + notification (fire and forget)
+    createHandoffRequest({
+      conversationId,
+      agentId,
+      organizationId,
+      canal: agent.handoff_enabled_channels?.[0] || 'widget',
+      contactName: null, // will be enriched from conversations table below
+      lastMessage: userMessage,
+      agent,
+    }).catch(e => console.error('[Handoff] create error:', e.message));
   }
 
   // Deduct credit and update usage metrics (fire and forget — don't fail the response)
@@ -318,6 +338,89 @@ async function previewMessage({ agent, message, conversationHistory = [] }) {
     })),
     tokensUsed,
   };
+}
+
+async function createHandoffRequest({ conversationId, agentId, organizationId, canal, contactName, lastMessage, agent }) {
+  try {
+    // Enrich with conversation contact info
+    let cName = contactName;
+    if (!cName && conversationId) {
+      const { data: conv } = await supabaseAdmin
+        .from('conversations')
+        .select('contact_name, source_channel')
+        .eq('id', conversationId)
+        .maybeSingle();
+      cName = conv?.contact_name;
+      if (!canal || canal === 'widget') canal = conv?.source_channel || canal;
+    }
+
+    const { data: handoff } = await supabaseAdmin
+      .from('handoff_requests')
+      .insert({
+        conversation_id: conversationId || null,
+        agent_id: agentId,
+        organization_id: organizationId,
+        contact_name: cName || 'Desconocido',
+        canal: canal || 'widget',
+        last_message: (lastMessage || '').slice(0, 500),
+        status: 'pending',
+      })
+      .select()
+      .single();
+
+    // Dashboard notification
+    supabaseAdmin.from('notifications').insert({
+      organization_id: organizationId,
+      type: 'handoff',
+      title: '⚠️ Cliente solicita atención humana',
+      body: `${cName || 'Desconocido'} (${canal || 'widget'}): ${(lastMessage || '').slice(0, 100)}`,
+      metadata: { handoff_id: handoff?.id, conversation_id: conversationId, canal },
+      read: false,
+    }).then(() => {}).catch(() => {});
+
+    // Notify admin via WhatsApp if configured
+    if (agent?.admin_whatsapp || agent?.metadata?.admin_whatsapp) {
+      notifyAdminHandoffWhatsApp({ agent, orgId: organizationId, contactName: cName, canal, lastMessage })
+        .catch(e => console.error('[Handoff] WA notify error:', e.message));
+    }
+
+    console.log(`[Handoff] created id=${handoff?.id} conv=${conversationId}`);
+  } catch (err) {
+    console.error('[Handoff] createHandoffRequest error:', err.message);
+  }
+}
+
+async function notifyAdminHandoffWhatsApp({ agent, orgId, contactName, canal, lastMessage }) {
+  const [{ data: org }, { data: waRows }] = await Promise.all([
+    supabaseAdmin.from('organizations').select('metadata, name').eq('id', orgId).single(),
+    supabaseAdmin.from('whatsapp_integrations').select('access_token, phone_number_id')
+      .eq('organization_id', orgId).eq('is_active', true).limit(1),
+  ]);
+
+  const adminPhone = agent?.admin_whatsapp || org?.metadata?.admin_whatsapp || org?.metadata?.notification_phone;
+  const wa = waRows?.[0];
+  if (!adminPhone || !wa?.phone_number_id || !wa?.access_token) return;
+
+  const text =
+    `🔴 *Solicitud urgente de atención*\n` +
+    `👤 Cliente: ${contactName || 'Desconocido'}\n` +
+    `📱 Canal: ${canal || 'widget'}\n` +
+    `💬 Último mensaje: ${(lastMessage || '—').slice(0, 150)}\n` +
+    `🔗 Ver en: app.conectaachat.com/handoff`;
+
+  const res = await fetch(`https://graph.facebook.com/v19.0/${wa.phone_number_id}/messages`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${wa.access_token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: adminPhone,
+      type: 'text',
+      text: { preview_url: false, body: text },
+    }),
+  });
+
+  if (!res.ok) throw new Error(`WA handoff notify failed: ${await res.text()}`);
 }
 
 module.exports = { processMessage, findOrCreateConversation, previewMessage };

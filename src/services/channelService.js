@@ -52,19 +52,28 @@ async function sendMetaMessenger(channel, recipientId, text) {
   const token = channel.config?.access_token;
   if (!token) throw new Error('Missing Meta access token in channel config');
 
-  // For Instagram Business Login: use the explicit IG account ID in the path.
-  // The /me alias is NOT reliable on graph.instagram.com — must use /{ig-user-id}/messages.
-  // For Facebook Messenger: standard page-level /me/messages endpoint.
+  // For Instagram via Facebook Page (page_id present): use graph.facebook.com with page token.
+  // For Instagram via Instagram Business Login (no page_id): use graph.instagram.com with IG user token.
+  // For Facebook Messenger: standard graph.facebook.com/me/messages with page token.
   let endpoint;
   if (channel.type === 'instagram') {
     const igId = channel.config?.ig_account_id || channel.config?.ig_user_id;
     if (!igId) throw new Error('Missing ig_account_id in Instagram channel config');
-    endpoint = `https://graph.instagram.com/v21.0/${igId}/messages`;
+    const isPageBased = !!channel.config?.page_id;
+    if (isPageBased) {
+      // Connected via Facebook Page — page token works on graph.facebook.com
+      endpoint = `https://graph.facebook.com/v19.0/${igId}/messages`;
+      console.log(`[sendMetaMessenger] Instagram page-based → ${endpoint}`);
+    } else {
+      // Connected via Instagram Business Login — requires IG user token
+      endpoint = `https://graph.instagram.com/v21.0/${igId}/messages`;
+      console.log(`[sendMetaMessenger] Instagram IG-login-based → ${endpoint}`);
+    }
   } else {
     endpoint = 'https://graph.facebook.com/v19.0/me/messages';
   }
 
-  console.log(`[sendMetaMessenger] type=${channel.type} endpoint=${endpoint} recipient=${recipientId}`);
+  console.log(`[sendMetaMessenger] type=${channel.type} endpoint=${endpoint} recipient=${recipientId} token=${token.slice(0,12)}...`);
 
   // Split messages longer than 2000 chars to avoid API rejection
   const chunks = splitText(text, 2000);

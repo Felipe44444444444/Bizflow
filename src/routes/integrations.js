@@ -477,6 +477,63 @@ async function upsertMetaChannel({ agentId, organizationId, type, name, config }
   return ch?.id;
 }
 
+// ── Auto-detect and connect Instagram Business from a Facebook Page ───────────
+async function detectAndConnectInstagram(pageId, pageAccessToken, pageName, orgId, agentId) {
+  const detailRes = await fetch(
+    `${FB_BASE}/${pageId}?fields=instagram_business_account{id,username,name}&access_token=${encodeURIComponent(pageAccessToken)}`
+  );
+  const detailData = await detailRes.json();
+  const ig = detailData.instagram_business_account;
+
+  if (!ig?.id) {
+    console.log(`[Instagram Auto-Detect] No IG Business account linked to page: ${pageName} (${pageId})`);
+    return null;
+  }
+
+  console.log(`[Instagram Auto-Detect] Found IG account: @${ig.username} (${ig.id}) for page: ${pageName}`);
+
+  // Upsert instagram_integrations (needed by webhook handler)
+  const row = {
+    organization_id:   orgId,
+    agent_id:          agentId || undefined,
+    ig_account_id:     ig.id,
+    ig_username:       ig.username || null,
+    page_id:           pageId,
+    page_name:         pageName,
+    page_access_token: pageAccessToken,
+    is_active:         true,
+    updated_at:        new Date().toISOString(),
+  };
+  const { error: dbErr } = await supabaseAdmin
+    .from('instagram_integrations')
+    .upsert(row, { onConflict: agentId ? 'agent_id' : 'organization_id' });
+  if (dbErr) console.error('[Instagram Auto-Detect] DB error:', dbErr.message);
+
+  // Upsert channel record
+  if (agentId) {
+    await upsertMetaChannel({
+      agentId, organizationId: orgId,
+      type: 'instagram',
+      name: ig.username ? `Instagram — @${ig.username}` : `Instagram — ${ig.name || ig.id}`,
+      config: { access_token: pageAccessToken, ig_account_id: ig.id, ig_account_id_alias: ig.id, page_id: pageId },
+    });
+  }
+
+  // Subscribe IG account to webhook messaging events (best effort)
+  try {
+    const subRes = await fetch(
+      `${FB_BASE}/${ig.id}/subscribed_apps?subscribed_fields=messages,messaging_postbacks&access_token=${encodeURIComponent(pageAccessToken)}`,
+      { method: 'POST' }
+    );
+    const subData = await subRes.json();
+    console.log(`[Instagram Auto-Detect] Webhook subscription:`, JSON.stringify(subData));
+  } catch (e) {
+    console.warn('[Instagram Auto-Detect] Webhook subscription failed:', e.message);
+  }
+
+  return { ig_account_id: ig.id, ig_username: ig.username };
+}
+
 // ═════════════════════════ FACEBOOK ═══════════════════════════════════════════
 
 // ── GET /api/integrations/facebook/connect?agent_id=xxx ──────────────────────
@@ -494,6 +551,7 @@ router.get('/facebook/connect', authMiddleware, (req, res) => {
     'pages_show_list',
     'pages_read_engagement',
     'pages_manage_metadata',
+    'instagram_basic',
     'instagram_manage_messages',
     'instagram_manage_comments',
   ].join(',');
@@ -572,6 +630,10 @@ router.get('/facebook/callback', async (req, res) => {
       await upsertMetaChannel({ agentId: targetAgentId, organizationId, type: 'facebook', name: `Facebook — ${pageName}`, config: { access_token: pageToken, page_id: pageId, page_name: pageName } });
     }
 
+    // Auto-detect Instagram Business account linked to this Facebook Page
+    detectAndConnectInstagram(pageId, pageToken, pageName, organizationId, targetAgentId)
+      .catch(e => console.warn('[Instagram Auto-Detect] Error:', e.message));
+
     console.log(`[Facebook OAuth] Connected: ${pageName} (${pageId}) total_pages=${pages.length} org=${organizationId}`);
 
     // If multiple pages, redirect with page list so dashboard can show a picker
@@ -615,6 +677,10 @@ router.post('/facebook/select-page', authMiddleware, async (req, res) => {
     .eq('agent_id', agent_id);
 
   await upsertMetaChannel({ agentId: agent_id, organizationId: req.organizationId, type: 'facebook', name: `Facebook — ${page.name}`, config: { access_token: page.access_token, page_id: page.id, page_name: page.name } });
+
+  // Auto-detect Instagram on page switch
+  detectAndConnectInstagram(page.id, page.access_token, page.name, req.organizationId, agent_id)
+    .catch(e => console.warn('[Instagram Auto-Detect] Error on page switch:', e.message));
 
   res.json({ ok: true, page_id: page.id, page_name: page.name });
 });
@@ -1114,6 +1180,221 @@ router.get('/whatsapp/callback', async (req, res) => {
   }
 });
 
+// ── POST /api/integrations/whatsapp/manual-setup (admin use — no self-service OAuth) ─
+router.post('/whatsapp/manual-setup', authMiddleware, async (req, res) => {
+  const { agent_id, organization_id, phone_number_id, waba_id, display_phone, access_token: waToken } = req.body;
+
+  if (!agent_id || !phone_number_id || !waba_id || !display_phone || !waToken) {
+    return res.status(400).json({ error: 'agent_id, phone_number_id, waba_id, display_phone, access_token are required' });
+  }
+
+  const orgId = organization_id || req.organizationId;
+
+  try {
+    // Validate agent exists and belongs to org
+    const { data: agent } = await supabaseAdmin
+      .from('agents')
+      .select('id')
+      .eq('id', agent_id)
+      .eq('organization_id', orgId)
+      .maybeSingle();
+
+    if (!agent) return res.status(404).json({ error: 'Agent not found or does not belong to this organization' });
+
+    // Probe the token — mark inactive if it fails
+    let tokenValid = false;
+    let tokenWarning = null;
+    try {
+      const probeRes  = await fetch(`${FB_BASE}/${phone_number_id}?fields=id,verified_name,display_phone_number,status&access_token=${encodeURIComponent(waToken)}`);
+      const probeData = await probeRes.json();
+      if (probeRes.ok && probeData.id) {
+        tokenValid = true;
+        console.log(`[WA Manual Setup] Token valid — number: ${probeData.display_phone_number} status: ${probeData.status}`);
+      } else {
+        tokenWarning = probeData?.error?.message || 'Token verification failed';
+        console.warn(`[WA Manual Setup] Token probe failed: ${tokenWarning}`);
+      }
+    } catch (e) {
+      tokenWarning = e.message;
+    }
+
+    const row = {
+      organization_id: orgId,
+      agent_id,
+      phone_number_id,
+      waba_id,
+      display_phone,
+      access_token: waToken,
+      is_active:    tokenValid,
+      updated_at:   new Date().toISOString(),
+    };
+
+    const { data: integration, error: dbErr } = await supabaseAdmin
+      .from('whatsapp_integrations')
+      .upsert(row, { onConflict: 'agent_id' })
+      .select()
+      .single();
+
+    if (dbErr) throw dbErr;
+
+    // Upsert channel record
+    await upsertMetaChannel({
+      agentId: agent_id,
+      organizationId: orgId,
+      type: 'whatsapp',
+      name: `WhatsApp — ${display_phone}`,
+      config: { access_token: waToken, phone_number_id, waba_id, display_phone },
+    });
+
+    console.log(`[WA Manual Setup] Configured: ${display_phone} (phone_id=${phone_number_id} waba=${waba_id}) agent=${agent_id} active=${tokenValid}`);
+
+    res.json({
+      success: true,
+      integration,
+      token_valid: tokenValid,
+      ...(tokenWarning ? { warning: tokenWarning } : {}),
+    });
+  } catch (err) {
+    console.error('[WA Manual Setup] error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/integrations/instagram/manual-setup (admin — no Instagram OAuth) ─
+router.post('/instagram/manual-setup', authMiddleware, async (req, res) => {
+  const { agent_id, organization_id, ig_account_id, ig_username, page_id, use_facebook_token } = req.body;
+
+  if (!agent_id || !ig_account_id) {
+    return res.status(400).json({ error: 'agent_id and ig_account_id are required' });
+  }
+
+  const orgId = organization_id || req.organizationId;
+
+  try {
+    // Validate agent belongs to org
+    const { data: agent } = await supabaseAdmin
+      .from('agents')
+      .select('id')
+      .eq('id', agent_id)
+      .eq('organization_id', orgId)
+      .maybeSingle();
+
+    if (!agent) return res.status(404).json({ error: 'Agent not found or does not belong to this organization' });
+
+    // Resolve access token
+    let accessToken = null;
+    let resolvedPageId = page_id || null;
+    let resolvedPageName = null;
+
+    if (use_facebook_token) {
+      const { data: fbInt } = await supabaseAdmin
+        .from('facebook_integrations')
+        .select('page_access_token, page_id, page_name')
+        .eq('agent_id', agent_id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (!fbInt) {
+        return res.status(400).json({ error: 'No active Facebook integration found for this agent. Connect Facebook first.' });
+      }
+
+      accessToken    = fbInt.page_access_token;
+      resolvedPageId = resolvedPageId || fbInt.page_id;
+      resolvedPageName = fbInt.page_name;
+    }
+
+    if (!accessToken) {
+      return res.status(400).json({ error: 'No access token available. Set use_facebook_token: true.' });
+    }
+
+    // Probe the IG account
+    let tokenValid = false;
+    let tokenWarning = null;
+    let resolvedUsername = ig_username || null;
+
+    try {
+      const probeRes  = await fetch(`${FB_BASE}/${ig_account_id}?fields=username,name&access_token=${encodeURIComponent(accessToken)}`);
+      const probeData = await probeRes.json();
+      if (probeRes.ok && probeData.id) {
+        tokenValid = true;
+        resolvedUsername = probeData.username || ig_username || null;
+        console.log(`[IG Manual Setup] Token valid — @${resolvedUsername} (${ig_account_id})`);
+      } else {
+        tokenWarning = probeData?.error?.message || 'Token verification failed';
+        console.warn(`[IG Manual Setup] Token probe failed: ${tokenWarning}`);
+      }
+    } catch (e) {
+      tokenWarning = e.message;
+    }
+
+    // Upsert instagram_integrations
+    const row = {
+      organization_id: orgId,
+      agent_id,
+      ig_account_id,
+      ig_username:       resolvedUsername,
+      page_id:           resolvedPageId,
+      page_name:         resolvedPageName,
+      page_access_token: accessToken,
+      is_active:         tokenValid,
+      updated_at:        new Date().toISOString(),
+    };
+
+    const { data: integration, error: dbErr } = await supabaseAdmin
+      .from('instagram_integrations')
+      .upsert(row, { onConflict: 'agent_id' })
+      .select()
+      .single();
+
+    if (dbErr) throw dbErr;
+
+    // Upsert channel record
+    await upsertMetaChannel({
+      agentId: agent_id,
+      organizationId: orgId,
+      type: 'instagram',
+      name: `Instagram — @${resolvedUsername || ig_account_id}`,
+      config: { access_token: accessToken, ig_account_id, ig_account_id_alias: ig_account_id, page_id: resolvedPageId },
+    });
+
+    // Subscribe page to Instagram webhook fields
+    if (resolvedPageId && tokenValid) {
+      try {
+        const subRes = await fetch(`${FB_BASE}/${resolvedPageId}/subscribed_apps`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscribed_fields: 'messages,messaging_postbacks',
+            access_token: accessToken,
+          }),
+        });
+        const subData = await subRes.json();
+        if (subData.success) {
+          console.log(`[IG Manual Setup] Webhook subscribed for page ${resolvedPageId}`);
+        } else {
+          const subWarning = subData?.error?.message || 'Webhook subscription failed';
+          console.warn(`[IG Manual Setup] Webhook subscription failed: ${subWarning}`);
+          if (!tokenWarning) tokenWarning = `Webhook: ${subWarning}`;
+        }
+      } catch (e) {
+        console.warn('[IG Manual Setup] Webhook subscription error:', e.message);
+      }
+    }
+
+    console.log(`[IG Manual Setup] Configured: @${resolvedUsername} (${ig_account_id}) page=${resolvedPageId} agent=${agent_id} active=${tokenValid}`);
+
+    res.json({
+      success: true,
+      integration,
+      token_valid: tokenValid,
+      ...(tokenWarning ? { warning: tokenWarning } : {}),
+    });
+  } catch (err) {
+    console.error('[IG Manual Setup] error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── GET /api/integrations/whatsapp/status?agent_id=xxx ───────────────────────
 router.get('/whatsapp/status', authMiddleware, async (req, res) => {
   const { agent_id } = req.query;
@@ -1296,6 +1577,43 @@ router.post('/meta/data-deletion', async (req, res) => {
   }
 });
 
+// ── POST /api/integrations/instagram/detect — force IG re-detection from existing FB page ─
+router.post('/instagram/detect', authMiddleware, async (req, res) => {
+  const { agent_id, organization_id } = req.body;
+  const agentId = agent_id;
+  const orgId   = organization_id || req.organizationId;
+
+  if (!agentId) return res.status(400).json({ error: 'agent_id required' });
+
+  try {
+    // Find active Facebook integration for this agent
+    const { data: fbInt } = await supabaseAdmin
+      .from('facebook_integrations')
+      .select('page_id, page_name, page_access_token')
+      .eq('agent_id', agentId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (!fbInt?.page_access_token) {
+      return res.status(404).json({ error: 'No hay integración de Facebook activa para este agente. Conecta Facebook primero.' });
+    }
+
+    const result = await detectAndConnectInstagram(fbInt.page_id, fbInt.page_access_token, fbInt.page_name, orgId, agentId);
+
+    if (!result) {
+      return res.status(400).json({
+        error: 'La página de Facebook no tiene una cuenta de Instagram Business vinculada.',
+        help: 'Ve a Configuración de Instagram → Cambiar a cuenta profesional → Empresa. Luego en tu Página de Facebook → Configuración → Instagram → Conectar cuenta.',
+      });
+    }
+
+    res.json({ success: true, ig_account_id: result.ig_account_id, ig_username: result.ig_username });
+  } catch (err) {
+    console.error('[Instagram Detect] error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /instagram/connect-via-facebook — usa el token de FB ya almacenado para conectar IG
 router.post('/instagram/connect-via-facebook', authMiddleware, async (req, res) => {
   const { agent_id } = req.body;
@@ -1333,50 +1651,21 @@ router.post('/instagram/connect-via-facebook', authMiddleware, async (req, res) 
   }
 
   const ig = igData.instagram_business_account;
+  const { page_name: fbPageName } = fbChannel.config;
 
-  const { data: existingIg } = await supabaseAdmin
-    .from('channels')
-    .select('id')
-    .eq('agent_id', agent_id)
-    .eq('organization_id', req.organizationId)
-    .eq('type', 'instagram')
-    .maybeSingle();
+  // Use detectAndConnectInstagram so both instagram_integrations and channels are populated
+  const igResult = await detectAndConnectInstagram(page_id, access_token, fbPageName || page_id, req.organizationId, agent_id);
 
-  const channelPayload = {
-    agent_id,
-    organization_id: req.organizationId,
-    type: 'instagram',
-    name: ig.username ? `@${ig.username}` : (ig.name || 'Instagram'),
-    is_active: true,
-    config: {
-      ig_user_id: ig.id,
-      ig_username: ig.username,
+  if (!igResult) {
+    return res.status(400).json({
+      error: 'La página de Facebook no tiene una cuenta de Instagram Business vinculada.',
+      help: 'Ve a Configuración de Instagram → Cuenta → Cambiar a cuenta profesional → Empresa. Luego en tu Página de Facebook → Configuración → Instagram → Conectar cuenta.',
       page_id,
-      access_token,
-      profile_picture_url: ig.profile_picture_url || null,
-    },
-  };
-
-  let result;
-  if (existingIg) {
-    const { data, error } = await supabaseAdmin
-      .from('channels')
-      .update(channelPayload)
-      .eq('id', existingIg.id)
-      .select().single();
-    if (error) return res.status(500).json({ error: error.message });
-    result = data;
-  } else {
-    const { data, error } = await supabaseAdmin
-      .from('channels')
-      .insert(channelPayload)
-      .select().single();
-    if (error) return res.status(500).json({ error: error.message });
-    result = data;
+    });
   }
 
-  console.log(`[IG via FB] Connected @${ig.username} (ig_user_id=${ig.id}) agent=${agent_id}`);
-  res.json({ success: true, channel: result, ig_username: ig.username });
+  console.log(`[IG via FB] Connected @${igResult.ig_username} (${igResult.ig_account_id}) agent=${agent_id}`);
+  res.json({ success: true, ig_account_id: igResult.ig_account_id, ig_username: igResult.ig_username });
 });
 
 // ── POST /api/integrations/backfill-names ─────────────────────────────────────

@@ -96,8 +96,10 @@ app.listen(PORT, '0.0.0.0', () => {
     app.use('/api/billing',        require('./routes/billing'));
     app.use('/api/retargeting',    require('./routes/retargeting'));
     app.use('/api/integrations',   require('./routes/integrations'));
-    app.use('/api/landing',        require('./routes/landing'));
-    app.use('/api/handoff', require('./routes/handoff'));
+    app.use('/api/landing',         require('./routes/landing'));
+    app.use('/api/handoff',         require('./routes/handoff'));
+    app.use('/api/data-deletion',   require('./routes/dataDeletion'));
+    app.use('/api/agency',          require('./routes/agency'));
 
     app.use((req, res) => {
       res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });

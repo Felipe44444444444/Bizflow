@@ -84,8 +84,14 @@ router.post('/meta', (req, res) => {
 async function processMetaPayload(body) {
   const channelType = body.object === 'instagram' ? 'instagram' : 'facebook';
 
+  console.log(`[Webhook Meta] ▶ object=${body.object} channelType=${channelType} entries=${body.entry?.length ?? 0}`);
+  console.log(`[Webhook Meta] payload=${JSON.stringify(body).slice(0, 800)}`);
+
   for (const entry of body.entry || []) {
-    const pageId = String(entry.id);
+    // For Instagram: entry.id is the IG Account ID (e.g. 1784147452844877)
+    // For Facebook:  entry.id is the Page ID
+    const entryId = String(entry.id);
+    console.log(`[Webhook Meta] entry.id=${entryId} messaging=${entry.messaging?.length ?? 0} changes=${entry.changes?.length ?? 0}`);
 
     // Format 1 — entry.messaging[] (Messenger / Instagram Direct)
     for (const ev of entry.messaging || []) {
@@ -94,7 +100,8 @@ async function processMetaPayload(body) {
       if (!senderId) continue;
       const text = ev.message.text || describeAttachments(ev.message.attachments);
       if (!text) continue;
-      await handleMetaMessage({ channelType, pageId, senderId, text });
+      console.log(`[Webhook Meta] Format1 msg: sender=${senderId} recipient=${ev.recipient?.id} text="${text.slice(0,80)}"`);
+      await handleMetaMessage({ channelType, entryId, senderId, text });
     }
 
     // Format 2 — entry.changes[] (Instagram Business / Graph API webhooks)
@@ -109,7 +116,8 @@ async function processMetaPayload(body) {
         if (!senderId) continue;
         const text = ev.text || describeAttachments(ev.attachments);
         if (!text) continue;
-        await handleMetaMessage({ channelType, pageId, senderId, text });
+        console.log(`[Webhook Meta] Format2 msg: sender=${senderId} text="${text.slice(0,80)}"`);
+        await handleMetaMessage({ channelType, entryId, senderId, text });
       }
 
       // Single message object (some webhook subscriptions)
@@ -117,7 +125,10 @@ async function processMetaPayload(body) {
         const senderId = value.sender?.id;
         if (senderId) {
           const text = value.message.text || describeAttachments(value.message.attachments);
-          if (text) await handleMetaMessage({ channelType, pageId, senderId, text });
+          if (text) {
+            console.log(`[Webhook Meta] Format2-single msg: sender=${senderId} text="${text.slice(0,80)}"`);
+            await handleMetaMessage({ channelType, entryId, senderId, text });
+          }
         }
       }
     }
@@ -130,18 +141,59 @@ function describeAttachments(attachments) {
   return `[${types.join(', ')}]`;
 }
 
-async function handleMetaMessage({ channelType, pageId, senderId, text }) {
+async function handleMetaMessage({ channelType, entryId, senderId, text }) {
+  console.log(`[Meta ${channelType}] handleMessage: entryId=${entryId} sender=${senderId} text="${text.slice(0, 80)}"`);
   try {
-    const { data: channel } = await supabaseAdmin
-      .from('channels')
-      .select('*, agents(*)')
-      .eq('type', channelType)
-      .eq('is_active', true)
-      .filter('config->>page_id', 'eq', pageId)
-      .limit(1)
-      .maybeSingle();
+    let channel = null;
 
-    if (!channel) return;
+    if (channelType === 'instagram') {
+      // For Instagram webhooks: entry.id = IG Account ID → look up by config.ig_account_id
+      console.log(`[Meta instagram] Lookup by ig_account_id=${entryId}`);
+      const { data: byIgId, error: e1 } = await supabaseAdmin
+        .from('channels')
+        .select('*, agents(*)')
+        .eq('type', 'instagram')
+        .eq('is_active', true)
+        .filter('config->>ig_account_id', 'eq', entryId)
+        .limit(1)
+        .maybeSingle();
+      if (e1) console.error('[Meta instagram] DB error (ig_account_id):', e1.message);
+      channel = byIgId;
+
+      // Fallback: some old records store it under ig_account_id_alias
+      if (!channel) {
+        console.log(`[Meta instagram] Not found, trying ig_account_id_alias=${entryId}`);
+        const { data: byAlias, error: e2 } = await supabaseAdmin
+          .from('channels')
+          .select('*, agents(*)')
+          .eq('type', 'instagram')
+          .eq('is_active', true)
+          .filter('config->>ig_account_id_alias', 'eq', entryId)
+          .limit(1)
+          .maybeSingle();
+        if (e2) console.error('[Meta instagram] DB error (alias):', e2.message);
+        channel = byAlias;
+      }
+    } else {
+      // For Facebook Messenger: entry.id = Page ID
+      console.log(`[Meta facebook] Lookup by page_id=${entryId}`);
+      const { data: byPageId, error: e3 } = await supabaseAdmin
+        .from('channels')
+        .select('*, agents(*)')
+        .eq('type', 'facebook')
+        .eq('is_active', true)
+        .filter('config->>page_id', 'eq', entryId)
+        .limit(1)
+        .maybeSingle();
+      if (e3) console.error('[Meta facebook] DB error:', e3.message);
+      channel = byPageId;
+    }
+
+    if (!channel) {
+      console.warn(`[Meta ${channelType}] ✗ No active channel found for entryId=${entryId}. Check config.ig_account_id / config.page_id in channels table.`);
+      return;
+    }
+    console.log(`[Meta ${channelType}] ✓ Channel found: id=${channel.id} agent=${channel.agent_id} org=${channel.organization_id}`);
 
     // Typing indicator — non-fatal
     channelService.sendTypingIndicator(channel, senderId).catch(() => {});
@@ -153,19 +205,25 @@ async function handleMetaMessage({ channelType, pageId, senderId, text }) {
       externalId:     senderId,
       sourceChannel:  channelType,
     });
+    console.log(`[Meta ${channelType}] conversationId=${conversationId}`);
 
+    console.log(`[Meta ${channelType}] Calling processMessage...`);
     const result = await agentService.processMessage({
       agentId:        channel.agent_id,
       conversationId,
       userMessage:    text,
       organizationId: channel.organization_id,
     });
+    console.log(`[Meta ${channelType}] Agent response ready: handoff=${result.handoffRequested} reply="${(result.message || '').slice(0, 100)}"`);
 
     if (!result.handoffRequested) {
       await channelService.sendMessage(channel, senderId, result.message);
+      console.log(`[Meta ${channelType}] ✓ Reply sent to sender=${senderId}`);
+    } else {
+      console.log(`[Meta ${channelType}] Handoff requested — no auto-reply sent`);
     }
   } catch (err) {
-    console.error(`[Meta ${channelType}] handler error (sender=${senderId}):`, err.message);
+    console.error(`[Meta ${channelType}] ✗ handler error (entryId=${entryId} sender=${senderId}):`, err.message, err.stack?.split('\n')[1]);
   }
 }
 

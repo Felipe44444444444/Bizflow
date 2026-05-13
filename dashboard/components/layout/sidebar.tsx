@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Bot, MessageSquare, Users, Key, Settings,
   Zap, LogOut, ChevronRight, Activity, PhoneCall,
+  Briefcase, UserCheck, Megaphone, Palette, BarChart3, TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -20,6 +21,15 @@ const NAV_MAIN = [
 const NAV_CONFIG = [
   { href: "/api-keys",  label: "API Keys",       icon: Key      },
   { href: "/settings",  label: "Configuración",  icon: Settings },
+];
+
+const NAV_AGENCY = [
+  { href: "/agency/dashboard",  label: "Dashboard",   icon: BarChart3     },
+  { href: "/agency/clients",    label: "Clientes",    icon: Briefcase     },
+  { href: "/agency/onboarding", label: "Onboarding",  icon: UserCheck     },
+  { href: "/agency/ads",        label: "Anuncios",    icon: Megaphone     },
+  { href: "/agency/design",     label: "Diseño",      icon: Palette       },
+  { href: "/agency/strategy",   label: "Estrategia",  icon: TrendingUp    },
 ];
 
 const PLAN_COLORS: Record<string, string> = {
@@ -75,6 +85,32 @@ function NavItem({
           <ChevronRight className="ml-auto h-3 w-3 text-neon-cyan/50" />
         )
       )}
+    </Link>
+  );
+}
+
+function AgencyNavItem({ href, label, icon: Icon }: { href: string; label: string; icon: any }) {
+  const pathname = usePathname();
+  const active = pathname.startsWith(href);
+
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 group",
+        active
+          ? "text-[#00FF88] bg-[#00FF88]/10"
+          : "text-[#A0AEC0] hover:bg-white/[0.04] hover:text-white"
+      )}
+    >
+      <Icon
+        className={cn(
+          "h-4 w-4 shrink-0 transition-colors",
+          active ? "text-[#00FF88]" : "text-[#4A5568] group-hover:text-[#A0AEC0]"
+        )}
+      />
+      <span>{label}</span>
+      {active && <ChevronRight className="ml-auto h-3 w-3 text-[#00FF88]/50" />}
     </Link>
   );
 }
@@ -203,6 +239,18 @@ export function Sidebar() {
           <div className="space-y-0.5">
             {NAV_CONFIG.map((item) => (
               <NavItem key={item.href} {...item} />
+            ))}
+          </div>
+        </div>
+
+        {/* XENTTECH Agency */}
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] px-3 mb-2" style={{ color: '#00FF88' }}>
+            XENTTECH
+          </p>
+          <div className="space-y-0.5">
+            {NAV_AGENCY.map((item) => (
+              <AgencyNavItem key={item.href} {...item} />
             ))}
           </div>
         </div>

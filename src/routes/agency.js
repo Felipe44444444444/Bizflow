@@ -276,4 +276,76 @@ router.delete('/designs/:id', async (req, res) => {
   res.status(204).send();
 });
 
+// ── Portal Tokens ─────────────────────────────────────────────────────────────
+
+router.get('/portal-tokens', async (req, res) => {
+  const { client_id } = req.query;
+  let q = supabaseAdmin.from('portal_tokens').select('*').order('created_at', { ascending: false });
+  if (client_id) q = q.eq('client_id', client_id);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+router.post('/portal-tokens', async (req, res) => {
+  const { client_id, label } = req.body;
+  if (!client_id) return res.status(400).json({ error: 'client_id required' });
+
+  const { data, error } = await supabaseAdmin
+    .from('portal_tokens')
+    .insert({ client_id, label: label || 'Portal Access' })
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Log activity
+  await supabaseAdmin.from('activity_log').insert({
+    client_id,
+    action: 'Portal token generado',
+    details: `Token: ${data.token.slice(0, 8)}...`,
+  });
+
+  res.status(201).json(data);
+});
+
+router.patch('/portal-tokens/:id/revoke', async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('portal_tokens')
+    .update({ is_active: false })
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+router.delete('/portal-tokens/:id', async (req, res) => {
+  const { error } = await supabaseAdmin.from('portal_tokens').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(204).send();
+});
+
+// ── Activity Log ──────────────────────────────────────────────────────────────
+
+router.get('/activity', async (req, res) => {
+  const { client_id } = req.query;
+  let q = supabaseAdmin.from('activity_log').select('*').order('created_at', { ascending: false }).limit(50);
+  if (client_id) q = q.eq('client_id', client_id);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+router.post('/activity', async (req, res) => {
+  const { client_id, action, details } = req.body;
+  if (!client_id || !action) return res.status(400).json({ error: 'client_id and action required' });
+  const { data, error } = await supabaseAdmin
+    .from('activity_log')
+    .insert({ client_id, action, details })
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(201).json(data);
+});
+
 module.exports = router;

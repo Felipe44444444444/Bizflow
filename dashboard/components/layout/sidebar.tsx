@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Bot, MessageSquare, Users, Key, Settings,
   Zap, LogOut, ChevronRight, Activity, PhoneCall,
-  Briefcase, UserCheck, Megaphone, Palette, BarChart3, TrendingUp,
+  Briefcase, UserCheck, Megaphone, Palette, BarChart3, TrendingUp, FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -26,6 +26,7 @@ const NAV_CONFIG = [
 const NAV_AGENCY = [
   { href: "/agency/dashboard",  label: "Dashboard",   icon: BarChart3     },
   { href: "/agency/clients",    label: "Clientes",    icon: Briefcase     },
+  { href: "/agency/docs",       label: "Documentos",  icon: FileText      },
   { href: "/agency/onboarding", label: "Onboarding",  icon: UserCheck     },
   { href: "/agency/ads",        label: "Anuncios",    icon: Megaphone     },
   { href: "/agency/design",     label: "Diseño",      icon: Palette       },

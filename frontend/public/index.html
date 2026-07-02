@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ConnectaChat — La plataforma para músicos de regional mexicano. Acordes sincronizados, control de velocidad y transposición en tiempo real." />
+  <title>ConnectaChat — Toca Regional Mexicano. Acorde por Acorde.</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Tokens ──────────────────────────────────────────────────────────── */
+    :root {
+      --bg:         #0D0D0D;
+      --surface:    #141414;
+      --surface2:   #1A1A1A;
+      --border:     #252525;
+      --wine:       #8B0000;
+      --wine-light: #A80000;
+      --wine-deep:  #5C0000;
+      --gold:       #C9A84C;
+      --gold-dim:   #9A7C35;
+      --gold-pale:  #F0D98A;
+      --text:       #F0EAD6;
+      --text-dim:   #888;
+      --text-muted: #555;
+      --radius:     12px;
+      --radius-lg:  20px;
+    }
+
+    /* ── Reset ───────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
+
+    /* ── Typography ──────────────────────────────────────────────────────── */
+    .serif { font-family: 'Playfair Display', serif; }
+    h1, h2, h3 { font-family: 'Playfair Display', serif; line-height: 1.15; }
+
+    /* ── Utility ─────────────────────────────────────────────────────────── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .section    { padding: 96px 0; }
+    .section-sm { padding: 64px 0; }
+
+    .gold-text {
+      background: linear-gradient(135deg, var(--gold), var(--gold-pale), var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .wine-text { color: var(--wine-light); }
+
+    /* ── Buttons ─────────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 14px 28px; border-radius: 10px; border: none;
+      font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--wine), var(--wine-light));
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(139,0,0,0.4);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(139,0,0,0.5);
+    }
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold-dim), var(--gold), var(--gold-pale));
+      color: #0D0D0D; font-weight: 700;
+      box-shadow: 0 4px 20px rgba(201,168,76,0.3);
+    }
+    .btn-gold:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(201,168,76,0.45);
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text-dim);
+    }
+    .btn-outline:hover { border-color: var(--gold-dim); color: var(--text); }
+    .btn-lg { padding: 18px 40px; font-size: 17px; border-radius: 12px; }
+
+    /* ── Scroll animations ───────────────────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal-left  { opacity: 0; transform: translateX(-40px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal-right { opacity: 0; transform: translateX(40px);  transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal-left.visible, .reveal-right.visible { opacity: 1; transform: none; }
+    .delay-1 { transition-delay: 0.1s; }
+    .delay-2 { transition-delay: 0.2s; }
+    .delay-3 { transition-delay: 0.3s; }
+    .delay-4 { transition-delay: 0.4s; }
+    .delay-5 { transition-delay: 0.5s; }
+
+    /* ── Divider ─────────────────────────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--wine-deep) 20%, var(--gold) 50%, var(--wine-deep) 80%, transparent 100%);
+      opacity: 0.5;
+    }
+
+    /* ── Label chip ──────────────────────────────────────────────────────── */
+    .label-chip {
+      display: inline-block;
+      padding: 5px 16px; border-radius: 20px; font-size: 11px;
+      font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+      background: rgba(201,168,76,0.08);
+      border: 1px solid rgba(201,168,76,0.25);
+      color: var(--gold);
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       NAV
+    ════════════════════════════════════════════════════════════════════════ */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: rgba(13,13,13,0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: box-shadow 0.3s;
+    }
+    nav.scrolled { box-shadow: 0 4px 30px rgba(0,0,0,0.5); }
+
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 24px; max-width: 1200px; margin: 0 auto;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .nav-logo .logo-icon { font-size: 26px; line-height: 1; }
+    .nav-logo .logo-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px; font-weight: 900;
+      background: linear-gradient(135deg, var(--gold), var(--gold-pale));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav-logo .logo-sub {
+      font-size: 10px; color: var(--text-muted);
+      letter-spacing: 0.15em; text-transform: uppercase; margin-top: -2px;
+    }
+    .nav-links {
+      display: flex; align-items: center; gap: 6px;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: 14px; font-weight: 500; color: var(--text-dim);
+      padding: 6px 14px; border-radius: 8px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       HERO
+    ════════════════════════════════════════════════════════════════════════ */
+    .hero {
+      position: relative;
+      min-height: 100dvh;
+      display: flex; align-items: center;
+      overflow: hidden;
+      padding: 120px 0 80px;
+    }
+
+    /* Palenque lights — pure CSS stage atmosphere */
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+    }
+    .hero-bg::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 70%, rgba(139,0,0,0.35) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 60% at 80% 30%, rgba(201,168,76,0.15) 0%, transparent 65%),
+        radial-gradient(ellipse 80% 40% at 50% 100%, rgba(92,0,0,0.5) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 100% at 50% 50%, #0D0D0D 40%, #1a0505 100%);
+    }
+    /* Animated spotlight beams */
+    .hero-bg::after {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        conic-gradient(from 210deg at 25% 0%, transparent 0deg, rgba(201,168,76,0.06) 8deg, transparent 16deg),
+        conic-gradient(from 330deg at 75% 0%, transparent 0deg, rgba(139,0,0,0.08) 10deg, transparent 20deg);
+      animation: spotlight 8s ease-in-out infinite alternate;
+    }
+    @keyframes spotlight {
+      0%   { opacity: 0.6; transform: scaleX(1); }
+      100% { opacity: 1;   transform: scaleX(1.1); }
+    }
+
+    /* Floating music notes */
+    .notes-bg {
+      position: absolute; inset: 0; z-index: 0;
+      pointer-events: none; overflow: hidden;
+    }
+    .note {
+      position: absolute;
+      font-size: 24px;
+      opacity: 0;
+      animation: floatNote linear infinite;
+    }
+    @keyframes floatNote {
+      0%   { opacity: 0;    transform: translateY(0) rotate(0deg); }
+      10%  { opacity: 0.12; }
+      90%  { opacity: 0.06; }
+      100% { opacity: 0;    transform: translateY(-80vh) rotate(20deg); }
+    }
+
+    .hero-content {
+      position: relative; z-index: 1;
+      max-width: 760px;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 10px;
+      margin-bottom: 28px;
+    }
+    .hero-eyebrow-line {
+      width: 32px; height: 2px;
+      background: linear-gradient(90deg, var(--wine), var(--gold));
+    }
+    .hero-eyebrow span {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--gold);
+    }
+    .hero h1 {
+      font-size: clamp(40px, 6.5vw, 80px);
+      font-weight: 900;
+      letter-spacing: -0.025em;
+      line-height: 1.05;
+      margin-bottom: 24px;
+    }
+    .hero h1 .line-accent {
+      display: block;
+      background: linear-gradient(135deg, var(--wine-light) 0%, var(--gold) 60%, var(--gold-pale) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--text-dim);
+      line-height: 1.65;
+      max-width: 560px;
+      margin-bottom: 40px;
+      font-weight: 300;
+    }
+    .hero-ctas {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      margin-bottom: 56px;
+    }
+    .hero-social-proof {
+      display: flex; align-items: center; gap: 16px;
+      font-size: 13px; color: var(--text-dim);
+    }
+    .avatars {
+      display: flex;
+    }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--wine-deep), var(--wine));
+      border: 2px solid var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      margin-left: -8px;
+    }
+    .avatar:first-child { margin-left: 0; }
+
+    /* Floating card preview */
+    .hero-card {
+      position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+      background: rgba(20,20,20,0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(201,168,76,0.2);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      width: 300px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.05);
+      animation: cardFloat 4s ease-in-out infinite;
+    }
+    @keyframes cardFloat {
+      0%, 100% { transform: translateY(-50%) translateY(0); }
+      50%       { transform: translateY(-50%) translateY(-12px); }
+    }
+    .card-song-title  { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .card-song-artist { font-size: 12px; color: var(--text-dim); margin-bottom: 16px; }
+    .chord-row {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .chord-pill {
+      padding: 6px 14px; border-radius: 8px; font-size: 15px; font-weight: 700;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      font-family: 'Playfair Display', serif;
+      color: var(--text-dim);
+      transition: all 0.3s;
+    }
+    .chord-pill.active {
+      background: rgba(139,0,0,0.2);
+      border-color: var(--wine);
+      color: #fff;
+      box-shadow: 0 0 14px rgba(139,0,0,0.5);
+      animation: chordGlow 0.6s ease-in-out infinite alternate;
+    }
+    .chord-pill.upcoming {
+      border-color: rgba(201,168,76,0.3);
+      color: var(--gold);
+    }
+    @keyframes chordGlow {
+      from { box-shadow: 0 0 8px rgba(139,0,0,0.4);  }
+      to   { box-shadow: 0 0 20px rgba(139,0,0,0.7); }
+    }
+    .progress-bar {
+      height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 10px;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 2px;
+      background: linear-gradient(90deg, var(--wine), var(--gold));
+      animation: progress 6s linear infinite;
+    }
+    @keyframes progress {
+      0%   { width: 5%; }
+      100% { width: 95%; }
+    }
+    .card-meta {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 11px; color: var(--text-muted);
+    }
+    .bpm-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--wine);
+      animation: bpmPulse var(--bpm, 500ms) ease-in-out infinite;
+      display: inline-block; margin-right: 5px;
+    }
+    @keyframes bpmPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%       { transform: scale(1.7); opacity: 0.5; }
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       STATS BAR
+    ════════════════════════════════════════════════════════════════════════ */
+    .stats-bar {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 28px 0;
+    }
+    .stats-inner {
+      display: flex; justify-content: space-around; flex-wrap: wrap; gap: 24px;
+    }
+    .stat { text-align: center; }
+    .stat-number {
+      font-family: 'Playfair Display', serif;
+      font-size: 36px; font-weight: 900;
+      background: linear-gradient(135deg, var(--gold), var(--gold-pale));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 12px; color: var(--text-dim);
+      margin-top: 4px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       FEATURES
+    ════════════════════════════════════════════════════════════════════════ */
+    .section-header { text-align: center; margin-bottom: 64px; }
+    .section-header h2 { font-size: clamp(28px, 4vw, 48px); margin-bottom: 16px; }
+    .section-header p  { font-size: 17px; color: var(--text-dim); max-width: 520px; margin: 0 auto; }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px 28px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--wine), var(--gold));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .feature-card:hover {
+      border-color: rgba(201,168,76,0.3);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+    }
+    .feature-card:hover::before { opacity: 1; }
+
+    .feature-icon {
+      width: 56px; height: 56px; border-radius: 14px;
+      background: linear-gradient(135deg, rgba(139,0,0,0.2), rgba(201,168,76,0.1));
+      border: 1px solid rgba(201,168,76,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; margin-bottom: 24px;
+    }
+    .feature-card h3 {
+      font-size: 20px; font-weight: 700; margin-bottom: 12px;
+      font-family: 'Playfair Display', serif;
+    }
+    .feature-card p { font-size: 15px; color: var(--text-dim); line-height: 1.7; }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       GENRES CAROUSEL
+    ════════════════════════════════════════════════════════════════════════ */
+    .genres-section {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .genres-track {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      padding: 8px 4px 16px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      scroll-snap-type: x mandatory;
+    }
+    .genres-track::-webkit-scrollbar { display: none; }
+
+    .genre-card {
+      flex-shrink: 0;
+      scroll-snap-align: start;
+      width: 180px;
+      height: 220px;
+      border-radius: var(--radius-lg);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.25s, box-shadow 0.25s;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .genre-card:hover {
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+    .genre-card .genre-bg {
+      position: absolute; inset: 0; z-index: 0;
+      transition: transform 0.4s;
+    }
+    .genre-card:hover .genre-bg { transform: scale(1.08); }
+    .genre-card .genre-overlay {
+      position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(to top, rgba(13,13,13,0.92) 0%, rgba(13,13,13,0.2) 60%, transparent 100%);
+    }
+    .genre-card .genre-content { position: relative; z-index: 2; text-align: center; }
+    .genre-emoji { font-size: 32px; display: block; margin-bottom: 8px; }
+    .genre-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px; font-weight: 700;
+      color: var(--text); display: block; margin-bottom: 4px;
+    }
+    .genre-count { font-size: 12px; color: var(--text-dim); }
+
+    /* Genre-specific gradient backgrounds */
+    .genre-corrido        .genre-bg { background: linear-gradient(135deg, #3D0000 0%, #1a0000 100%); }
+    .genre-corrido::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 30%, rgba(255,60,60,0.15), transparent 60%); z-index: 1; pointer-events: none; }
+    .genre-ranchera       .genre-bg { background: linear-gradient(135deg, #2D1800 0%, #1a0a00 100%); }
+    .genre-banda          .genre-bg { background: linear-gradient(135deg, #0D2D00 0%, #060f00 100%); }
+    .genre-norteña        .genre-bg { background: linear-gradient(135deg, #00201A 0%, #001209 100%); }
+    .genre-grupero        .genre-bg { background: linear-gradient(135deg, #2D2000 0%, #181000 100%); }
+    .genre-tumbado        .genre-bg { background: linear-gradient(135deg, #0A0A2E 0%, #050514 100%); }
+
+    /* Carousel nav buttons */
+    .carousel-wrap { position: relative; }
+    .carousel-btn {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(13,13,13,0.9); border: 1px solid var(--border);
+      color: var(--text); font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10; transition: background 0.2s, border-color 0.2s;
+    }
+    .carousel-btn:hover { background: var(--surface2); border-color: var(--gold-dim); }
+    .carousel-btn-prev { left: -20px; }
+    .carousel-btn-next { right: -20px; }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       HOW IT WORKS
+    ════════════════════════════════════════════════════════════════════════ */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 0;
+      position: relative;
+    }
+    .steps-grid::before {
+      content: '';
+      position: absolute; top: 36px; left: 10%; right: 10%; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), var(--gold-dim), var(--border), transparent);
+    }
+    .step {
+      padding: 40px 32px;
+      text-align: center;
+      position: relative;
+    }
+    .step-num {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--wine-deep), var(--wine));
+      border: 2px solid rgba(201,168,76,0.3);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+      position: relative; z-index: 1;
+      box-shadow: 0 0 30px rgba(139,0,0,0.3);
+    }
+    .step-num span {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px; font-weight: 900; color: var(--gold-pale);
+    }
+    .step h3 {
+      font-size: 20px; font-weight: 700; margin-bottom: 12px;
+    }
+    .step p { font-size: 15px; color: var(--text-dim); line-height: 1.65; }
+    .step-icon { font-size: 28px; margin-bottom: 8px; }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       POPULAR SONGS
+    ════════════════════════════════════════════════════════════════════════ */
+    .songs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .song-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 0;
+      overflow: hidden;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+      display: flex; flex-direction: column;
+    }
+    .song-card:hover {
+      border-color: rgba(201,168,76,0.35);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+    .song-thumb {
+      height: 130px;
+      position: relative;
+      overflow: hidden;
+    }
+    .song-thumb-bg {
+      position: absolute; inset: 0;
+      transition: transform 0.4s;
+    }
+    .song-card:hover .song-thumb-bg { transform: scale(1.06); }
+    .song-thumb-overlay {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(13,13,13,0.4);
+    }
+    .play-circle {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: rgba(13,13,13,0.75); backdrop-filter: blur(8px);
+      border: 2px solid rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; color: #fff;
+      transform: scale(0.8); opacity: 0;
+      transition: transform 0.25s, opacity 0.25s;
+    }
+    .song-card:hover .play-circle { transform: scale(1); opacity: 1; }
+
+    .song-body { padding: 18px 20px; flex: 1; display: flex; flex-direction: column; }
+    .song-genre-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 20px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .song-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px; font-weight: 700;
+      color: var(--text); margin-bottom: 4px; line-height: 1.3;
+    }
+    .song-artist { font-size: 13px; color: var(--text-dim); margin-bottom: 14px; }
+    .song-meta {
+      display: flex; gap: 14px; align-items: center;
+      font-size: 12px; color: var(--text-muted); margin-top: auto;
+    }
+    .song-meta span { display: flex; align-items: center; gap: 4px; }
+    .song-cta {
+      display: block; width: 100%;
+      padding: 11px; text-align: center;
+      font-size: 13px; font-weight: 600; color: var(--gold);
+      background: rgba(201,168,76,0.05);
+      border-top: 1px solid var(--border);
+      transition: background 0.15s;
+      cursor: pointer;
+    }
+    .song-cta:hover { background: rgba(201,168,76,0.1); }
+
+    /* Genre colors */
+    .badge-corrido          { background: rgba(255,60,60,0.12); color: #FF7070; }
+    .badge-corrido-tumbado  { background: rgba(100,100,255,0.12); color: #9090FF; }
+    .badge-ranchera         { background: rgba(255,150,50,0.12); color: #FFA050; }
+    .badge-banda            { background: rgba(60,200,60,0.12); color: #70CC70; }
+    .badge-norteña          { background: rgba(60,220,160,0.12); color: #60DDA0; }
+    .badge-grupero          { background: rgba(255,255,60,0.10); color: #CCCC44; }
+
+    /* Thumb gradients by genre */
+    .thumb-corrido         { background: linear-gradient(135deg, #5C0000, #2D0000, #0D0D0D); }
+    .thumb-corrido-tumbado { background: linear-gradient(135deg, #0A0A2E, #12124a, #0D0D0D); }
+    .thumb-ranchera        { background: linear-gradient(135deg, #3D1500, #2D0A00, #0D0D0D); }
+    .thumb-banda           { background: linear-gradient(135deg, #0A2D0A, #051505, #0D0D0D); }
+    .thumb-norteña         { background: linear-gradient(135deg, #002820, #001510, #0D0D0D); }
+    .thumb-grupero         { background: linear-gradient(135deg, #2D2800, #181400, #0D0D0D); }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       CTA BANNER
+    ════════════════════════════════════════════════════════════════════════ */
+    .cta-banner {
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 50%, rgba(139,0,0,0.25), transparent 60%),
+        radial-gradient(ellipse 60% 80% at 80% 50%, rgba(201,168,76,0.12), transparent 65%),
+        var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      padding: 96px 24px;
+    }
+    .cta-banner h2 {
+      font-size: clamp(28px, 4.5vw, 52px);
+      font-weight: 900; margin-bottom: 16px;
+    }
+    .cta-banner p {
+      font-size: 18px; color: var(--text-dim);
+      max-width: 500px; margin: 0 auto 40px;
+    }
+    .cta-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       FOOTER
+    ════════════════════════════════════════════════════════════════════════ */
+    footer {
+      background: #0A0A0A;
+      border-top: 1px solid var(--border);
+      padding: 56px 0 32px;
+    }
+    .footer-inner {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 48px;
+      margin-bottom: 48px;
+      align-items: start;
+    }
+    .footer-brand .brand-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px; font-weight: 900;
+      background: linear-gradient(135deg, var(--gold), var(--gold-pale));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+    .footer-brand p { font-size: 14px; color: var(--text-muted); max-width: 260px; line-height: 1.6; }
+
+    .footer-col h4 {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .footer-col a {
+      font-size: 14px; color: var(--text-muted);
+      transition: color 0.15s;
+    }
+    .footer-col a:hover { color: var(--gold); }
+
+    .footer-bottom {
+      padding-top: 28px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+      font-size: 13px; color: var(--text-muted);
+    }
+    .footer-bottom .heart { color: var(--wine-light); }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       RESPONSIVE
+    ════════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 900px) {
+      .hero-card { display: none; }
+      .steps-grid::before { display: none; }
+      .footer-inner { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .section { padding: 64px 0; }
+      .nav-links { display: none; }
+      .footer-inner { grid-template-columns: 1fr; gap: 32px; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .carousel-btn { display: none; }
+      .stats-inner { gap: 12px; }
+      .stat-number { font-size: 28px; }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     NAV
+══════════════════════════════════════════════════════════════════════════ -->
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <span class="logo-icon">🎸</span>
+      <div>
+        <div class="logo-name">ConnectaChat</div>
+        <div class="logo-sub">Regional Mexicano</div>
+      </div>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="#generos">Géneros</a></li>
+      <li><a href="#como-funciona">Cómo funciona</a></li>
+      <li><a href="#canciones">Canciones</a></li>
+    </ul>
+
+    <a href="https://app.conectaachat.com" class="btn btn-primary" style="padding:10px 20px;font-size:14px;">
+      Empezar Gratis →
+    </a>
+  </div>
+</nav>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+
+  <!-- Floating music notes -->
+  <div class="notes-bg" aria-hidden="true">
+    <span class="note" style="left:8%;  font-size:20px; animation-duration:12s; animation-delay:0s;">🎵</span>
+    <span class="note" style="left:18%; font-size:16px; animation-duration:15s; animation-delay:2s;">🎶</span>
+    <span class="note" style="left:32%; font-size:22px; animation-duration:11s; animation-delay:4s;">🎸</span>
+    <span class="note" style="left:55%; font-size:14px; animation-duration:14s; animation-delay:1s;">🎵</span>
+    <span class="note" style="left:68%; font-size:18px; animation-duration:13s; animation-delay:3s;">🎶</span>
+    <span class="note" style="left:82%; font-size:20px; animation-duration:16s; animation-delay:5s;">🎵</span>
+    <span class="note" style="left:90%; font-size:14px; animation-duration:10s; animation-delay:7s;">🎸</span>
+  </div>
+
+  <div class="container" style="position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:40px;">
+    <div class="hero-content">
+      <div class="hero-eyebrow reveal">
+        <div class="hero-eyebrow-line"></div>
+        <span>Para músicos de regional mexicano</span>
+      </div>
+
+      <h1 class="reveal delay-1">
+        Toca Regional&nbsp;Mexicano.
+        <span class="line-accent">Acorde por&nbsp;Acorde.</span>
+      </h1>
+
+      <p class="hero-sub reveal delay-2">
+        La plataforma para músicos: canciones con acordes sincronizados, reproductor
+        con control de velocidad y transposición en tiempo real.
+      </p>
+
+      <div class="hero-ctas reveal delay-3">
+        <a href="https://app.conectaachat.com" class="btn btn-gold btn-lg">
+          🎸 Empezar Gratis
+        </a>
+        <a href="#como-funciona" class="btn btn-outline btn-lg">
+          Ver cómo funciona
+        </a>
+      </div>
+
+      <div class="hero-social-proof reveal delay-4">
+        <div class="avatars">
+          <div class="avatar">🎸</div>
+          <div class="avatar">🪗</div>
+          <div class="avatar">🎺</div>
+          <div class="avatar">🥁</div>
+        </div>
+        <span>Más de <strong style="color:var(--text)">2,400 músicos</strong> aprendiendo hoy</span>
+      </div>
+    </div>
+
+    <!-- Floating chord preview card -->
+    <div class="hero-card reveal-right delay-2" aria-hidden="true">
+      <div class="card-song-title">La Puerta Negra</div>
+      <div class="card-song-artist">Los Tigres del Norte · Corrido · 95 BPM</div>
+
+      <div class="chord-row">
+        <span class="chord-pill">Am</span>
+        <span class="chord-pill active">C</span>
+        <span class="chord-pill upcoming">G</span>
+        <span class="chord-pill">E</span>
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress-fill"></div>
+      </div>
+
+      <div class="card-meta">
+        <span>
+          <span class="bpm-dot" style="--bpm:632ms"></span>
+          95 BPM
+        </span>
+        <span>🎵 La menor</span>
+        <span>Compás 12</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     STATS BAR
+══════════════════════════════════════════════════════════════════════════ -->
+<div class="stats-bar">
+  <div class="container">
+    <div class="stats-inner">
+      <div class="stat reveal">
+        <div class="stat-number">85+</div>
+        <div class="stat-label">Canciones con acordes</div>
+      </div>
+      <div class="stat reveal delay-1">
+        <div class="stat-number">20+</div>
+        <div class="stat-label">Artistas legendarios</div>
+      </div>
+      <div class="stat reveal delay-2">
+        <div class="stat-number">6</div>
+        <div class="stat-label">Géneros representados</div>
+      </div>
+      <div class="stat reveal delay-3">
+        <div class="stat-number">100%</div>
+        <div class="stat-label">Acordes reales verificados</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     CARACTERÍSTICAS
+══════════════════════════════════════════════════════════════════════════ -->
+<section class="section" id="caracteristicas">
+  <div class="container">
+    <div class="section-header">
+      <span class="label-chip reveal">Características</span>
+      <h2 class="reveal delay-1">Todo lo que necesitas<br>para tocar mejor</h2>
+      <p class="reveal delay-2">Sin teoría aburrida. Sin partituras complicadas. Solo tú, tu guitarra y los acordes exactos.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal delay-1">
+        <div class="feature-icon">🎸</div>
+        <h3>+85 Canciones con Acordes Reales</h3>
+        <p>Cada canción incluye acordes verificados por músicos. Nada de acordes aproximados — son los que realmente suenan en el original.</p>
+      </div>
+
+      <div class="feature-card reveal delay-2">
+        <div class="feature-icon">🎵</div>
+        <h3>Reproductor con Acordes Sincronizados</h3>
+        <p>Los acordes avanzan en pantalla al mismo tiempo que el video. Siempre sabes qué estás tocando y qué viene después.</p>
+      </div>
+
+      <div class="feature-card reveal delay-3">
+        <div class="feature-icon">🎚️</div>
+        <h3>Transposición y Velocidad Ajustable</h3>
+        <p>Toca en tu tono natural con transposición de ±12 semitonos. Aprende a la mitad de velocidad y sube cuando domines la canción.</p>
+      </div>
+
+      <div class="feature-card reveal delay-1">
+        <div class="feature-icon">📊</div>
+        <h3>Diagramas de Guitarra Interactivos</h3>
+        <p>Cada acorde muestra la posición exacta de los dedos en el traste. Perfecto para principiantes y músicos intermedios.</p>
+      </div>
+
+      <div class="feature-card reveal delay-2">
+        <div class="feature-icon">🗺️</div>
+        <h3>Estructura de la Canción</h3>
+        <p>Navega entre Intro, Verso, Coro y Puente con un clic. Practica la parte que necesitas sin buscar el minuto exacto.</p>
+      </div>
+
+      <div class="feature-card reveal delay-3">
+        <div class="feature-icon">⭐</div>
+        <h3>Favoritos y Progreso Personal</h3>
+        <p>Guarda tus canciones favoritas y regresa a ellas cuando quieras. Tu historial de práctica siempre disponible.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<div class="divider"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     GÉNEROS
+══════════════════════════════════════════════════════════════════════════ -->
+<section class="section genres-section" id="generos">
+  <div class="container">
+    <div class="section-header">
+      <span class="label-chip reveal">Géneros</span>
+      <h2 class="reveal delay-1">El alma de México,<br>acorde por acorde</h2>
+      <p class="reveal delay-2">Desde los corridos clásicos hasta el corrido tumbado urbano — todo el espectro del regional mexicano.</p>
+    </div>
+
+    <div class="carousel-wrap reveal">
+      <button class="carousel-btn carousel-btn-prev" onclick="scrollGenres(-1)" aria-label="Anterior">‹</button>
+      <div class="genres-track" id="genres-track">
+
+        <div class="genre-card genre-corrido" onclick="window.location.href='https://app.conectaachat.com?genero='+encodeURIComponent('corrido')">
+          <div class="genre-bg"></div>
+          <div class="genre-overlay"></div>
+          <div class="genre-content">
+            <span class="genre-emoji">🤠</span>
+            <span class="genre-name">Corridos</span>
+            <span class="genre-count">24 canciones</span>
+          </div>
+        </div>
+
+        <div class="genre-card genre-ranchera" onclick="window.location.href='https://app.conectaachat.com?genero='+encodeURIComponent('ranchera')">
+          <div class="genre-bg"></div>
+          <div class="genre-overlay"></div>
+          <div class="genre-content">
+            <span class="genre-emoji">🌵</span>
+            <span class="genre-name">Rancheras</span>
+            <span class="genre-count">10 canciones</span>
+          </div>
+        </div>
+
+        <div class="genre-card genre-banda" onclick="window.location.href='https://app.conectaachat.com?genero='+encodeURIComponent('banda')">
+          <div class="genre-bg"></div>
+          <div class="genre-overlay"></div>
+          <div class="genre-content">
+            <span class="genre-emoji">🎺</span>
+            <span class="genre-name">Banda</span>
+            <span class="genre-count">18 canciones</span>
+          </div>
+        </div>
+
+        <div class="genre-card genre-norteña" onclick="window.location.href='https://app.conectaachat.com?genero='+encodeURIComponent('norteña')">
+          <div class="genre-bg"></div>
+          <div class="genre-overlay"></div>
+          <div class="genre-content">
+            <span class="genre-emoji">🪗</span>
+            <span class="genre-name">Norteñas</span>
+            <span class="genre-count">19 canciones</span>
+          </div>
+        </div>
+
+        <div class="genre-card genre-grupero" onclick="window.location.href='https://app.conectaachat.com?genero='+encodeURIComponent('grupero')">
+          <div class="genre-bg"></div>
+          <div class="genre-overlay"></div>
+          <div class="genre-content">
+            <span class="genre-emoji">🎹</span>
+            <span class="genre-name">Grupero</span>
+            <span class="genre-count">9 canciones</span>
+          </div>
+        </div>
+
+        <div class="genre-card genre-tumbado" onclick="window.location.href='https://app.conectaachat.com?genero='+encodeURIComponent('corrido tumbado')">
+          <div class="genre-bg"></div>
+          <div class="genre-overlay"></div>
+          <div class="genre-content">
+            <span class="genre-emoji">🥃</span>
+            <span class="genre-name">Corrido Tumbado</span>
+            <span class="genre-count">5 canciones</span>
+          </div>
+        </div>
+
+      </div>
+      <button class="carousel-btn carousel-btn-next" onclick="scrollGenres(1)" aria-label="Siguiente">›</button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     CÓMO FUNCIONA
+══════════════════════════════════════════════════════════════════════════ -->
+<section class="section" id="como-funciona">
+  <div class="container">
+    <div class="section-header">
+      <span class="label-chip reveal">Cómo funciona</span>
+      <h2 class="reveal delay-1">Tres pasos.<br>Música en tus manos.</h2>
+    </div>
+
+    <div class="steps-grid">
+      <div class="step reveal delay-1">
+        <div class="step-num"><span>1</span></div>
+        <div class="step-icon">🔍</div>
+        <h3>Busca tu canción</h3>
+        <p>Escribe el nombre del tema o del artista. Filtra por género, tono o BPM. Encuentra lo que quieres tocar hoy.</p>
+      </div>
+
+      <div class="step reveal delay-2">
+        <div class="step-num"><span>2</span></div>
+        <div class="step-icon">▶️</div>
+        <h3>Dale play — los acordes avanzan solos</h3>
+        <p>El video de YouTube se reproduce y los acordes se iluminan exactamente en el compás correcto. Sin desincronía.</p>
+      </div>
+
+      <div class="step reveal delay-3">
+        <div class="step-num"><span>3</span></div>
+        <div class="step-icon">🎸</div>
+        <h3>Toca a tu ritmo</h3>
+        <p>Reduce la velocidad al 50% para aprender el patrón. Cambia el tono si la canción no va con tu voz. Domina la pieza.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<div class="divider"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     CANCIONES POPULARES
+══════════════════════════════════════════════════════════════════════════ -->
+<section class="section" id="canciones">
+  <div class="container">
+    <div class="section-header">
+      <span class="label-chip reveal">Canciones populares</span>
+      <h2 class="reveal delay-1">Las más tocadas<br>del catálogo</h2>
+      <p class="reveal delay-2">Clásicos y éxitos modernos, todos con acordes verificados.</p>
+    </div>
+
+    <div class="songs-grid">
+
+      <!-- 1 -->
+      <article class="song-card reveal delay-1">
+        <div class="song-thumb">
+          <div class="song-thumb-bg thumb-corrido"></div>
+          <div class="song-thumb-overlay">
+            <div class="play-circle">▶</div>
+          </div>
+        </div>
+        <div class="song-body">
+          <span class="song-genre-badge badge-corrido">Corrido</span>
+          <div class="song-title">La Puerta Negra</div>
+          <div class="song-artist">Los Tigres del Norte</div>
+          <div class="song-meta">
+            <span>🎵 La menor</span>
+            <span>♩ 95 BPM</span>
+          </div>
+        </div>
+        <a href="https://app.conectaachat.com" class="song-cta">Ver acordes →</a>
+      </article>
+
+      <!-- 2 -->
+      <article class="song-card reveal delay-2">
+        <div class="song-thumb">
+          <div class="song-thumb-bg thumb-ranchera"></div>
+          <div class="song-thumb-overlay">
+            <div class="play-circle">▶</div>
+          </div>
+        </div>
+        <div class="song-body">
+          <span class="song-genre-badge badge-ranchera">Ranchera</span>
+          <div class="song-title">Volver Volver</div>
+          <div class="song-artist">Vicente Fernández</div>
+          <div class="song-meta">
+            <span>🎵 Sol mayor</span>
+            <span>♩ 82 BPM</span>
+          </div>
+        </div>
+        <a href="https://app.conectaachat.com" class="song-cta">Ver acordes →</a>
+      </article>
+
+      <!-- 3 -->
+      <article class="song-card reveal delay-3">
+        <div class="song-thumb">
+          <div class="song-thumb-bg" style="background:linear-gradient(135deg,#1a0020,#0a000d,#0D0D0D);"></div>
+          <div class="song-thumb-overlay">
+            <div class="play-circle">▶</div>
+          </div>
+        </div>
+        <div class="song-body">
+          <span class="song-genre-badge badge-grupero">Grupero</span>
+          <div class="song-title">Amor Eterno</div>
+          <div class="song-artist">Juan Gabriel</div>
+          <div class="song-meta">
+            <span>🎵 Re menor</span>
+            <span>♩ 68 BPM</span>
+          </div>
+        </div>
+        <a href="https://app.conectaachat.com" class="song-cta">Ver acordes →</a>
+      </article>
+
+      <!-- 4 -->
+      <article class="song-card reveal delay-1">
+        <div class="song-thumb">
+          <div class="song-thumb-bg thumb-corrido-tumbado"></div>
+          <div class="song-thumb-overlay">
+            <div class="play-circle">▶</div>
+          </div>
+        </div>
+        <div class="song-body">
+          <span class="song-genre-badge badge-corrido-tumbado">Corrido Tumbado</span>
+          <div class="song-title">Ella Baila Sola</div>
+          <div class="song-artist">Peso Pluma</div>
+          <div class="song-meta">
+            <span>🎵 La menor</span>
+            <span>♩ 115 BPM</span>
+          </div>
+        </div>
+        <a href="https://app.conectaachat.com" class="song-cta">Ver acordes →</a>
+      </article>
+
+      <!-- 5 -->
+      <article class="song-card reveal delay-2">
+        <div class="song-thumb">
+          <div class="song-thumb-bg thumb-banda"></div>
+          <div class="song-thumb-overlay">
+            <div class="play-circle">▶</div>
+          </div>
+        </div>
+        <div class="song-body">
+          <span class="song-genre-badge badge-banda">Banda</span>
+          <div class="song-title">Me Niego</div>
+          <div class="song-artist">Banda MS</div>
+          <div class="song-meta">
+            <span>🎵 Fa mayor</span>
+            <span>♩ 76 BPM</span>
+          </div>
+        </div>
+        <a href="https://app.conectaachat.com" class="song-cta">Ver acordes →</a>
+      </article>
+
+      <!-- 6 -->
+      <article class="song-card reveal delay-3">
+        <div class="song-thumb">
+          <div class="song-thumb-bg thumb-norteña"></div>
+          <div class="song-thumb-overlay">
+            <div class="play-circle">▶</div>
+          </div>
+        </div>
+        <div class="song-body">
+          <span class="song-genre-badge badge-norteña">Norteña</span>
+          <div class="song-title">Amor a Primera Vista</div>
+          <div class="song-artist">Intocable</div>
+          <div class="song-meta">
+            <span>🎵 Sol mayor</span>
+            <span>♩ 118 BPM</span>
+          </div>
+        </div>
+        <a href="https://app.conectaachat.com" class="song-cta">Ver acordes →</a>
+      </article>
+
+    </div>
+
+    <div style="text-align:center;margin-top:48px;" class="reveal">
+      <a href="https://app.conectaachat.com" class="btn btn-outline btn-lg">
+        Ver las 85+ canciones →
+      </a>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     CTA BANNER
+══════════════════════════════════════════════════════════════════════════ -->
+<section class="cta-banner">
+  <div class="container">
+    <span class="label-chip reveal" style="margin-bottom:24px;display:inline-block;">Empieza hoy</span>
+    <h2 class="reveal delay-1">
+      Tu guitarra te está<br>
+      <span class="gold-text">esperando.</span>
+    </h2>
+    <p class="reveal delay-2">Más de 2,400 músicos ya aprenden con ConnectaChat. Únete gratis — sin tarjeta de crédito.</p>
+    <div class="cta-btns reveal delay-3">
+      <a href="https://app.conectaachat.com" class="btn btn-gold btn-lg">🎸 Empezar Gratis</a>
+      <a href="#canciones" class="btn btn-outline btn-lg">Explorar catálogo</a>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════════════════════════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <span style="font-size:24px;">🎸</span>
+          <div class="brand-name">ConnectaChat</div>
+        </div>
+        <p>La plataforma para músicos de regional mexicano. Acordes reales, sincronizados en tiempo real.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>App</h4>
+        <ul>
+          <li><a href="https://app.conectaachat.com">Catálogo</a></li>
+          <li><a href="https://app.conectaachat.com#buscar">Buscar</a></li>
+          <li><a href="https://app.conectaachat.com#favoritos">Mis Favoritos</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Géneros</h4>
+        <ul>
+          <li><a href="https://app.conectaachat.com?genero=corrido">Corridos</a></li>
+          <li><a href="https://app.conectaachat.com?genero=ranchera">Rancheras</a></li>
+          <li><a href="https://app.conectaachat.com?genero=banda">Banda</a></li>
+          <li><a href="https://app.conectaachat.com?genero=norteña">Norteñas</a></li>
+          <li><a href="https://app.conectaachat.com?genero=grupero">Grupero</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Artistas</h4>
+        <ul>
+          <li><a href="https://app.conectaachat.com?artista=Los+Tigres">Los Tigres del Norte</a></li>
+          <li><a href="https://app.conectaachat.com?artista=Vicente+Fernandez">Vicente Fernández</a></li>
+          <li><a href="https://app.conectaachat.com?artista=Peso+Pluma">Peso Pluma</a></li>
+          <li><a href="https://app.conectaachat.com?artista=Banda+MS">Banda MS</a></li>
+          <li><a href="https://app.conectaachat.com">Ver todos →</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 ConnectaChat. Todos los derechos reservados.</span>
+      <span>Hecho con <span class="heart">❤️</span> para músicos de México</span>
+    </div>
+  </div>
+</footer>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════════════════════════ -->
+<script>
+  /* ── Scroll-triggered reveal animations ────────────────────────────────── */
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    },
+    { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+  );
+
+  document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => {
+    observer.observe(el);
+  });
+
+  /* ── Navbar shadow on scroll ───────────────────────────────────────────── */
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 20);
+  }, { passive: true });
+
+  /* ── Genre carousel ────────────────────────────────────────────────────── */
+  function scrollGenres(dir) {
+    const track = document.getElementById('genres-track');
+    track.scrollBy({ left: dir * 210, behavior: 'smooth' });
+  }
+
+  function irGenero(genero) {
+    window.location.href = '/app?genero=' + encodeURIComponent(genero);
+  }
+
+  /* ── Chord pill cycling animation (hero card) ──────────────────────────── */
+  const chords  = document.querySelectorAll('.chord-pill');
+  let current   = 1; // start at index 1 (the .active one)
+
+  setInterval(() => {
+    chords.forEach(c => { c.className = 'chord-pill'; });
+    current = (current + 1) % chords.length;
+    const prev = (current - 1 + chords.length) % chords.length;
+    const next = (current + 1) % chords.length;
+    chords[prev].classList.add('');        // just reset — already done above
+    chords[current].classList.add('active');
+    chords[next].classList.add('upcoming');
+  }, 2000);
+
+  /* ── Smooth scroll for nav links ───────────────────────────────────────── */
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const id = a.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) {
+        e.preventDefault();
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

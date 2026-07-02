@@ -23,18 +23,20 @@ const RESET     = process.argv.includes('--reset');
 
 function mapRow(c) {
   return {
-    id:                 c.id,
-    titulo:             c.titulo,
-    artista:            c.artista,
-    genero:             c.genero,
-    tono:               c.tono,
-    bpm:                c.bpm ?? null,
-    acordes:            c.acordes       ?? null,
-    estructura:         c.estructura    ?? null,
-    letra_por_seccion:  c.letra_por_seccion ?? null,
-    duracion_segundos:  c.duracion_segundos ?? null,
-    youtube_id:         c.youtube_id    ?? null,
-    popularidad:        c.popularidad   ?? 50,
+    id:                  c.id,
+    titulo:              c.titulo,
+    artista:             c.artista,
+    genero:              c.genero,
+    tono:                c.tono,
+    bpm:                 c.bpm ?? null,
+    acordes:             c.acordes            ?? null,
+    estructura:          c.estructura         ?? null,
+    letra_por_seccion:   c.letra_por_seccion  ?? null,
+    duracion_segundos:   c.duracion_segundos  ?? null,
+    youtube_id:          c.youtube_id         ?? null,
+    popularidad:         c.popularidad        ?? 50,
+    tiempos_por_compas:  c.tiempos_por_compas ?? 4,
+    sync_calidad:        c.sync_calidad       ?? 'estimado',
   };
 }
 

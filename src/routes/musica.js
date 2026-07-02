@@ -54,7 +54,7 @@ router.get('/buscar', async (req, res) => {
   const { data, count, error } = await supabaseAdmin
     .from('canciones')
     .select(
-      'id, titulo, artista, genero, tono, bpm, duracion_segundos, youtube_id, popularidad',
+      'id, titulo, artista, genero, tono, bpm, duracion_segundos, youtube_id, popularidad, tiempos_por_compas, sync_calidad',
       { count: 'exact' }
     )
     .textSearch('fts', ftsQuery, { type: 'websearch', config: 'spanish' })
@@ -98,7 +98,8 @@ router.get('/favoritos/:userId', authSupabase, async (req, res) => {
       canciones (
         id, titulo, artista, genero, tono, bpm,
         acordes, estructura, letra_por_seccion,
-        duracion_segundos, youtube_id, popularidad
+        duracion_segundos, youtube_id, popularidad,
+        tiempos_por_compas, sync_calidad
       )
     `)
     .eq('user_id', userId)
@@ -128,7 +129,7 @@ router.get('/', async (req, res) => {
   let q = supabaseAdmin
     .from('canciones')
     .select(
-      'id, titulo, artista, genero, tono, bpm, duracion_segundos, youtube_id, popularidad',
+      'id, titulo, artista, genero, tono, bpm, duracion_segundos, youtube_id, popularidad, tiempos_por_compas, sync_calidad',
       { count: 'exact' }
     )
     .order(sortBy, { ascending: asc })

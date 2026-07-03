@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const { supabaseAdmin } = require('../config/supabase');
 
 // ── Input sanitization ────────────────────────────────────────────────────────
 
@@ -29,6 +28,7 @@ function sanitizeMiddleware(req, res, next) {
 
 async function logSecurityEvent(orgId, action, resource, ip, success, metadata = {}) {
   try {
+    const { supabaseAdmin } = require('../config/supabase');
     await supabaseAdmin.from('security_audit_log').insert({
       organization_id: orgId || null,
       action,

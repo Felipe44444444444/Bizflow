@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XENTTECH — IA & Digital Marketing | Chihuahua, MX</title>
+  <meta name="description" content="Chatbots IA, Meta Ads y automatización que trabajan mientras tú duermes. Agencia de IA en Chihuahua, México." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #03060F;
+      --bg2:      #060B18;
+      --card:     #080E1E;
+      --border:   #111B33;
+      --accent:   #2A6FDB;
+      --accent-h: #3B82F6;
+      --text:     #FFFFFF;
+      --muted:    #7A8AAA;
+      --sg:       'Space Grotesk', system-ui, sans-serif;
+      --in:       'Inter', system-ui, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--in);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    /* ── NAVBAR ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: 68px; padding: 0 48px;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: background .3s, border-color .3s, backdrop-filter .3s;
+    }
+    nav.scrolled {
+      background: rgba(3,6,15,.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(42,111,219,.15);
+    }
+
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-text {
+      font-family: var(--sg); font-size: 17px; font-weight: 700; letter-spacing: -.01em;
+    }
+    .nav-logo-text em { color: var(--accent-h); font-style: normal; }
+
+    .nav-links { display: flex; gap: 4px; list-style: none; }
+    .nav-links a {
+      font-family: var(--in); font-size: 14px; font-weight: 500; color: var(--muted);
+      text-decoration: none; padding: 8px 16px; border-radius: 8px;
+      transition: color .15s, background .15s;
+    }
+    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,.06); }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--in); font-weight: 600; cursor: pointer;
+      border: none; text-decoration: none; border-radius: 10px;
+      transition: opacity .15s, transform .1s, box-shadow .2s;
+    }
+    .btn:hover { opacity: .88; transform: translateY(-1px); }
+    .btn:active { transform: scale(.97); }
+    .btn-blue {
+      background: var(--accent); color: #fff;
+      box-shadow: 0 4px 20px rgba(42,111,219,.3);
+      padding: 10px 20px; font-size: 14px;
+    }
+    .btn-blue:hover { box-shadow: 0 6px 28px rgba(42,111,219,.5); }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border); padding: 10px 20px; font-size: 14px;
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent-h); }
+
+    /* ── HERO ── */
+    #hero {
+      position: relative; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 100px 24px 80px; overflow: hidden;
+    }
+
+    #neural-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+    .hero-glow {
+      position: absolute; top: 30%; left: 50%; transform: translateX(-50%);
+      width: 700px; height: 500px; pointer-events: none;
+      background: radial-gradient(ellipse, rgba(42,111,219,.12) 0%, transparent 68%);
+    }
+
+    .hero-inner { position: relative; z-index: 1; max-width: 780px; }
+
+    .hero-eyebrow {
+      display: inline-block;
+      font-family: var(--in); font-size: 11px; font-weight: 600;
+      letter-spacing: .2em; text-transform: uppercase; color: var(--accent-h);
+      margin-bottom: 24px;
+    }
+
+    .hero-h1 {
+      font-family: var(--sg);
+      font-size: clamp(48px, 7.5vw, 80px);
+      font-weight: 700; line-height: 1.04; letter-spacing: -.03em;
+      color: var(--text); margin-bottom: 24px;
+    }
+
+    .hero-sub {
+      font-family: var(--in); font-size: clamp(16px, 2vw, 19px);
+      color: var(--muted); max-width: 520px; margin: 0 auto 40px; line-height: 1.65;
+    }
+
+    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero-btns .btn { padding: 13px 26px; font-size: 15px; }
+
+    .hero-stats {
+      display: flex; gap: 0; justify-content: center; flex-wrap: wrap;
+      margin-top: 64px; border-top: 1px solid var(--border);
+    }
+    .stat-item {
+      padding: 28px 36px; border-right: 1px solid var(--border);
+      text-align: center;
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-value {
+      font-family: var(--sg); font-size: 28px; font-weight: 700;
+      color: var(--text); letter-spacing: -.02em; line-height: 1;
+    }
+    .stat-label { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    /* ── SECTIONS ── */
+    section { padding: 100px 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    .sec-label {
+      font-size: 11px; font-weight: 600; letter-spacing: .18em;
+      text-transform: uppercase; color: var(--accent-h); margin-bottom: 14px;
+    }
+    .sec-title {
+      font-family: var(--sg); font-size: clamp(32px, 4vw, 50px);
+      font-weight: 700; letter-spacing: -.03em; line-height: 1.08; margin-bottom: 16px;
+    }
+    .sec-sub { font-size: 17px; color: var(--muted); line-height: 1.65; max-width: 500px; }
+    .sec-head { margin-bottom: 60px; }
+
+    /* ── SERVICIOS ── */
+    #servicios { background: var(--bg2); }
+
+    .grid-2x2 {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
+    }
+
+    .svc-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 36px;
+      transition: border-color .25s, box-shadow .25s, transform .25s;
+    }
+    .svc-card:hover {
+      border-color: var(--accent); transform: translateY(-5px);
+      box-shadow: 0 20px 50px rgba(42,111,219,.15);
+    }
+    .svc-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: rgba(42,111,219,.1); border: 1px solid rgba(42,111,219,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; margin-bottom: 22px;
+    }
+    .svc-title {
+      font-family: var(--sg); font-size: 20px; font-weight: 600;
+      margin-bottom: 10px; letter-spacing: -.01em;
+    }
+    .svc-desc { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+    /* ── PROCESO ── */
+    #proceso { background: var(--bg); }
+
+    .proceso-track {
+      display: flex; align-items: flex-start; gap: 0; position: relative;
+    }
+    .proceso-step { flex: 1; position: relative; }
+    .proceso-connector {
+      flex: 1; height: 2px; margin-top: 28px;
+      background: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 8px, transparent 8px, transparent 16px);
+      position: relative; overflow: hidden;
+    }
+    .proceso-connector::after {
+      content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 0;
+      background: var(--accent); transition: width 1.4s ease;
+    }
+    .proceso-connector.lit::after { width: 100%; }
+
+    .proceso-num {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: rgba(42,111,219,.1); border: 1px solid rgba(42,111,219,.3);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--sg); font-size: 18px; font-weight: 700;
+      color: var(--accent-h); margin-bottom: 20px;
+    }
+    .proceso-tag {
+      font-size: 10px; font-weight: 700; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--accent-h); margin-bottom: 10px;
+    }
+    .proceso-title {
+      font-family: var(--sg); font-size: 22px; font-weight: 700;
+      letter-spacing: -.02em; margin-bottom: 12px;
+    }
+    .proceso-desc { font-size: 14px; color: var(--muted); line-height: 1.7; max-width: 280px; }
+
+    /* ── PRECIOS ── */
+    #precios { background: var(--bg2); }
+
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 20px; align-items: start;
+    }
+    .pc {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 22px; padding: 36px 30px; position: relative;
+      transition: border-color .2s, box-shadow .2s, transform .2s;
+    }
+    .pc:hover { border-color: rgba(42,111,219,.4); transform: translateY(-4px); box-shadow: 0 16px 48px rgba(42,111,219,.1); }
+    .pc.pop {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), 0 24px 64px rgba(42,111,219,.25);
+      transform: scale(1.03);
+    }
+    .pc.pop:hover { transform: scale(1.03) translateY(-4px); }
+
+    .pc-badge {
+      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #fff;
+      font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      padding: 4px 16px; border-radius: 99px; white-space: nowrap;
+    }
+    .pc-name {
+      font-family: var(--sg); font-size: 13px; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px;
+    }
+    .pc-setup { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+    .pc-setup strong { color: var(--text); font-size: 18px; }
+    .pc-price {
+      font-family: var(--sg); font-size: 40px; font-weight: 700;
+      color: var(--accent-h); letter-spacing: -.03em; line-height: 1; margin-bottom: 6px;
+    }
+    .pc-price span { font-size: 15px; color: var(--muted); font-weight: 400; }
+    .pc-div { height: 1px; background: var(--border); margin: 22px 0; }
+    .pc-list { list-style: none; margin-bottom: 28px; }
+    .pc-list li {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 14px; color: var(--muted); padding: 6px 0; line-height: 1.5;
+    }
+    .pc-list li::before {
+      content: '✓'; color: var(--accent-h); font-weight: 700;
+      font-size: 12px; margin-top: 2px; flex-shrink: 0;
+    }
+    .pc-btn { width: 100%; justify-content: center; padding: 13px; font-size: 15px; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--bg);
+      border-top: 1px solid rgba(42,111,219,.2);
+      box-shadow: 0 -1px 0 rgba(42,111,219,.06);
+      padding: 72px 24px 0;
+    }
+    .footer-grid {
+      max-width: 1100px; margin: 0 auto;
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1.4fr;
+      gap: 52px; padding-bottom: 52px;
+    }
+    .f-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .f-logo-text { font-family: var(--sg); font-size: 16px; font-weight: 700; }
+    .f-logo-text em { color: var(--accent-h); font-style: normal; }
+    .f-tagline { font-size: 14px; color: var(--muted); line-height: 1.7; max-width: 240px; }
+    .f-col-title {
+      font-size: 11px; font-weight: 600; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--text); margin-bottom: 18px;
+    }
+    .f-links { list-style: none; }
+    .f-links li { margin-bottom: 10px; }
+    .f-links a { font-size: 14px; color: var(--muted); text-decoration: none; transition: color .15s; }
+    .f-links a:hover { color: var(--accent-h); }
+    .f-contact { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); margin-bottom: 12px; }
+    .f-contact a { color: var(--muted); text-decoration: none; transition: color .15s; }
+    .f-contact a:hover { color: var(--accent-h); }
+    .f-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: rgba(42,111,219,.1); display: flex; align-items: center;
+      justify-content: center; font-size: 13px; flex-shrink: 0;
+    }
+    .footer-bar {
+      border-top: 1px solid var(--border); padding: 20px 0;
+      max-width: 1100px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    }
+    .footer-bar-l { font-size: 13px; color: var(--muted); }
+    .footer-bar-r { font-size: 13px; color: rgba(42,111,219,.5); font-style: italic; }
+    .footer-bar-admin {
+      font-size: 11px; color: rgba(42,111,219,.25); text-decoration: none;
+      transition: color .2s;
+    }
+    .footer-bar-admin:hover { color: rgba(42,111,219,.6); }
+
+    /* ── REVEAL ── */
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.v { opacity: 1; transform: translateY(0); }
+    .reveal-d1 { transition-delay: .1s; }
+    .reveal-d2 { transition-delay: .2s; }
+    .reveal-d3 { transition-delay: .3s; }
+    .reveal-d4 { transition-delay: .4s; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 960px) {
+      .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
+      .pc.pop { transform: none; }
+      .proceso-track { flex-direction: column; gap: 32px; }
+      .proceso-connector { display: none; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 36px; }
+    }
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .grid-2x2 { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; gap: 28px; }
+      .hero-stats { flex-direction: column; }
+      .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
+      .stat-item:last-child { border-bottom: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════ NAVBAR ══════ -->
+<nav id="nav">
+  <a href="#" class="nav-logo">
+    <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+      <rect x="4" y="12" width="22" height="6" rx="3" fill="#2A6FDB" transform="rotate(45 15 15)"/>
+      <rect x="4" y="12" width="22" height="6" rx="3" fill="#2A6FDB" transform="rotate(-45 15 15)"/>
+    </svg>
+    <span class="nav-logo-text">XENT <em>TECH</em></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#servicios">Servicios</a></li>
+    <li><a href="#proceso">Proceso</a></li>
+    <li><a href="#precios">Precios</a></li>
+  </ul>
+  <a href="https://wa.me/526142509452" target="_blank" rel="noopener" class="btn btn-blue">Agenda una llamada</a>
+</nav>
+
+<!-- ══════ HERO ══════ -->
+<section id="hero">
+  <canvas id="neural-canvas"></canvas>
+  <div class="hero-glow"></div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Agencia de IA · Chihuahua, MX</div>
+    <h1 class="hero-h1">Tu negocio en<br>piloto automático.</h1>
+    <p class="hero-sub">Chatbots IA, Meta Ads y automatización que trabajan mientras tú duermes.</p>
+    <div class="hero-btns">
+      <a href="https://wa.me/526142509452" target="_blank" rel="noopener" class="btn btn-blue">Agenda una llamada</a>
+      <a href="#proceso" class="btn btn-outline">Ver cómo funciona</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-value">+<span data-count="48">0</span></div>
+        <div class="stat-label">conversaciones activas</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value"><span data-count="989">0</span> / 1,000</div>
+        <div class="stat-label">mensajes procesados</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value"><span data-count="6">0</span></div>
+        <div class="stat-label">widgets activos</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ SERVICIOS ══════ -->
+<section id="servicios">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="sec-label">Servicios</div>
+      <h2 class="sec-title">Todo lo que necesitas<br>para crecer.</h2>
+      <p class="sec-sub">Soluciones integradas de IA y marketing digital para escalar tu negocio.</p>
+    </div>
+    <div class="grid-2x2">
+      <div class="svc-card reveal reveal-d1">
+        <div class="svc-icon">🤖</div>
+        <div class="svc-title">Chatbots IA</div>
+        <p class="svc-desc">Agentes que responden, califican y captan leads en WhatsApp, Instagram y Facebook — sin intervención humana.</p>
+      </div>
+      <div class="svc-card reveal reveal-d2">
+        <div class="svc-icon">📊</div>
+        <div class="svc-title">Meta Ads IA</div>
+        <p class="svc-desc">Campañas de Facebook e Instagram creadas y optimizadas con inteligencia artificial. Más conversiones, menos gasto.</p>
+      </div>
+      <div class="svc-card reveal reveal-d3">
+        <div class="svc-icon">🎨</div>
+        <div class="svc-title">Diseño & Marca</div>
+        <p class="svc-desc">Identidad visual que posiciona. Desde logotipo hasta manual de marca completo.</p>
+      </div>
+      <div class="svc-card reveal reveal-d4">
+        <div class="svc-icon">⚡</div>
+        <div class="svc-title">Automatización</div>
+        <p class="svc-desc">Flujos que conectan tus herramientas, capturan leads y los nutren en piloto automático.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ PROCESO ══════ -->
+<section id="proceso">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="sec-label">Cómo trabajamos</div>
+      <h2 class="sec-title">Simple. Probado.<br>Efectivo.</h2>
+      <p class="sec-sub">Tres pasos para convertir tu negocio en una máquina de captación.</p>
+    </div>
+    <div class="proceso-track reveal">
+      <div class="proceso-step">
+        <div class="proceso-num">01</div>
+        <div class="proceso-tag">Paso 1</div>
+        <div class="proceso-title">Diagnóstico</div>
+        <p class="proceso-desc">Analizamos tu negocio, competencia y oportunidades de automatización.</p>
+      </div>
+      <div class="proceso-connector" id="pc1"></div>
+      <div class="proceso-step" style="padding: 0 40px;">
+        <div class="proceso-num">02</div>
+        <div class="proceso-tag">Paso 2</div>
+        <div class="proceso-title">Implementación</div>
+        <p class="proceso-desc">Construimos tus sistemas: chatbot, ads, diseño y flujos en menos de 2 semanas.</p>
+      </div>
+      <div class="proceso-connector" id="pc2"></div>
+      <div class="proceso-step" style="padding-left: 40px;">
+        <div class="proceso-num">03</div>
+        <div class="proceso-tag">Paso 3</div>
+        <div class="proceso-title">Escala</div>
+        <p class="proceso-desc">Monitoreamos, optimizamos y escalamos. Tú ves los resultados, nosotros el trabajo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ PRECIOS ══════ -->
+<section id="precios">
+  <div class="container">
+    <div class="sec-head reveal" style="text-align:center;margin:0 auto;max-width:560px">
+      <div class="sec-label">Precios</div>
+      <h2 class="sec-title">Inversión clara,<br>resultados reales.</h2>
+      <p class="sec-sub" style="margin:0 auto">Sin sorpresas. Elige el plan que mejor se adapta a tu etapa.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="pc reveal">
+        <div class="pc-name">Esencial</div>
+        <div class="pc-setup">Setup único: <strong>$5,990</strong></div>
+        <div class="pc-price">$2,490 <span>/mes</span></div>
+        <div class="pc-div"></div>
+        <ul class="pc-list">
+          <li>Chatbot 1 canal (WhatsApp o Instagram)</li>
+          <li>Portal de cliente</li>
+          <li>Onboarding guiado</li>
+          <li>Soporte por WhatsApp</li>
+        </ul>
+        <a href="https://wa.me/526142509452" target="_blank" rel="noopener" class="btn btn-outline pc-btn">Empezar ahora</a>
+      </div>
+      <div class="pc pop reveal">
+        <div class="pc-badge">MÁS POPULAR</div>
+        <div class="pc-name">Crecimiento</div>
+        <div class="pc-setup">Setup único: <strong>$8,990</strong></div>
+        <div class="pc-price">$4,490 <span>/mes</span></div>
+        <div class="pc-div"></div>
+        <ul class="pc-list">
+          <li>Chatbot multicanal (WhatsApp + Instagram + Facebook)</li>
+          <li>Meta Ads con IA</li>
+          <li>4 diseños mensuales</li>
+          <li>Estrategia digital</li>
+          <li>Reporte mensual</li>
+        </ul>
+        <a href="https://wa.me/526142509452" target="_blank" rel="noopener" class="btn btn-blue pc-btn">Empezar ahora</a>
+      </div>
+      <div class="pc reveal">
+        <div class="pc-name">Escala</div>
+        <div class="pc-setup">Setup único: <strong>$14,990</strong></div>
+        <div class="pc-price">$7,990 <span>/mes</span></div>
+        <div class="pc-div"></div>
+        <ul class="pc-list">
+          <li>Todo lo anterior</li>
+          <li>Manual de marca completo</li>
+          <li>Reportes semanales</li>
+          <li>Optimización continua</li>
+          <li>Llamada estratégica mensual</li>
+        </ul>
+        <a href="https://wa.me/526142509452" target="_blank" rel="noopener" class="btn btn-outline pc-btn">Empezar ahora</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ FOOTER ══════ -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="f-logo">
+        <svg width="28" height="28" viewBox="0 0 30 30" fill="none">
+          <rect x="4" y="12" width="22" height="6" rx="3" fill="#2A6FDB" transform="rotate(45 15 15)"/>
+          <rect x="4" y="12" width="22" height="6" rx="3" fill="#2A6FDB" transform="rotate(-45 15 15)"/>
+        </svg>
+        <span class="f-logo-text">XENT<em>TECH</em></span>
+      </div>
+      <p class="f-tagline">IA & Digital Marketing.<br>Convertimos negocios en máquinas de captación.</p>
+    </div>
+    <div>
+      <div class="f-col-title">Servicios</div>
+      <ul class="f-links">
+        <li><a href="#servicios">Chatbots IA</a></li>
+        <li><a href="#servicios">Meta Ads</a></li>
+        <li><a href="#servicios">Diseño & Marca</a></li>
+        <li><a href="#servicios">Automatización</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="f-col-title">Empresa</div>
+      <ul class="f-links">
+        <li><a href="#proceso">Proceso</a></li>
+        <li><a href="#precios">Precios</a></li>
+        <li><a href="https://xenttech.com/portal/">Portal de Cliente</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="f-col-title">Contacto</div>
+      <div class="f-contact">
+        <div class="f-icon">📱</div>
+        <a href="https://wa.me/526142509452">614 250 9452</a>
+      </div>
+      <div class="f-contact">
+        <div class="f-icon">✉️</div>
+        <a href="mailto:xentech888@gmail.com">xentech888@gmail.com</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bar">
+    <div class="footer-bar-l">© 2026 XENTTECH. Todos los derechos reservados.</div>
+    <div class="footer-bar-r">Hecho con inteligencia, no con plantillas.</div>
+    <a href="https://admin.xenttech.com" class="footer-bar-admin">admin</a>
+  </div>
+</footer>
+
+<script>
+/* ── NEURAL NETWORK CANVAS ── */
+(function(){
+  var canvas = document.getElementById('neural-canvas');
+  var ctx = canvas.getContext('2d');
+  var mouse = { x: -9999, y: -9999 };
+  var nodes = [];
+  var W, H;
+
+  function resize(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function mkNodes(){
+    nodes = [];
+    for(var i = 0; i < 75; i++){
+      nodes.push({
+        x: Math.random() * W, y: Math.random() * H,
+        vx: (Math.random() - .5) * .55, vy: (Math.random() - .5) * .55,
+        r: Math.random() * 1.8 + .6
+      });
+    }
+  }
+
+  resize(); mkNodes();
+  window.addEventListener('resize', function(){ resize(); mkNodes(); });
+  document.addEventListener('mousemove', function(e){ mouse.x = e.clientX; mouse.y = e.clientY; });
+
+  function frame(){
+    ctx.clearRect(0, 0, W, H);
+    var MAX = 155;
+    for(var i = 0; i < nodes.length; i++){
+      var n = nodes[i];
+      var mdx = mouse.x - n.x, mdy = mouse.y - n.y;
+      var md = Math.sqrt(mdx*mdx + mdy*mdy);
+      if(md < 180 && md > 0){ n.vx += mdx/md * .016; n.vy += mdy/md * .016; }
+      n.vx *= .987; n.vy *= .987;
+      var spd = Math.sqrt(n.vx*n.vx + n.vy*n.vy);
+      if(spd > 1.4){ n.vx = n.vx/spd*1.4; n.vy = n.vy/spd*1.4; }
+      n.x += n.vx; n.y += n.vy;
+      if(n.x < -10) n.x = W+10; if(n.x > W+10) n.x = -10;
+      if(n.y < -10) n.y = H+10; if(n.y > H+10) n.y = -10;
+      ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 6.28);
+      ctx.fillStyle = 'rgba(42,111,219,.75)'; ctx.fill();
+      for(var j = i+1; j < nodes.length; j++){
+        var m = nodes[j];
+        var dx = n.x-m.x, dy = n.y-m.y;
+        var d = Math.sqrt(dx*dx+dy*dy);
+        if(d < MAX){
+          ctx.beginPath(); ctx.moveTo(n.x,n.y); ctx.lineTo(m.x,m.y);
+          ctx.strokeStyle = 'rgba(42,111,219,'+(1-d/MAX)*.28+')';
+          ctx.lineWidth = .8; ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+/* ── NAVBAR SCROLL ── */
+(function(){
+  var nav = document.getElementById('nav');
+  window.addEventListener('scroll', function(){
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+  });
+})();
+
+/* ── SCROLL REVEAL ── */
+(function(){
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('v'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+})();
+
+/* ── COUNTER ANIMATION ── */
+(function(){
+  function countUp(el, target, dur){
+    var start = null;
+    function step(ts){
+      if(!start) start = ts;
+      var p = Math.min((ts - start) / dur, 1);
+      var ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(ease * target).toLocaleString('es-MX');
+      if(p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  setTimeout(function(){
+    document.querySelectorAll('[data-count]').forEach(function(el){
+      countUp(el, parseInt(el.dataset.count), 1600);
+    });
+  }, 700);
+})();
+
+/* ── PROCESO LINE ANIMATION ── */
+(function(){
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        setTimeout(function(){ document.getElementById('pc1').classList.add('lit'); }, 300);
+        setTimeout(function(){ document.getElementById('pc2').classList.add('lit'); }, 900);
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  var proc = document.querySelector('.proceso-track');
+  if(proc) io.observe(proc);
+})();
+</script>
+
+</body>
+</html>

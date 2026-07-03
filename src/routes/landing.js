@@ -5,8 +5,10 @@ const channelService    = require('../services/channelService');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const { publicFormLimiter } = require('../middleware/rateLimit');
+
 // POST /api/landing/lead — public endpoint, no auth
-router.post('/lead', async (req, res) => {
+router.post('/lead', publicFormLimiter, async (req, res) => {
   const { nombre_negocio, email, whatsapp, mensajes_dia } = req.body || {};
 
   if (!nombre_negocio?.trim()) return res.status(400).json({ error: 'Nombre del negocio requerido' });

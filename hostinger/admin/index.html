@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>XENTTECH Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070D;--c1:#0F0F1A;--c2:#141420;--bd:#252540;
+  --a:#00FF88;--a2:#00C8FF;--r:#FF4466;--y:#F5A623;
+  --t:#E8E8F0;--m:#7878A0;
+  --sidebar:240px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);height:100vh;overflow:hidden;display:flex}
+#lock{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999}
+#lock-box{background:var(--c1);border:1px solid var(--bd);border-radius:16px;padding:40px;width:360px;text-align:center}
+#lock-box h2{font-size:1.4rem;margin-bottom:8px;color:var(--a)}
+#lock-box p{color:var(--m);margin-bottom:24px;font-size:.9rem}
+#pw{width:100%;background:var(--c2);border:1px solid var(--bd);border-radius:8px;padding:12px 16px;color:var(--t);font-size:1rem;font-family:inherit;outline:none;text-align:center;letter-spacing:.1em}
+#pw:focus{border-color:var(--a)}
+#lock-err{color:var(--r);margin-top:12px;font-size:.85rem;display:none}
+#sidebar{width:var(--sidebar);background:var(--c1);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;height:100vh;overflow-y:auto}
+#sidebar-logo{padding:20px 16px;border-bottom:1px solid var(--bd)}
+#sidebar-logo span{font-size:1.1rem;font-weight:700;color:var(--a)}
+#sidebar-logo small{display:block;color:var(--m);font-size:.72rem;margin-top:2px}
+#nav{flex:1;padding:8px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;color:var(--m);font-size:.88rem;font-weight:500;border-left:3px solid transparent;transition:all .15s}
+.nav-item:hover{color:var(--t);background:var(--c2)}
+.nav-item.active{color:var(--a);border-left-color:var(--a);background:rgba(0,255,136,.06)}
+.nav-item .ico{font-size:1rem;width:20px;text-align:center}
+#main{flex:1;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+#topbar{background:var(--c1);border-bottom:1px solid var(--bd);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#topbar h1{font-size:1rem;font-weight:600}
+#topbar-right{display:flex;align-items:center;gap:12px}
+.badge{background:var(--a);color:#000;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:20px}
+#content{flex:1;padding:24px;overflow-y:auto}
+.section{display:none}
+.section.active{display:block}
+.card{background:var(--c2);border:1px solid var(--bd);border-radius:12px;padding:20px;margin-bottom:16px}
+.card-title{font-size:.8rem;font-weight:600;color:var(--m);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--a);color:#000}
+.btn-secondary{background:var(--c2);color:var(--t);border:1px solid var(--bd)}
+.btn-danger{background:var(--r);color:#fff}
+.btn-sm{padding:5px 10px;font-size:.78rem}
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--bd)}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{background:var(--c1);color:var(--m);font-weight:600;text-align:left;padding:10px 14px;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
+td{padding:11px 14px;border-top:1px solid var(--bd);vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,.02)}
+.form-group{margin-bottom:14px}
+label{display:block;font-size:.8rem;color:var(--m);margin-bottom:6px;font-weight:500}
+input,select,textarea{width:100%;background:var(--c2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--t);font-size:.88rem;font-family:inherit;outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--a)}
+textarea{resize:vertical;min-height:80px}
+select option{background:var(--c1)}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--c1);border:1px solid var(--bd);border-radius:16px;width:100%;max-width:620px;max-height:90vh;overflow-y:auto}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center}
+.modal-header h2{font-size:1rem;font-weight:700}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--bd);display:flex;gap:10px;justify-content:flex-end}
+.close-btn{background:none;border:none;color:var(--m);font-size:1.3rem;cursor:pointer;padding:4px}
+.status{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600}
+.status-active{background:rgba(0,255,136,.15);color:var(--a)}
+.status-draft,.status-pending{background:rgba(245,166,35,.15);color:var(--y)}
+.status-paused,.status-archived{background:rgba(120,120,160,.15);color:var(--m)}
+.status-completed,.status-approved,.status-delivered{background:rgba(0,200,255,.15);color:var(--a2)}
+.status-in_review{background:rgba(59,130,246,.15);color:#3B82F6}
+.progress-bar{background:var(--bd);border-radius:4px;height:6px;overflow:hidden}
+.progress-fill{height:100%;background:var(--a);border-radius:4px;transition:width .3s}
+#toast{position:fixed;bottom:24px;right:24px;z-index:9000;display:flex;flex-direction:column;gap:8px}
+.toast-item{background:var(--c1);border:1px solid var(--bd);border-radius:10px;padding:12px 18px;font-size:.85rem;min-width:260px;animation:slideIn .2s ease}
+.toast-success{border-left:3px solid var(--a)}
+.toast-error{border-left:3px solid var(--r)}
+.toast-info{border-left:3px solid var(--a2)}
+@keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+.sep{height:1px;background:var(--bd);margin:16px 0}
+.row{display:flex;gap:12px;align-items:center}
+.row-between{display:flex;gap:12px;align-items:center;justify-content:space-between}
+.flex-1{flex:1}
+.text-m{color:var(--m);font-size:.85rem}
+.text-sm{font-size:.8rem}
+.text-a{color:var(--a)}
+.mt8{margin-top:8px}
+.mt16{margin-top:16px}
+.mb16{margin-bottom:16px}
+.chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.73rem;font-weight:600;background:var(--c1);border:1px solid var(--bd)}
+.step-card{background:var(--c2);border:1px solid var(--bd);border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px}
+.step-num{width:36px;height:36px;border-radius:50%;background:var(--c1);border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0}
+.step-num.done{border-color:var(--a);color:var(--a)}
+.step-info{flex:1}
+.step-name{font-weight:600;font-size:.9rem}
+.step-desc{color:var(--m);font-size:.78rem}
+.accordion-item{background:var(--c2);border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.accordion-head{padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:.9rem}
+.accordion-body{padding:0 16px 16px;display:none;color:var(--m);font-size:.85rem;line-height:1.6;white-space:pre-wrap}
+.accordion-body.open{display:block}
+.stat-card{background:var(--c2);border:1px solid var(--bd);border-radius:12px;padding:18px}
+.stat-label{font-size:.78rem;color:var(--m);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.stat-value{font-size:1.9rem;font-weight:700}
+.pipeline-step{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bd)}
+.pipeline-step:last-child{border-bottom:none}
+.pipeline-dot{width:10px;height:10px;border-radius:50%;background:var(--bd);flex-shrink:0}
+.pipeline-dot.done{background:var(--a)}
+.pipeline-label{font-size:.85rem}
+.pipeline-count{margin-left:auto;font-weight:700}
+.swatch{display:inline-block;width:20px;height:20px;border-radius:4px;border:1px solid var(--bd);vertical-align:middle}
+select.inline{width:auto;padding:3px 8px;font-size:.78rem;border-radius:6px}
+.design-card{background:var(--c2);border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+.design-preview{height:120px;background:var(--c1);display:flex;align-items:center;justify-content:center;color:var(--m);font-size:.8rem}
+.design-body{padding:12px}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--c1)}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <div id="lock-box">
+    <h2>XENTTECH Admin</h2>
+    <p>Ingresa tu contraseña para continuar</p>
+    <input type="password" id="pw" placeholder="••••••••" autofocus>
+    <div id="lock-err">Contraseña incorrecta</div>
+  </div>
+</div>
+
+<aside id="sidebar">
+  <div id="sidebar-logo">
+    <span>⚡ XENTTECH</span>
+    <small>Panel de Control</small>
+  </div>
+  <nav id="nav">
+    <div class="nav-item active" data-sec="dashboard"><span class="ico">📊</span> Dashboard</div>
+    <div class="nav-item" data-sec="clientes"><span class="ico">👥</span> Clientes</div>
+    <div class="nav-item" data-sec="agentes"><span class="ico">🤖</span> Agentes</div>
+    <div class="nav-item" data-sec="documentos"><span class="ico">📄</span> Documentos</div>
+    <div class="nav-item" data-sec="onboarding"><span class="ico">📋</span> Onboarding</div>
+    <div class="nav-item" data-sec="anuncios"><span class="ico">📢</span> Anuncios</div>
+    <div class="nav-item" data-sec="diseno"><span class="ico">🎨</span> Diseño</div>
+    <div class="nav-item" data-sec="marca"><span class="ico">📚</span> Manual de Marca</div>
+    <div class="nav-item" data-sec="estrategia"><span class="ico">📈</span> Estrategia</div>
+    <div class="nav-item" data-sec="clips"><span class="ico">🎬</span> Clips</div>
+  </nav>
+</aside>
+
+<div id="main">
+  <div id="topbar">
+    <h1 id="section-title">Dashboard</h1>
+    <div id="topbar-right">
+      <span class="badge">ADMIN</span>
+    </div>
+  </div>
+  <div id="content">
+
+    <!-- DASHBOARD -->
+    <div class="section active" id="sec-dashboard">
+      <div class="grid g4 mb16">
+        <div class="stat-card"><div class="stat-label">Clientes Activos</div><div class="stat-value" id="ds-active">–</div></div>
+        <div class="stat-card"><div class="stat-label">MRR</div><div class="stat-value" id="ds-mrr">–</div></div>
+        <div class="stat-card"><div class="stat-label">Campañas Activas</div><div class="stat-value" id="ds-camps">–</div></div>
+        <div class="stat-card"><div class="stat-label">Diseños Pendientes</div><div class="stat-value" id="ds-designs">–</div></div>
+      </div>
+      <div class="grid g2">
+        <div class="card">
+          <div class="card-title">Pipeline Onboarding</div>
+          <div class="mt8" id="dash-pipeline"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Actividad Reciente</div>
+          <div class="mt8" id="dash-activity" style="font-size:.82rem;line-height:1.8;color:var(--m)"></div>
+        </div>
+      </div>
+      <div class="card mt16">
+        <div class="card-title mb16">Clientes Recientes</div>
+        <div id="dash-clients-list"></div>
+      </div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div class="section" id="sec-clientes">
+      <div class="row-between mb16">
+        <div class="row" style="gap:8px">
+          <input type="text" id="cl-search" placeholder="Buscar…" style="width:200px">
+          <select id="cl-filter-status" style="width:140px">
+            <option value="">Todos</option>
+            <option value="active">Activo</option>
+            <option value="paused">Pausado</option>
+            <option value="completed">Completado</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="openNewClient()">+ Nuevo Cliente</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Empresa</th><th>Contacto</th><th>Plan</th><th>Estado</th><th>Onboarding</th><th>Acciones</th></tr></thead>
+          <tbody id="cl-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AGENTES -->
+    <div class="section" id="sec-agentes">
+      <div class="grid g3 mb16">
+        <div class="stat-card"><div class="stat-label">Agentes Activos</div><div class="stat-value" id="ag-channels">–</div></div>
+        <div class="stat-card"><div class="stat-label">Conversaciones Hoy</div><div class="stat-value" id="ag-today">–</div></div>
+        <div class="stat-card"><div class="stat-label">Total Conversaciones</div><div class="stat-value" id="ag-total">–</div></div>
+      </div>
+      <div class="grid g2">
+        <div class="card"><div class="card-title mb16">Agentes</div><div id="ag-channels-list"></div></div>
+        <div class="card"><div class="card-title mb16">Conversaciones Recientes</div><div id="ag-convos-list"></div></div>
+      </div>
+    </div>
+
+    <!-- DOCUMENTOS -->
+    <div class="section" id="sec-documentos">
+      <div class="row mb16">
+        <select id="doc-client-sel" style="width:280px" onchange="docsSelectClient()">
+          <option value="">Seleccionar cliente…</option>
+        </select>
+      </div>
+      <div id="doc-main" style="display:none">
+        <div class="card mb16">
+          <div class="row-between mb16">
+            <span style="font-weight:700">Configuración del Proyecto</span>
+            <button class="btn btn-sm btn-primary" onclick="saveProjectConfig()">Guardar Config</button>
+          </div>
+          <div class="grid g2">
+            <div class="form-group"><label>Razón Social</label><input id="cfg-razon" placeholder="Empresa S.A. de C.V."></div>
+            <div class="form-group"><label>RFC</label><input id="cfg-rfc" placeholder="EMP010101AAA"></div>
+            <div class="form-group"><label>Representante Legal</label><input id="cfg-rep"></div>
+            <div class="form-group"><label>Teléfono</label><input id="cfg-tel"></div>
+            <div class="form-group"><label>Email Contacto</label><input id="cfg-email" type="email"></div>
+            <div class="form-group"><label>Ciudad</label><input id="cfg-ciudad"></div>
+            <div class="form-group"><label>Domicilio</label><input id="cfg-dom"></div>
+            <div class="form-group"><label>Setup Fee ($)</label><input id="cfg-setup" type="number"></div>
+            <div class="form-group"><label>Fee Mensual ($)</label><input id="cfg-monthly" type="number"></div>
+            <div class="form-group"><label>Día de Pago</label><input id="cfg-pday" type="number" value="1"></div>
+            <div class="form-group"><label>Duración Contrato</label><input id="cfg-dur" placeholder="12 meses"></div>
+            <div class="form-group"><label>Fecha Inicio</label><input id="cfg-fecha" type="date"></div>
+          </div>
+          <div class="form-group">
+            <label>Servicios Contratados</label>
+            <div id="cfg-services" class="grid g2 mt8"></div>
+          </div>
+          <div class="sep"></div>
+          <div style="font-weight:600;margin-bottom:12px;font-size:.85rem">Datos de Agencia</div>
+          <div class="grid g2">
+            <div class="form-group"><label>Agencia Nombre</label><input id="cfg-ag-nombre" value="XENTTECH"></div>
+            <div class="form-group"><label>Agencia RFC</label><input id="cfg-ag-rfc"></div>
+            <div class="form-group"><label>Banco</label><input id="cfg-ag-banco"></div>
+            <div class="form-group"><label>CLABE</label><input id="cfg-ag-clabe"></div>
+          </div>
+        </div>
+        <div class="grid g3" id="doc-types-grid"></div>
+        <div class="card mt16">
+          <div class="row-between">
+            <div>
+              <div style="font-weight:700">Token de Portal</div>
+              <div id="doc-token-val" class="text-m mt8" style="font-family:monospace;font-size:.95rem"></div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="generatePortalToken()">Generar Nuevo Token</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ONBOARDING -->
+    <div class="section" id="sec-onboarding">
+      <div class="row mb16">
+        <select id="ob-client-sel" style="width:280px" onchange="obSelectClient()">
+          <option value="">Seleccionar cliente…</option>
+        </select>
+      </div>
+      <div id="ob-main" style="display:none">
+        <div class="card mb16">
+          <div class="row-between mb8">
+            <span style="font-weight:600">Progreso Onboarding</span>
+            <span id="ob-progress-text" class="text-m"></span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="ob-progress-fill" style="width:0%"></div></div>
+        </div>
+        <div class="row-between mb16">
+          <span style="font-weight:700">Pasos del Proceso</span>
+          <button class="btn btn-primary btn-sm" onclick="generateAllDocs()">⚡ Generar Todos (AI)</button>
+        </div>
+        <div id="ob-steps-grid" class="grid" style="gap:10px"></div>
+        <div class="card mt16" id="ob-discovery">
+          <div style="font-weight:700;margin-bottom:14px">📍 Discovery Form (Paso 4)</div>
+          <div class="grid g2">
+            <div class="form-group"><label>Descripción del Negocio</label><textarea id="disc-desc" rows="2"></textarea></div>
+            <div class="form-group"><label>Producto Estrella</label><textarea id="disc-prod" rows="2"></textarea></div>
+            <div class="form-group"><label>Cliente Ideal</label><textarea id="disc-ideal" rows="2"></textarea></div>
+            <div class="form-group"><label>Competidores</label><textarea id="disc-comp" rows="2"></textarea></div>
+            <div class="form-group"><label>Diferenciador</label><textarea id="disc-dif" rows="2"></textarea></div>
+            <div class="form-group"><label>Objetivo Principal</label><textarea id="disc-obj" rows="2"></textarea></div>
+            <div class="form-group"><label>Presupuesto Ads ($/mes)</label><input id="disc-presup" type="number"></div>
+            <div class="form-group"><label>Canales Actuales</label><input id="disc-canales"></div>
+            <div class="form-group"><label>Resultados 30 días</label><textarea id="disc-r30" rows="2"></textarea></div>
+            <div class="form-group"><label>Resultados 90 días</label><textarea id="disc-r90" rows="2"></textarea></div>
+          </div>
+          <button class="btn btn-primary btn-sm mt8" onclick="saveDiscovery()">Guardar Discovery</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANUNCIOS -->
+    <div class="section" id="sec-anuncios">
+      <div class="row-between mb16">
+        <div class="row" style="gap:8px">
+          <select id="ads-client-sel" style="width:200px" onchange="loadCampaigns()"><option value="">Todos los clientes</option></select>
+          <select id="ads-status-sel" style="width:140px" onchange="loadCampaigns()">
+            <option value="">Todos</option>
+            <option value="draft">Borrador</option>
+            <option value="active">Activo</option>
+            <option value="paused">Pausado</option>
+            <option value="completed">Completado</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="openCampaignModal()">+ Nueva Campaña</button>
+      </div>
+      <div class="grid g3" id="ads-grid"></div>
+    </div>
+
+    <!-- DISEÑO -->
+    <div class="section" id="sec-diseno">
+      <div class="row-between mb16">
+        <div class="row" style="gap:8px">
+          <select id="des-client-sel" style="width:200px" onchange="loadDesigns()"><option value="">Todos</option></select>
+          <select id="des-status-sel" style="width:140px" onchange="loadDesigns()">
+            <option value="">Todos</option>
+            <option value="pending">Pendiente</option>
+            <option value="in_review">En Revisión</option>
+            <option value="approved">Aprobado</option>
+            <option value="delivered">Entregado</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="openDesignModal()">+ Nuevo Brief</button>
+      </div>
+      <div class="grid g3" id="des-grid"></div>
+    </div>
+
+    <!-- MANUAL DE MARCA -->
+    <div class="section" id="sec-marca">
+      <div class="grid g2">
+        <div>
+          <div class="card mb16">
+            <div style="font-weight:700;margin-bottom:14px">Nuevo Manual de Marca</div>
+            <div class="form-group"><label>Cliente</label><select id="bm-client-sel"><option value="">Seleccionar…</option></select></div>
+            <div class="form-group"><label>Nombre de Marca</label><input id="bm-name" placeholder="Mi Marca"></div>
+            <div class="form-group"><label>Slogan</label><input id="bm-slogan"></div>
+            <div class="form-group"><label>Industria</label><input id="bm-industry"></div>
+            <div class="form-group"><label>Audiencia Objetivo</label><textarea id="bm-audience" rows="2"></textarea></div>
+            <div class="form-group"><label>Valores de Marca</label><input id="bm-values" placeholder="Innovación, Confianza…"></div>
+            <div class="grid g3" style="gap:10px;margin-bottom:14px">
+              <div class="form-group"><label>Color Primario</label><input type="color" id="bm-c1" value="#00FF88"></div>
+              <div class="form-group"><label>Secundario</label><input type="color" id="bm-c2" value="#00C8FF"></div>
+              <div class="form-group"><label>Acento</label><input type="color" id="bm-c3" value="#F5A623"></div>
+            </div>
+            <div class="form-group"><label>Tipografía Principal</label><input id="bm-font1" placeholder="DM Sans"></div>
+            <div class="form-group"><label>Tipografía Secundaria</label><input id="bm-font2" placeholder="Inter"></div>
+            <div class="form-group"><label>Tono de Voz</label>
+              <select id="bm-tone">
+                <option value="profesional">Profesional</option>
+                <option value="casual">Casual</option>
+                <option value="divertido">Divertido</option>
+                <option value="autoritativo">Autoritativo</option>
+                <option value="inspiracional">Inspiracional</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Descripción del Logo</label><textarea id="bm-logo" rows="2"></textarea></div>
+            <div class="form-group"><label>Competidores</label><input id="bm-comp"></div>
+            <button class="btn btn-primary" style="width:100%" onclick="generateBrandManual()">⚡ Generar Manual (AI)</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-weight:700;margin-bottom:14px">Manuales Guardados</div>
+          <div id="bm-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ESTRATEGIA -->
+    <div class="section" id="sec-estrategia">
+      <div class="row-between mb16">
+        <select id="est-client-sel" style="width:220px" onchange="loadStrategies()"><option value="">Todos los clientes</option></select>
+        <button class="btn btn-primary" onclick="openNewStrategy()">+ Nueva Estrategia</button>
+      </div>
+      <div id="est-list"></div>
+    </div>
+
+    <!-- CLIPS -->
+    <div class="section" id="sec-clips">
+      <div class="card mb16" style="border-color:var(--y);background:rgba(245,166,35,.06)">
+        <div style="font-weight:600;color:var(--y);margin-bottom:4px">⚠️ Modo Standalone</div>
+        <div class="text-m">La transcripción y análisis AI requieren el servidor Next.js. Aquí puedes ver el pipeline pero no procesar videos.</div>
+      </div>
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:16px">Pipeline de Clips</div>
+        <div class="pipeline-step"><span class="pipeline-dot done"></span><span class="pipeline-label">1. Subir video</span></div>
+        <div class="pipeline-step"><span class="pipeline-dot"></span><span class="pipeline-label">2. Extraer audio (ffmpeg.wasm)</span></div>
+        <div class="pipeline-step"><span class="pipeline-dot"></span><span class="pipeline-label">3. Transcribir (Whisper — requiere servidor)</span></div>
+        <div class="pipeline-step"><span class="pipeline-dot"></span><span class="pipeline-label">4. Analizar con AI (requiere servidor)</span></div>
+        <div class="pipeline-step"><span class="pipeline-dot"></span><span class="pipeline-label">5. Generar subtítulos SRT</span></div>
+        <div class="pipeline-step"><span class="pipeline-dot"></span><span class="pipeline-label">6. Renderizar con ffmpeg.wasm</span></div>
+      </div>
+      <div class="card mt16">
+        <div style="font-weight:700;margin-bottom:12px">Formatos de Exportación</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <span class="chip">Short 9:16 — 1080×1920</span>
+          <span class="chip">Ad Square 1:1 — 1080×1080</span>
+          <span class="chip">Ad Landscape 16:9 — 1920×1080</span>
+          <span class="chip">Original</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODALS -->
+
+<div class="modal-backdrop" id="modal-client">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-client-title">Nuevo Cliente</h2>
+      <button class="close-btn" onclick="closeModal('modal-client')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cl-id">
+      <div class="grid g2">
+        <div class="form-group"><label>Nombre / Alias *</label><input id="cl-company" placeholder="Juan Pérez"></div>
+        <div class="form-group"><label>Empresa / Razón Social</label><input id="cl-contact" placeholder="Empresa S.A. de C.V."></div>
+        <div class="form-group"><label>Email *</label><input id="cl-email" type="email"></div>
+        <div class="form-group"><label>Teléfono</label><input id="cl-phone"></div>
+        <div class="form-group"><label>Plan/Servicio</label><input id="cl-plan"></div>
+        <div class="form-group"><label>Estado</label>
+          <select id="cl-status">
+            <option value="active">Activo</option>
+            <option value="paused">Pausado</option>
+            <option value="completed">Completado</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Fee Mensual ($)</label><input id="cl-fee" type="number"></div>
+        <div class="form-group"><label>Fecha Inicio</label><input id="cl-start" type="date"></div>
+      </div>
+      <div class="form-group"><label>Notas</label><textarea id="cl-notes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-client')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveClient()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-campaign">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <h2 id="modal-camp-title">Nueva Campaña</h2>
+      <button class="close-btn" onclick="closeModal('modal-campaign')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="camp-id">
+      <div class="grid g2">
+        <div class="form-group"><label>Cliente *</label><select id="camp-client"><option value="">Seleccionar…</option></select></div>
+        <div class="form-group"><label>Nombre Campaña *</label><input id="camp-name"></div>
+        <div class="form-group"><label>Plataforma</label>
+          <select id="camp-platform"><option>Meta Ads</option><option>Google Ads</option><option>TikTok Ads</option><option>LinkedIn Ads</option></select>
+        </div>
+        <div class="form-group"><label>Objetivo</label>
+          <select id="camp-obj">
+            <option value="OUTCOME_AWARENESS">Reconocimiento</option>
+            <option value="OUTCOME_TRAFFIC">Tráfico</option>
+            <option value="OUTCOME_ENGAGEMENT">Interacción</option>
+            <option value="OUTCOME_LEADS">Clientes potenciales</option>
+            <option value="OUTCOME_SALES">Ventas</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Presupuesto Mensual ($)</label><input id="camp-budget" type="number"></div>
+        <div class="form-group"><label>Tipo Presupuesto</label>
+          <select id="camp-budget-type"><option value="daily">Diario</option><option value="lifetime">Total</option></select>
+        </div>
+        <div class="form-group"><label>Estado</label>
+          <select id="camp-status"><option value="draft">Borrador</option><option value="active">Activo</option><option value="paused">Pausado</option><option value="completed">Completado</option></select>
+        </div>
+        <div class="form-group"><label>Ubicación</label><input id="camp-loc" placeholder="México, CDMX…"></div>
+        <div class="form-group"><label>Edad Mín</label><input id="camp-age-min" type="number" value="18"></div>
+        <div class="form-group"><label>Edad Máx</label><input id="camp-age-max" type="number" value="45"></div>
+        <div class="form-group"><label>Género</label>
+          <select id="camp-gender"><option value="Todos">Todos</option><option value="Hombres">Hombres</option><option value="Mujeres">Mujeres</option></select>
+        </div>
+        <div class="form-group"><label>Formato</label>
+          <select id="camp-format"><option>Single Image</option><option>Carousel</option><option>Video</option><option>Reels</option><option>Stories</option></select>
+        </div>
+        <div class="form-group"><label>CTA</label>
+          <select id="camp-cta">
+            <option value="LEARN_MORE">Learn More</option><option value="SHOP_NOW">Shop Now</option>
+            <option value="SIGN_UP">Sign Up</option><option value="CONTACT_US">Contact Us</option>
+            <option value="BOOK_NOW">Book Now</option><option value="GET_OFFER">Get Offer</option>
+            <option value="DOWNLOAD">Download</option><option value="APPLY_NOW">Apply Now</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Website URL</label><input id="camp-url" placeholder="https://"></div>
+      </div>
+      <div class="form-group"><label>Intereses</label><input id="camp-interests"></div>
+      <div class="form-group"><label>Headline</label><input id="camp-headline"></div>
+      <div class="form-group"><label>Texto Principal</label><textarea id="camp-primary" rows="2"></textarea></div>
+      <div class="form-group"><label>Descripción</label><textarea id="camp-desc" rows="2"></textarea></div>
+      <div class="form-group"><label>Audiencia</label><textarea id="camp-audience" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-campaign')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCampaign()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-design">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-des-title">Nuevo Brief de Diseño</h2>
+      <button class="close-btn" onclick="closeModal('modal-design')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="des-id">
+      <div class="grid g2">
+        <div class="form-group"><label>Cliente *</label><select id="des-client-modal"><option value="">Seleccionar…</option></select></div>
+        <div class="form-group"><label>Tipo de Diseño</label>
+          <select id="des-type">
+            <option value="post_instagram">Post Instagram</option><option value="story_instagram">Story Instagram</option>
+            <option value="reel_cover">Reel Cover</option><option value="post_facebook">Post Facebook</option>
+            <option value="banner_facebook">Banner Facebook</option><option value="carousel">Carousel</option>
+            <option value="flyer">Flyer</option><option value="brochure">Brochure</option>
+            <option value="tarjeta">Tarjeta</option><option value="logo">Logo</option>
+            <option value="banner_web">Banner Web</option><option value="email_template">Email Template</option>
+            <option value="video_script">Video Script</option><option value="reels_script">Reels Script</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Dimensiones</label>
+          <select id="des-dims">
+            <option value="1080x1350">Post Instagram 1080×1350</option>
+            <option value="1080x1920">Story/Reel 1080×1920</option>
+            <option value="1200x628">Post Facebook 1200×628</option>
+            <option value="1080x1080">Cuadrado 1080×1080</option>
+            <option value="1920x1080">Banner 1920×1080</option>
+            <option value="300x250">Banner 300×250</option>
+            <option value="728x90">Leaderboard 728×90</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Estado</label>
+          <select id="des-status-modal">
+            <option value="pending">Pendiente</option><option value="in_review">En Revisión</option>
+            <option value="approved">Aprobado</option><option value="delivered">Entregado</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1"><label>Canva URL</label><input id="des-canva" placeholder="https://canva.com/…"></div>
+      </div>
+      <div class="form-group"><label>Brief *</label><textarea id="des-brief" rows="4" placeholder="Describe el diseño, objetivo, colores…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-design')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveDesign()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-strategy">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-strat-title">Nueva Estrategia</h2>
+      <button class="close-btn" onclick="closeModal('modal-strategy')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="strat-id">
+      <div class="form-group"><label>Cliente</label><select id="strat-client"><option value="">Seleccionar…</option></select></div>
+      <div class="form-group"><label>Título *</label><input id="strat-title" placeholder="Estrategia Q1 2026"></div>
+      <div class="form-group"><label>Estado</label>
+        <select id="strat-status"><option value="draft">Borrador</option><option value="active">Activo</option><option value="approved">Aprobado</option><option value="archived">Archivado</option></select>
+      </div>
+      <div class="form-group"><label>Contenido</label><textarea id="strat-content" rows="6"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-strategy')">Cancelar</button>
+      <button class="btn btn-sm" style="background:var(--a2);color:#000;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;border:none;font-family:inherit" onclick="generateStrategy()">⚡ Generar AI</button>
+      <button class="btn btn-primary" onclick="saveStrategy()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="prompt-modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <h2>⚡ AI no disponible en modo standalone</h2>
+      <button class="close-btn" onclick="closeModal('prompt-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="text-m mb16">Copia este prompt y pégalo en Claude u otro AI. Luego pega el resultado aquí.</div>
+      <textarea id="prompt-text" rows="12" readonly style="font-family:monospace;font-size:.78rem;line-height:1.5"></textarea>
+      <div id="prompt-paste-area" style="margin-top:14px;display:none">
+        <div class="form-group"><label>Pega el resultado generado:</label><textarea id="prompt-result" rows="6"></textarea></div>
+        <button class="btn btn-primary btn-sm" onclick="submitPromptResult()">Guardar Resultado</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('prompt-modal')">Cerrar</button>
+      <button class="btn btn-secondary" onclick="togglePasteArea()">Pegar Resultado</button>
+      <button class="btn btn-primary" onclick="copyPrompt()">Copiar Prompt</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var SU="https://oxlhmndvpogpdjutfxzr.supabase.co";
+var SK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94bGhtbmR2cG9ncGRqdXRmeHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MzUxMzgsImV4cCI6MjA5MjUxMTEzOH0.4_eOtdaMZDsmiYPKeRkwgaZHuSRlGm3TS1XHbxkt96s";
+var HDR={"apikey":SK,"Authorization":"Bearer "+SK,"Content-Type":"application/json"};
+var PH="ced6e90a87f629a079cbb5de801e62dcfe2f627ae2e81500c65d5e5d43e85866";
+
+var clients=[];
+var docsClientId=null,docsConfig={},docsToken=null;
+var obClientId=null,obStep=0;
+var _promptCb=null;
+
+var SERVICES=["Social Media Management","Paid Ads (Meta)","Paid Ads (Google)","SEO","Email Marketing","Diseño Gráfico","Video & Reels","Community Management","Influencer Marketing","Web Design","Consultoría Estratégica","Branding"];
+var DOC_TYPES=[
+  {key:"contrato",label:"Contrato",step:1,color:"#00FF88",icon:"📄"},
+  {key:"factura",label:"Factura",step:2,color:"#3B82F6",icon:"🧾"},
+  {key:"welcome",label:"Welcome Document",step:3,color:"#EC4899",icon:"👋"},
+  {key:"estrategia",label:"Setup de Estrategia",step:5,color:"#F59E0B",icon:"⚙️"},
+  {key:"kickoff",label:"Kickoff",step:6,color:"#10B981",icon:"🚀"}
+];
+var OB_STEPS=[
+  {number:1,name:"Contrato",icon:"📄",desc:"Contrato de prestación de servicios"},
+  {number:2,name:"Factura",icon:"🧾",desc:"Factura inicial con IVA desglosado"},
+  {number:3,name:"Welcome Document",icon:"👋",desc:"Bienvenida y acceso al portal"},
+  {number:4,name:"Discovery Form",icon:"🔍",desc:"Cuestionario de descubrimiento"},
+  {number:5,name:"Setup de Estrategia",icon:"⚙️",desc:"Diagnóstico y plan de acción"},
+  {number:6,name:"Kickoff",icon:"🚀",desc:"Agenda para llamada de activación"}
+];
+
+// AUTH
+async function sha256hex(s){var b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join("");}
+async function tryUnlock(){var pw=document.getElementById("pw").value;if(!pw)return;var h=await sha256hex(pw);if(h===PH){sessionStorage.setItem("xt_auth","1");document.getElementById("lock").style.display="none";init();}else{document.getElementById("lock-err").style.display="block";document.getElementById("pw").value="";}}
+document.getElementById("pw").addEventListener("keydown",e=>{if(e.key==="Enter")tryUnlock();});
+if(sessionStorage.getItem("xt_auth")==="1"){document.getElementById("lock").style.display="none";init();}
+
+// API
+async function api(path,opts={}){
+  try{var r=await fetch(SU+"/rest/v1/"+path,{headers:HDR,...opts});if(!r.ok)throw new Error(await r.text());if(r.status===204)return null;return await r.json();}
+  catch(e){toast("Error: "+e.message,"error");throw e;}
+}
+function GET(p){return api(p);}
+function POST(p,b){return api(p,{method:"POST",body:JSON.stringify(b)});}
+function PATCH(p,b){return api(p,{method:"PATCH",body:JSON.stringify(b),headers:{...HDR,"Prefer":"return=representation"}});}
+function DELETE(p){return api(p,{method:"DELETE"});}
+function UPSERT(p,b){return api(p,{method:"POST",body:JSON.stringify(b),headers:{...HDR,"Prefer":"resolution=merge-duplicates,return=representation"}});}
+async function actLog(cid,action,details=""){try{await POST("activity_log?select=id",{client_id:cid,action,details});}catch(e){}}
+
+// TOAST
+function toast(msg,type="info"){var t=document.createElement("div");t.className="toast-item toast-"+type;t.textContent=msg;document.getElementById("toast").appendChild(t);setTimeout(()=>t.remove(),3500);}
+
+// NAV
+document.querySelectorAll(".nav-item").forEach(el=>{
+  el.addEventListener("click",()=>{
+    var sec=el.dataset.sec;
+    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+    document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+    el.classList.add("active");
+    document.getElementById("sec-"+sec).classList.add("active");
+    document.getElementById("section-title").textContent=el.textContent.trim();
+    ({dashboard:loadDashboard,clientes:loadClients,agentes:loadAgents,documentos:()=>{},onboarding:()=>{},anuncios:loadCampaigns,diseno:loadDesigns,marca:loadBrandManuals,estrategia:loadStrategies,clips:()=>{}})[sec]?.();
+  });
+});
+
+// MODALS
+function openModal(id){document.getElementById(id).classList.add("open");}
+function closeModal(id){document.getElementById(id).classList.remove("open");}
+document.querySelectorAll(".modal-backdrop").forEach(m=>{m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("open");});});
+
+// INIT
+async function init(){
+  clients=await GET("clients?select=id,name,company,email,phone,status,monthly_revenue,onboarding_step,notes&order=created_at.desc")||[];
+  populateSelects();
+  renderServiceCheckboxes();
+  loadDashboard();
+}
+
+function populateSelects(){
+  ["ads-client-sel","des-client-sel","est-client-sel"].forEach(id=>{
+    var el=document.getElementById(id);if(!el)return;
+    var v=el.value;
+    el.innerHTML='<option value="">Todos los clientes</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+    if(v)el.value=v;
+  });
+  ["doc-client-sel","ob-client-sel","bm-client-sel","camp-client","strat-client","des-client-modal"].forEach(id=>{
+    var el=document.getElementById(id);if(!el)return;
+    var v=el.value;
+    el.innerHTML='<option value="">Seleccionar…</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+    if(v)el.value=v;
+  });
+}
+
+function renderServiceCheckboxes(){
+  var el=document.getElementById("cfg-services");if(!el)return;
+  el.innerHTML=SERVICES.map(s=>`<label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer;color:var(--t)"><input type="checkbox" class="cfg-svc" value="${s}" style="width:auto;accent-color:var(--a)"> ${s}</label>`).join("");
+}
+
+// DASHBOARD
+async function loadDashboard(){
+  var active=clients.filter(c=>c.status==="active");
+  var mrr=active.reduce((s,c)=>s+(c.monthly_revenue||0),0);
+  document.getElementById("ds-active").textContent=active.length;
+  document.getElementById("ds-mrr").textContent="$"+mrr.toLocaleString();
+  var [camps,designs,activity]=await Promise.all([
+    GET("campaigns?select=id&status=eq.active"),
+    GET("designs?select=id&status=eq.pending"),
+    GET("activity_log?select=action,details,created_at&order=created_at.desc&limit=8")
+  ]);
+  document.getElementById("ds-camps").textContent=(camps||[]).length;
+  document.getElementById("ds-designs").textContent=(designs||[]).length;
+  var stepCounts=OB_STEPS.map(s=>clients.filter(c=>(c.onboarding_step||0)===s.number).length);
+  document.getElementById("dash-pipeline").innerHTML=OB_STEPS.map((s,i)=>`<div class="pipeline-step"><span class="pipeline-dot ${stepCounts[i]>0?'done':''}"></span><span class="pipeline-label">${s.icon} ${s.name}</span><span class="pipeline-count">${stepCounts[i]}</span></div>`).join("");
+  document.getElementById("dash-activity").innerHTML=(activity||[]).slice(0,6).map(a=>`<div style="margin-bottom:8px"><span style="color:var(--t)">${a.action}</span>${a.details?` — ${a.details}`:""}<br><span style="font-size:.75rem">${timeAgo(a.created_at)}</span></div>`).join("")||'<span class="text-m">Sin actividad</span>';
+  document.getElementById("dash-clients-list").innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Cliente</th><th>Estado</th><th>Onboarding</th><th>MRR</th></tr></thead><tbody>${clients.slice(0,8).map(c=>`<tr><td>${c.name}</td><td><span class="status status-${c.status||'draft'}">${c.status||"–"}</span></td><td><div class="row" style="gap:8px"><div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${((c.onboarding_step||0)/6*100).toFixed(0)}%"></div></div><span class="text-sm">${c.onboarding_step||0}/6</span></div></td><td>$${(c.monthly_revenue||0).toLocaleString()}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
+// CLIENTS
+async function loadClients(){
+  var search=document.getElementById("cl-search").value.trim();
+  var status=document.getElementById("cl-filter-status").value;
+  var qs=["clients?select=*&order=created_at.desc"];
+  if(status)qs.push("status=eq."+status);
+  if(search)qs.push("or=(name.ilike.*"+encodeURIComponent(search)+"*,email.ilike.*"+encodeURIComponent(search)+"*)");
+  var data=await GET(qs[0]+(qs.length>1?"&"+qs.slice(1).join("&"):""))||[];
+  document.getElementById("cl-tbody").innerHTML=data.map(c=>`<tr><td><strong>${c.name}</strong>${c.company?`<br><span class="text-m">${c.company}</span>`:""}</td><td>${c.email||"–"}<br><span class="text-m">${c.phone||""}</span></td><td>${c.plan||"–"}</td><td><span class="status status-${c.status||'draft'}">${c.status||"–"}</span></td><td><div class="row" style="gap:8px"><div class="progress-bar" style="width:70px"><div class="progress-fill" style="width:${((c.onboarding_step||0)/6*100).toFixed(0)}%"></div></div><span class="text-sm">${c.onboarding_step||0}/6</span></div></td><td class="row" style="gap:6px"><button class="btn btn-sm btn-secondary" onclick='editClient(${JSON.stringify(c)})'>Editar</button><button class="btn btn-sm btn-danger" onclick="deleteClient('${c.id}')">✕</button></td></tr>`).join("")||'<tr><td colspan="6" style="text-align:center;color:var(--m)">Sin clientes</td></tr>';
+}
+document.getElementById("cl-search").addEventListener("input",loadClients);
+document.getElementById("cl-filter-status").addEventListener("change",loadClients);
+
+function openNewClient(){document.getElementById("modal-client-title").textContent="Nuevo Cliente";document.getElementById("cl-id").value="";["cl-company","cl-contact","cl-email","cl-phone","cl-plan","cl-fee","cl-notes"].forEach(id=>{var el=document.getElementById(id);if(el)el.value="";});document.getElementById("cl-status").value="active";document.getElementById("cl-start").value="";openModal("modal-client");}
+function editClient(c){document.getElementById("modal-client-title").textContent="Editar Cliente";document.getElementById("cl-id").value=c.id;document.getElementById("cl-company").value=c.name||"";document.getElementById("cl-contact").value=c.company||"";document.getElementById("cl-email").value=c.email||"";document.getElementById("cl-phone").value=c.phone||"";document.getElementById("cl-plan").value=c.plan||"";document.getElementById("cl-status").value=c.status||"active";document.getElementById("cl-fee").value=c.monthly_revenue||"";document.getElementById("cl-start").value="";document.getElementById("cl-notes").value=c.notes||"";openModal("modal-client");}
+async function saveClient(){
+  var id=document.getElementById("cl-id").value;
+  var body={name:document.getElementById("cl-company").value,company:document.getElementById("cl-contact").value,email:document.getElementById("cl-email").value,phone:document.getElementById("cl-phone").value,plan:document.getElementById("cl-plan").value,status:document.getElementById("cl-status").value,monthly_revenue:parseFloat(document.getElementById("cl-fee").value)||0,notes:document.getElementById("cl-notes").value};
+  if(!body.name){toast("Nombre requerido","error");return;}
+  try{if(id){await PATCH("clients?id=eq."+id,body);await actLog(id,"Cliente actualizado",body.name);}else{var r=await api("clients?select=id",{method:"POST",body:JSON.stringify(body)});await actLog(r[0].id,"Cliente creado",body.name);}toast("Guardado","success");clients=await GET("clients?select=id,name,company,email,phone,status,monthly_revenue,onboarding_step,notes&order=created_at.desc")||[];populateSelects();closeModal("modal-client");loadClients();}catch(e){}
+}
+async function deleteClient(id){if(!confirm("¿Eliminar cliente?"))return;await DELETE("clients?id=eq."+id);toast("Eliminado","info");clients=await GET("clients?select=id,name,company,email,phone,status,monthly_revenue,onboarding_step,notes&order=created_at.desc")||[];populateSelects();loadClients();}
+
+// AGENTS
+async function loadAgents(){
+  var [agents,ch,cv]=await Promise.all([
+    GET("xenttech_agents?select=*&order=created_at.desc"),
+    GET("xenttech_channels?select=*&order=created_at.desc&limit=20"),
+    GET("xenttech_conversations?select=*&order=created_at.desc&limit=20")
+  ]);
+  agents=agents||[];ch=ch||[];cv=cv||[];
+  document.getElementById("ag-channels").textContent=agents.filter(a=>a.status==="active").length;
+  var today=new Date().toISOString().slice(0,10);
+  document.getElementById("ag-today").textContent=cv.filter(c=>c.created_at&&c.created_at.slice(0,10)===today).length;
+  document.getElementById("ag-total").textContent=cv.length||agents.length;
+  document.getElementById("ag-channels-list").innerHTML=agents.length?agents.map(a=>`<div class="row-between" style="padding:10px 0;border-bottom:1px solid var(--bd)"><div><strong>${a.name||"Agente"}</strong><br><span class="text-m">${a.model||""} · ${a.description||""}</span></div><span class="status status-${a.status||'active'}">${a.status||"active"}</span></div>`).join(""):ch.length?ch.map(c=>`<div class="row-between" style="padding:10px 0;border-bottom:1px solid var(--bd)"><div><strong>${c.name||c.channel_type||"Canal"}</strong><br><span class="text-m">${c.channel_type||""}</span></div><span class="status status-${c.status||'active'}">${c.status||"active"}</span></div>`).join(""):'<span class="text-m">Sin agentes configurados</span>';
+  document.getElementById("ag-convos-list").innerHTML=cv.length?cv.slice(0,6).map(c=>`<div style="padding:10px 0;border-bottom:1px solid var(--bd)"><div style="font-weight:600;font-size:.85rem">${c.contact_name||c.phone||c.id||"Contacto"}</div><div class="text-m">${c.last_message||c.status||"–"}</div><div style="font-size:.75rem;color:var(--m)">${timeAgo(c.updated_at||c.created_at)}</div></div>`).join(""):'<span class="text-m">Sin conversaciones registradas</span>';
+}
+
+// DOCUMENTS
+async function docsSelectClient(){
+  var id=document.getElementById("doc-client-sel").value;
+  if(!id){document.getElementById("doc-main").style.display="none";return;}
+  docsClientId=id;document.getElementById("doc-main").style.display="block";
+  var cl=clients.find(c=>c.id===id);
+  docsConfig={};if(cl&&cl.notes){try{docsConfig=JSON.parse(cl.notes);}catch(e){}}
+  var f=docsConfig;
+  var map={razon:"razon_social",rfc:"rfc",rep:"representante_legal",tel:"telefono_contacto",email:"email_contacto",ciudad:"ciudad",dom:"domicilio",setup:"setup_fee",monthly:"monthly_fee",pday:"payment_day",dur:"contract_duration",fecha:"fecha_inicio"};
+  Object.entries(map).forEach(([k,v])=>{var el=document.getElementById("cfg-"+k);if(el&&f[v]!==undefined)el.value=f[v];});
+  document.querySelectorAll(".cfg-svc").forEach(cb=>{cb.checked=(f.servicios_seleccionados||[]).includes(cb.value);});
+  [["nombre","agencia_nombre"],["rfc","agencia_rfc"],["banco","agencia_banco"],["clabe","agencia_clabe"]].forEach(([k,v])=>{var el=document.getElementById("cfg-ag-"+k);if(el)el.value=f[v]||"";});
+  var docs=await GET("onboarding_documents?select=*&client_id=eq."+id)||[];
+  var tk=await GET("portal_tokens?select=*&client_id=eq."+id+"&limit=1");
+  docsToken=tk&&tk[0]?tk[0].token:null;
+  document.getElementById("doc-token-val").textContent=docsToken?"Token: "+docsToken:"Sin token generado";
+  renderDocTypes(docs);
+}
+function renderDocTypes(docs=[]){
+  document.getElementById("doc-types-grid").innerHTML=DOC_TYPES.map(dt=>{
+    var doc=docs.find(d=>d.step_number===dt.step);
+    return `<div class="card" style="border-color:${dt.color}30"><div style="font-size:1.3rem;margin-bottom:6px">${dt.icon}</div><div style="font-weight:700;margin-bottom:4px">${dt.label}</div><div class="text-m text-sm mb16">Paso ${dt.step}</div>${doc?`<div style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:10px;font-size:.75rem;color:var(--m);max-height:70px;overflow:hidden">${(doc.content||"").slice(0,200)}…</div>`:"<div style='height:32px'></div>"}<div class="row" style="gap:6px"><button class="btn btn-sm flex-1" style="background:${dt.color};color:#000" onclick="generateDoc('${dt.key}','${dt.label}',${dt.step})">${doc?"Regenerar":"Generar"} AI</button>${doc?`<button class="btn btn-sm btn-secondary" onclick="copyText(${JSON.stringify(doc.content||'')})">Copiar</button>`:""}</div></div>`;
+  }).join("");
+}
+async function saveProjectConfig(){
+  if(!docsClientId){toast("Selecciona cliente","error");return;}
+  var svcs=Array.from(document.querySelectorAll(".cfg-svc:checked")).map(cb=>cb.value);
+  var cfg={razon_social:document.getElementById("cfg-razon").value,rfc:document.getElementById("cfg-rfc").value,representante_legal:document.getElementById("cfg-rep").value,telefono_contacto:document.getElementById("cfg-tel").value,email_contacto:document.getElementById("cfg-email").value,ciudad:document.getElementById("cfg-ciudad").value,domicilio:document.getElementById("cfg-dom").value,setup_fee:parseFloat(document.getElementById("cfg-setup").value)||0,monthly_fee:parseFloat(document.getElementById("cfg-monthly").value)||0,payment_day:parseInt(document.getElementById("cfg-pday").value)||1,contract_duration:document.getElementById("cfg-dur").value,fecha_inicio:document.getElementById("cfg-fecha").value,servicios_seleccionados:svcs,agencia_nombre:document.getElementById("cfg-ag-nombre").value,agencia_rfc:document.getElementById("cfg-ag-rfc").value,agencia_banco:document.getElementById("cfg-ag-banco").value,agencia_clabe:document.getElementById("cfg-ag-clabe").value};
+  await PATCH("clients?id=eq."+docsClientId,{notes:JSON.stringify(cfg)});
+  docsConfig=cfg;await actLog(docsClientId,"Config proyecto guardada");toast("Config guardada","success");
+}
+async function generateDoc(key,label,step){
+  if(!docsClientId){toast("Selecciona cliente","error");return;}
+  var cl=clients.find(c=>c.id===docsClientId);
+  showPromptModal(buildDocPrompt(key,cl,docsConfig),async(content)=>{
+    if(content){await UPSERT("onboarding_documents",{client_id:docsClientId,step_number:step,step_name:label,content});var docs=await GET("onboarding_documents?select=*&client_id=eq."+docsClientId)||[];renderDocTypes(docs);await actLog(docsClientId,"Documento generado",label);toast("Guardado","success");}
+  });
+}
+function buildDocPrompt(key,cl,cfg){
+  var base=`Cliente: ${cl?cl.name:"?"}\nRazón Social: ${cfg.razon_social||"N/D"}\nRFC: ${cfg.rfc||"N/D"}\nRepresentante: ${cfg.representante_legal||"N/D"}\nServicios: ${(cfg.servicios_seleccionados||[]).join(", ")||"N/D"}\nFee Mensual: $${cfg.monthly_fee||0}\nSetup Fee: $${cfg.setup_fee||0}\nDuración: ${cfg.contract_duration||"12 meses"}\nFecha Inicio: ${cfg.fecha_inicio||"N/D"}\nAgencia: ${cfg.agencia_nombre||"XENTTECH"}\n\n`;
+  var prompts={
+    contrato:base+"Genera un contrato de prestación de servicios profesional en español. Incluye cláusulas de confidencialidad, forma de pago, duración, penalización por cancelación anticipada y espacios para firma. Formato profesional completo.",
+    factura:base+"Genera el texto de una factura profesional con IVA al 16% desglosado. Incluye datos del emisor, receptor, descripción de servicios, subtotal, IVA y total. Formato tabla.",
+    welcome:base+"Crea un documento de bienvenida cálido para el cliente. Incluye: resumen de servicios contratados, equipo asignado, próximos pasos del onboarding, datos de contacto, y cómo acceder al portal del cliente.",
+    estrategia:base+"Crea un diagnóstico y plan de acción digital. Incluye: análisis de situación actual, objetivos SMART a 30/60/90 días, estrategia por canal digital, KPIs a medir, y cronograma de implementación.",
+    kickoff:base+"Genera la agenda completa para la llamada de kickoff. Incluye: bienvenida (5min), revisión de objetivos (10min), presentación del equipo (5min), revisión de estrategia (15min), próximos pasos (10min), preguntas y cierre (15min)."
+  };
+  return prompts[key]||"Genera el documento: "+key;
+}
+async function generatePortalToken(){
+  if(!docsClientId){toast("Selecciona cliente","error");return;}
+  var token="XT-"+Math.random().toString(36).substr(2,8).toUpperCase();
+  await UPSERT("portal_tokens",{client_id:docsClientId,token,created_at:new Date().toISOString()});
+  docsToken=token;document.getElementById("doc-token-val").textContent="Token: "+token;
+  await actLog(docsClientId,"Token portal generado",token);toast("Token: "+token,"success");
+}
+
+// ONBOARDING
+async function obSelectClient(){
+  var id=document.getElementById("ob-client-sel").value;
+  if(!id){document.getElementById("ob-main").style.display="none";return;}
+  obClientId=id;document.getElementById("ob-main").style.display="block";
+  var cl=clients.find(c=>c.id===id);
+  obStep=cl?cl.onboarding_step||0:0;
+  var docs=await GET("onboarding_documents?select=*&client_id=eq."+id)||[];
+  renderObSteps(docs);
+  var disc={};try{disc=JSON.parse(cl.notes||"{}").discovery||{};}catch(e){}
+  ["desc","prod","ideal","comp","dif","obj","presup","canales","r30","r90"].forEach(k=>{var el=document.getElementById("disc-"+k);if(el)el.value=disc[k]||"";});
+}
+function renderObSteps(docs=[]){
+  var completed=docs.map(d=>d.step_number);
+  var pct=Math.round((obStep/6)*100);
+  document.getElementById("ob-progress-fill").style.width=pct+"%";
+  document.getElementById("ob-progress-text").textContent=obStep+"/6 completados";
+  document.getElementById("ob-steps-grid").innerHTML=OB_STEPS.map(s=>{
+    var done=completed.includes(s.number)||obStep>=s.number;
+    return `<div class="step-card"><div class="step-num ${done?'done':''}">${done?"✓":s.number}</div><div class="step-info"><div class="step-name">${s.icon} ${s.name}</div><div class="step-desc">${s.desc}</div></div>${s.number!==4?`<button class="btn btn-sm ${done?'btn-secondary':'btn-primary'}" onclick="generateObDoc(${s.number},'${s.name}')">${done?"Regen":"Generar"}</button>`:""}</div>`;
+  }).join("");
+}
+async function generateObDoc(number,name){
+  if(!obClientId){toast("Selecciona cliente","error");return;}
+  var cl=clients.find(c=>c.id===obClientId);
+  var dt=DOC_TYPES.find(d=>d.step===number);
+  if(!dt)return;
+  var notes={};try{notes=JSON.parse(cl.notes||"{}");}catch(e){}
+  showPromptModal(buildDocPrompt(dt.key,cl,notes),async(content)=>{
+    if(content){await UPSERT("onboarding_documents",{client_id:obClientId,step_number:number,step_name:dt.label,content});var newStep=Math.max(obStep,number);await PATCH("clients?id=eq."+obClientId,{onboarding_step:newStep});obStep=newStep;await actLog(obClientId,"Onboarding doc generado",name);toast("Guardado","success");var docs=await GET("onboarding_documents?select=*&client_id=eq."+obClientId)||[];renderObSteps(docs);}
+  });
+}
+async function generateAllDocs(){if(!obClientId){toast("Selecciona cliente","error");return;}for(var s of DOC_TYPES){await generateObDoc(s.step,s.label);}}
+async function saveDiscovery(){
+  if(!obClientId){toast("Selecciona cliente","error");return;}
+  var disc={desc:document.getElementById("disc-desc").value,prod:document.getElementById("disc-prod").value,ideal:document.getElementById("disc-ideal").value,comp:document.getElementById("disc-comp").value,dif:document.getElementById("disc-dif").value,obj:document.getElementById("disc-obj").value,presup:document.getElementById("disc-presup").value,canales:document.getElementById("disc-canales").value,r30:document.getElementById("disc-r30").value,r90:document.getElementById("disc-r90").value};
+  var cl=clients.find(c=>c.id===obClientId);var notes={};try{notes=JSON.parse(cl.notes||"{}");}catch(e){}
+  notes.discovery=disc;
+  await PATCH("clients?id=eq."+obClientId,{notes:JSON.stringify(notes)});
+  await UPSERT("onboarding_documents",{client_id:obClientId,step_number:4,step_name:"Discovery Form",content:JSON.stringify(disc)});
+  var newStep=Math.max(obStep,4);await PATCH("clients?id=eq."+obClientId,{onboarding_step:newStep});obStep=newStep;
+  await actLog(obClientId,"Discovery Form guardado");toast("Discovery guardado","success");
+  var docs=await GET("onboarding_documents?select=*&client_id=eq."+obClientId)||[];renderObSteps(docs);
+}
+
+// ADS
+async function loadCampaigns(){
+  var cid=document.getElementById("ads-client-sel").value;
+  var st=document.getElementById("ads-status-sel").value;
+  var qs=["campaigns?select=*,clients(name)&order=created_at.desc"];
+  if(cid)qs.push("client_id=eq."+cid);if(st)qs.push("status=eq."+st);
+  var data=await GET(qs[0]+(qs.length>1?"&"+qs.slice(1).join("&"):""))||[];
+  document.getElementById("ads-grid").innerHTML=data.map(c=>`<div class="card"><div class="row-between mb8"><span style="font-weight:700;font-size:.9rem">${c.campaign_name}</span><span class="status status-${c.status}">${c.status}</span></div><div class="text-m text-sm mb8">${c.clients?.name||"?"} · ${c.platform}</div><div class="grid g2 text-sm" style="gap:6px;margin-bottom:12px"><div><span class="text-m">Obj</span><br>${c.objective||"–"}</div><div><span class="text-m">Presupuesto</span><br>$${(c.budget_monthly||0).toLocaleString()}/mes</div><div><span class="text-m">Formato</span><br>${c.metrics?.ad_format||"–"}</div><div><span class="text-m">Público</span><br>${c.metrics?.age_min||18}–${c.metrics?.age_max||45} · ${c.metrics?.gender||"Todos"}</div></div><div class="row" style="gap:6px"><button class="btn btn-sm btn-secondary flex-1" onclick='editCampaign(${JSON.stringify(c)})'>Editar</button><button class="btn btn-sm btn-danger" onclick="deleteCampaign('${c.id}')">✕</button></div></div>`).join("")||'<div class="text-m">Sin campañas</div>';
+}
+function openCampaignModal(){document.getElementById("modal-camp-title").textContent="Nueva Campaña";document.getElementById("camp-id").value="";["camp-name","camp-budget","camp-url","camp-interests","camp-headline","camp-primary","camp-desc","camp-audience","camp-loc"].forEach(id=>{var el=document.getElementById(id);if(el)el.value="";});document.getElementById("camp-age-min").value=18;document.getElementById("camp-age-max").value=45;openModal("modal-campaign");}
+function editCampaign(c){document.getElementById("modal-camp-title").textContent="Editar Campaña";document.getElementById("camp-id").value=c.id;document.getElementById("camp-client").value=c.client_id||"";document.getElementById("camp-name").value=c.campaign_name||"";document.getElementById("camp-platform").value=c.platform||"Meta Ads";document.getElementById("camp-obj").value=c.objective||"Tráfico";document.getElementById("camp-budget").value=c.budget_monthly||"";document.getElementById("camp-status").value=c.status||"draft";document.getElementById("camp-audience").value=c.audience||"";var m=c.metrics||{};document.getElementById("camp-loc").value=m.location||"";document.getElementById("camp-age-min").value=m.age_min||18;document.getElementById("camp-age-max").value=m.age_max||45;document.getElementById("camp-gender").value=m.gender||"Todos";document.getElementById("camp-format").value=m.ad_format||"Single Image";document.getElementById("camp-cta").value=m.cta||"LEARN_MORE";document.getElementById("camp-url").value=m.website_url||"";document.getElementById("camp-headline").value=m.headline||"";document.getElementById("camp-primary").value=m.primary_text||"";document.getElementById("camp-desc").value=m.description||"";document.getElementById("camp-interests").value=m.interests||"";document.getElementById("camp-budget-type").value=m.budget_type||"daily";openModal("modal-campaign");}
+async function saveCampaign(){
+  var id=document.getElementById("camp-id").value;
+  var body={client_id:document.getElementById("camp-client").value,campaign_name:document.getElementById("camp-name").value,platform:document.getElementById("camp-platform").value,objective:document.getElementById("camp-obj").value,budget_monthly:parseFloat(document.getElementById("camp-budget").value)||0,status:document.getElementById("camp-status").value,audience:document.getElementById("camp-audience").value,metrics:{location:document.getElementById("camp-loc").value,age_min:parseInt(document.getElementById("camp-age-min").value)||18,age_max:parseInt(document.getElementById("camp-age-max").value)||45,gender:document.getElementById("camp-gender").value,ad_format:document.getElementById("camp-format").value,cta:document.getElementById("camp-cta").value,website_url:document.getElementById("camp-url").value,headline:document.getElementById("camp-headline").value,primary_text:document.getElementById("camp-primary").value,description:document.getElementById("camp-desc").value,interests:document.getElementById("camp-interests").value,budget_type:document.getElementById("camp-budget-type").value}};
+  if(!body.campaign_name){toast("Nombre requerido","error");return;}
+  try{if(id){await PATCH("campaigns?id=eq."+id,body);}else{await api("campaigns?select=id",{method:"POST",body:JSON.stringify(body)});}await actLog(body.client_id,id?"Campaña actualizada":"Campaña creada",body.campaign_name);toast("Guardado","success");closeModal("modal-campaign");loadCampaigns();}catch(e){}
+}
+async function deleteCampaign(id){if(!confirm("¿Eliminar campaña?"))return;await DELETE("campaigns?id=eq."+id);toast("Eliminada","info");loadCampaigns();}
+
+// DESIGN
+async function loadDesigns(){
+  var cid=document.getElementById("des-client-sel").value;
+  var st=document.getElementById("des-status-sel").value;
+  var qs=["designs?select=*,clients(name)&order=created_at.desc"];
+  if(cid)qs.push("client_id=eq."+cid);if(st)qs.push("status=eq."+st);
+  var data=await GET(qs[0]+(qs.length>1?"&"+qs.slice(1).join("&"):""))||[];
+  document.getElementById("des-grid").innerHTML=data.map(d=>`<div class="design-card"><div class="design-preview">${d.image_url?`<img src="${d.image_url}" style="max-width:100%;max-height:100%;object-fit:contain">`:"📐 "+d.design_type}</div><div class="design-body"><div class="row-between mb8"><span style="font-weight:700;font-size:.85rem">${d.design_type||"Diseño"}</span><select class="inline" onchange="updateDesignStatus('${d.id}',this.value)">${["pending","in_review","approved","delivered"].map(s=>`<option value="${s}" ${d.status===s?"selected":""}>${s}</option>`).join("")}</select></div><div class="text-m text-sm mb8">${d.clients?.name||"?"}</div><div style="font-size:.75rem;color:var(--m);margin-bottom:8px;max-height:50px;overflow:hidden">${d.brief||""}</div>${d.canva_url?`<a href="${d.canva_url}" target="_blank" class="btn btn-sm btn-secondary" style="margin-bottom:8px">Abrir en Canva</a><br>`:""}<div class="row" style="gap:6px"><button class="btn btn-sm btn-secondary flex-1" onclick='editDesign(${JSON.stringify(d)})'>Editar</button><button class="btn btn-sm btn-danger" onclick="deleteDesign('${d.id}')">✕</button></div></div></div>`).join("")||'<div class="text-m">Sin diseños</div>';
+}
+function openDesignModal(){document.getElementById("modal-des-title").textContent="Nuevo Brief";document.getElementById("des-id").value="";["des-brief","des-canva"].forEach(id=>{var el=document.getElementById(id);if(el)el.value="";});openModal("modal-design");}
+function editDesign(d){document.getElementById("modal-des-title").textContent="Editar Brief";document.getElementById("des-id").value=d.id;document.getElementById("des-client-modal").value=d.client_id||"";document.getElementById("des-type").value=d.design_type||"post_instagram";document.getElementById("des-status-modal").value=d.status||"pending";document.getElementById("des-canva").value=d.canva_url||"";document.getElementById("des-brief").value=d.brief||"";openModal("modal-design");}
+async function saveDesign(){
+  var id=document.getElementById("des-id").value;
+  var dims=document.getElementById("des-dims").value.split("x");
+  var body={client_id:document.getElementById("des-client-modal").value,design_type:document.getElementById("des-type").value,status:document.getElementById("des-status-modal").value,canva_url:document.getElementById("des-canva").value||null,brief:document.getElementById("des-brief").value,width:parseInt(dims[0])||1080,height:parseInt(dims[1])||1080};
+  if(!body.brief){toast("Brief requerido","error");return;}
+  try{if(id){await PATCH("designs?id=eq."+id,body);}else{await api("designs?select=id",{method:"POST",body:JSON.stringify(body)});}await actLog(body.client_id,id?"Diseño actualizado":"Diseño creado",body.design_type);toast("Guardado","success");closeModal("modal-design");loadDesigns();}catch(e){}
+}
+async function updateDesignStatus(id,status){await PATCH("designs?id=eq."+id,{status});toast("Estado actualizado","success");}
+async function deleteDesign(id){if(!confirm("¿Eliminar diseño?"))return;await DELETE("designs?id=eq."+id);toast("Eliminado","info");loadDesigns();}
+
+// BRAND MANUAL
+async function loadBrandManuals(){
+  var data=await GET("strategies?select=*,clients(name)&title=ilike.Manual%20de%20Marca*&order=created_at.desc")||[];
+  document.getElementById("bm-list").innerHTML=data.length?data.map(bm=>`<div class="accordion-item"><div class="accordion-head" onclick="toggleAcc(this)"><span>${bm.title}</span><div class="row" style="gap:8px"><span class="text-m text-sm">${bm.clients?.name||""}</span><span>▾</span></div></div><div class="accordion-body">${bm.content||"Sin contenido"}<div class="row mt8" style="gap:6px"><button class="btn btn-sm btn-secondary" onclick="copyText(${JSON.stringify(bm.content||'')})">Copiar</button><button class="btn btn-sm btn-danger" onclick="deleteBrandManual('${bm.id}')">Eliminar</button></div></div></div>`).join(""):'<div class="text-m">Sin manuales</div>';
+}
+async function generateBrandManual(){
+  var name=document.getElementById("bm-name").value.trim();
+  if(!name){toast("Nombre requerido","error");return;}
+  var fd={brand_name:name,slogan:document.getElementById("bm-slogan").value,industry:document.getElementById("bm-industry").value,target_audience:document.getElementById("bm-audience").value,brand_values:document.getElementById("bm-values").value,primary_color:document.getElementById("bm-c1").value,secondary_color:document.getElementById("bm-c2").value,accent_color:document.getElementById("bm-c3").value,typography_primary:document.getElementById("bm-font1").value,typography_secondary:document.getElementById("bm-font2").value,tone_of_voice:document.getElementById("bm-tone").value,logo_description:document.getElementById("bm-logo").value,competitors:document.getElementById("bm-comp").value};
+  var prompt=`Crea un Manual de Marca completo y profesional:\n\nMarca: ${fd.brand_name}\nSlogan: ${fd.slogan}\nIndustria: ${fd.industry}\nAudiencia: ${fd.target_audience}\nValores: ${fd.brand_values}\nColor Primario: ${fd.primary_color}\nColor Secundario: ${fd.secondary_color}\nColor Acento: ${fd.accent_color}\nTipografía: ${fd.typography_primary} / ${fd.typography_secondary}\nTono: ${fd.tone_of_voice}\nLogo: ${fd.logo_description}\nCompetidores: ${fd.competitors}\n\nIncluye:\n1. Identidad y filosofía de marca\n2. Paleta de colores con códigos HEX\n3. Tipografía y jerarquías\n4. Tono de voz y ejemplos de comunicación\n5. Aplicaciones de marca (usos correctos e incorrectos)\n6. Guía para redes sociales`;
+  var cid=document.getElementById("bm-client-sel").value;
+  showPromptModal(prompt,async(content)=>{
+    if(content){await api("strategies?select=id",{method:"POST",body:JSON.stringify({client_id:cid||null,title:"Manual de Marca — "+name,content,foda:fd,status:"active"})});await actLog(cid||null,"Manual de Marca creado",name);toast("Manual guardado","success");loadBrandManuals();}
+  });
+}
+async function deleteBrandManual(id){if(!confirm("¿Eliminar manual?"))return;await DELETE("strategies?id=eq."+id);toast("Eliminado","info");loadBrandManuals();}
+
+// STRATEGY
+async function loadStrategies(){
+  var cid=document.getElementById("est-client-sel").value;
+  var qs=["strategies?select=*,clients(name)&title=not.ilike.Manual%20de%20Marca*&order=created_at.desc"];
+  if(cid)qs.push("client_id=eq."+cid);
+  var data=await GET(qs[0]+(qs.length>1?"&"+qs.slice(1).join("&"):""))||[];
+  document.getElementById("est-list").innerHTML=data.length?data.map(s=>`<div class="accordion-item"><div class="accordion-head" onclick="toggleAcc(this)"><span>${s.title}</span><div class="row" style="gap:8px"><span class="status status-${s.status}">${s.status}</span><span class="text-m text-sm">${s.clients?.name||""}</span><span>▾</span></div></div><div class="accordion-body">${s.content||"Sin contenido"}<div class="row mt8" style="gap:6px"><button class="btn btn-sm btn-secondary" onclick="copyText(${JSON.stringify(s.content||'')})">Copiar</button><button class="btn btn-sm btn-secondary" onclick='editStrategy(${JSON.stringify(s)})'>Editar</button><button class="btn btn-sm btn-danger" onclick="deleteStrategy('${s.id}')">Eliminar</button></div></div></div>`).join(""):'<div class="text-m">Sin estrategias</div>';
+}
+function openNewStrategy(){document.getElementById("modal-strat-title").textContent="Nueva Estrategia";document.getElementById("strat-id").value="";["strat-title","strat-content"].forEach(id=>{var el=document.getElementById(id);if(el)el.value="";});document.getElementById("strat-status").value="draft";openModal("modal-strategy");}
+function editStrategy(s){document.getElementById("modal-strat-title").textContent="Editar Estrategia";document.getElementById("strat-id").value=s.id;document.getElementById("strat-client").value=s.client_id||"";document.getElementById("strat-title").value=s.title||"";document.getElementById("strat-status").value=s.status||"draft";document.getElementById("strat-content").value=s.content||"";openModal("modal-strategy");}
+async function saveStrategy(){
+  var id=document.getElementById("strat-id").value;
+  var body={client_id:document.getElementById("strat-client").value||null,title:document.getElementById("strat-title").value,status:document.getElementById("strat-status").value,content:document.getElementById("strat-content").value};
+  if(!body.title){toast("Título requerido","error");return;}
+  try{if(id){await PATCH("strategies?id=eq."+id,body);}else{await api("strategies?select=id",{method:"POST",body:JSON.stringify(body)});}await actLog(body.client_id,id?"Estrategia actualizada":"Estrategia creada",body.title);toast("Guardado","success");closeModal("modal-strategy");document.getElementById("strat-id").value="";loadStrategies();}catch(e){}
+}
+async function generateStrategy(){
+  var title=document.getElementById("strat-title").value;
+  var cid=document.getElementById("strat-client").value;
+  var cl=clients.find(c=>c.id===cid);
+  var prompt=`Crea una estrategia de marketing digital detallada${cl?" para "+cl.name:""}${title?" — "+title:""}.\n\nIncluye:\n1. Diagnóstico de situación actual\n2. Objetivos SMART (30, 60, 90 días)\n3. Estrategia por canal (Instagram, Facebook, Google, TikTok según aplique)\n4. Calendario de contenido mensual\n5. KPIs y métricas clave a monitorear\n6. Presupuesto recomendado por canal\n7. Quick wins para la primera semana`;
+  showPromptModal(prompt);
+}
+async function deleteStrategy(id){if(!confirm("¿Eliminar estrategia?"))return;await DELETE("strategies?id=eq."+id);toast("Eliminada","info");loadStrategies();}
+
+// PROMPT MODAL
+function showPromptModal(prompt,cb){document.getElementById("prompt-text").value=prompt;document.getElementById("prompt-result").value="";document.getElementById("prompt-paste-area").style.display="none";_promptCb=cb||null;openModal("prompt-modal");}
+function togglePasteArea(){var el=document.getElementById("prompt-paste-area");el.style.display=el.style.display==="none"?"block":"none";}
+function copyPrompt(){navigator.clipboard.writeText(document.getElementById("prompt-text").value).then(()=>toast("Prompt copiado — ahora pégalo en tu AI","success"));}
+function submitPromptResult(){var content=document.getElementById("prompt-result").value.trim();if(!content){toast("Pega el resultado primero","error");return;}if(_promptCb){_promptCb(content);_promptCb=null;}closeModal("prompt-modal");}
+
+// ACCORDION
+function toggleAcc(head){head.nextElementSibling.classList.toggle("open");}
+
+// UTILS
+function copyText(text){navigator.clipboard.writeText(text).then(()=>toast("Copiado","success"));}
+function timeAgo(iso){if(!iso)return"";var d=new Date(iso),diff=Date.now()-d;if(diff<60000)return"hace un momento";if(diff<3600000)return"hace "+Math.floor(diff/60000)+" min";if(diff<86400000)return"hace "+Math.floor(diff/3600000)+" hrs";return"hace "+Math.floor(diff/86400000)+" días";}
+</script>
+</body>
+</html>

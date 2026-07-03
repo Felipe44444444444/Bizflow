@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Widget Conectachat — Producción</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; padding: 40px; background: #f8fafc; }
+    h1 { color: #6366f1; }
+    .info { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin: 24px 0; max-width: 600px; }
+    code { background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 13px; }
+    .status { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .ok { background: #d1fae5; color: #065f46; }
+    .checking { background: #fef3c7; color: #92400e; }
+  </style>
+</head>
+<body>
+  <h1>Test Widget Conectachat</h1>
+
+  <div class="info">
+    <h3>Estado del widget</h3>
+    <p>CDN: <code>https://cdn.conectaachat.com/widget.min.js</code></p>
+    <p id="status" class="status checking">Cargando...</p>
+  </div>
+
+  <div class="info">
+    <h3>Instrucciones de uso</h3>
+    <p>Pega este código antes de <code>&lt;/body&gt;</code> en tu sitio:</p>
+    <pre style="background:#f1f5f9;padding:16px;border-radius:8px;font-size:13px;overflow-x:auto">&lt;script src="https://cdn.conectaachat.com/widget.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  ConectachatWidget.init({
+    apiKey: 'cc_TU_API_KEY_AQUI',
+    agentName: 'Asistente',
+    primaryColor: '#7c5cfc',
+    position: 'bottom-right'
+  });
+&lt;/script&gt;</pre>
+  </div>
+
+  <script src="https://cdn.conectaachat.com/widget.min.js"></script>
+  <script>
+    try {
+      ConectachatWidget.init({
+        apiKey: 'cc_test',
+        agentName: 'Asistente Test',
+        primaryColor: '#7c5cfc',
+        position: 'bottom-right',
+        apiUrl: 'https://responsible-trust-production-66dc.up.railway.app'
+      });
+      document.getElementById('status').textContent = '✓ Widget cargado correctamente';
+      document.getElementById('status').className = 'status ok';
+    } catch(e) {
+      document.getElementById('status').textContent = '✗ Error: ' + e.message;
+      document.getElementById('status').style.background = '#fee2e2';
+      document.getElementById('status').style.color = '#991b1b';
+    }
+  </script>
+</body>
+</html>

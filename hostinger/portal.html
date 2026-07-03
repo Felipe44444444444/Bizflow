@@ -3,358 +3,1187 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>XENTTECH | Portal de Cliente</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>XENTTECH — Portal de Cliente</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%2300E67A'/><text y='.85em' font-size='72' x='14'>X</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#07070D;--c1:#0F0F1A;--c2:#171728;--bd:#252540;--a:#00FF88;--a2:#00C8FF;--r:#FF4466;--t:#E8E8F0;--m:#7878A0}
-body{background:var(--bg);color:var(--t);font-family:'DM Sans',sans-serif;min-height:100vh}
-.wrap{min-height:100vh;display:flex;align-items:center;justify-content:center}
-.box{width:400px;max-width:90vw;text-align:center}
-.logo{font-size:36px;font-weight:800;background:linear-gradient(135deg,var(--a),var(--a2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.sub{font-size:11px;color:var(--m);letter-spacing:.25em;margin:4px 0 32px}
-.card{background:var(--c1);border:1px solid var(--bd);border-radius:14px;padding:24px;margin-bottom:16px}
-.lbl{font-size:11px;color:var(--m);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:block}
-.tk{width:100%;padding:14px 18px;border-radius:12px;border:1px solid var(--bd);background:var(--c2);color:var(--t);font-size:18px;outline:none;font-family:inherit;text-align:center;letter-spacing:.15em;box-sizing:border-box}
-.tk:focus{border-color:var(--a)}
-.btn{width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;font-weight:700;font-size:14px;font-family:inherit;background:linear-gradient(135deg,var(--a),var(--a2));color:var(--bg);margin-top:14px;transition:opacity .2s}
-.btn:hover{opacity:.9}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.bsm{padding:8px 16px;border-radius:8px;background:var(--c2);color:var(--t);border:1px solid var(--bd);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:all .2s}
-.bsm:hover{border-color:var(--a);color:var(--a)}
-.bsm.on{border-color:var(--a);color:var(--a);background:rgba(0,255,136,.06)}
-.err{color:var(--r);font-size:12px;margin-top:10px}
-.hdr{padding:14px 28px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
-.hdr-l{display:flex;align-items:center;gap:12px}
-.hdr-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.tag{font-size:10px;padding:3px 10px;border-radius:16px;font-weight:700;display:inline-block}
-.tg{background:rgba(0,255,136,.12);color:var(--a)}
-.tb{background:rgba(0,200,255,.12);color:var(--a2)}
-.tabs{display:flex;gap:6px;padding:10px 28px;border-bottom:1px solid var(--bd);flex-wrap:wrap}
-.cnt{padding:28px;max-width:900px;margin:0 auto}
-.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
-.sn{font-size:28px;font-weight:800}
-.sl{font-size:11px;color:var(--m);margin-top:4px}
-.pb{display:flex;gap:8px}
-.sc{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;margin:0 auto 6px}
-.sc.d{background:var(--a);color:var(--bg)}
-.sc.p{background:var(--c2);color:var(--m);border:1px solid var(--bd)}
-.stn{font-size:9px;color:var(--m)}
-.dh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap}
-.dt{font-size:15px;font-weight:700}
-.dd{font-size:11px;color:var(--m)}
-.dc{padding:16px;background:var(--c2);border-radius:10px;font-size:12px;line-height:1.8;white-space:pre-wrap;max-height:400px;overflow:auto}
-.emp{text-align:center;color:var(--m);padding:40px}
-.ai{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid rgba(37,37,64,.4)}
-.ai:last-child{border-bottom:none}
-.adot{width:8px;height:8px;border-radius:50%;background:var(--a);margin-top:5px;flex-shrink:0}
-.at{font-size:13px;font-weight:600}
-.adl{font-size:11px;color:var(--m)}
-h2{font-size:20px;font-weight:700;margin-bottom:16px}
-.ico{width:56px;height:56px;border-radius:50%;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
-.nm{font-size:13px;font-weight:600}
-.hint{font-size:11px;color:var(--m);margin-top:8px}
-a{color:var(--a);text-decoration:none}
-a:hover{text-decoration:underline}
-.metric{background:var(--c2);border-radius:10px;padding:12px;text-align:center}
-.metric-n{font-size:22px;font-weight:800;color:var(--a)}
-.metric-l{font-size:10px;color:var(--m);margin-top:2px}
-.prog{height:6px;border-radius:3px;background:var(--c2);overflow:hidden;margin-top:8px}
-.prog-b{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--a),var(--a2));transition:width .6s ease}
-@media(max-width:600px){.cnt{padding:16px}.hdr{padding:12px 16px}.tabs{padding:8px 16px}.sg{grid-template-columns:1fr 1fr}.box{width:90vw}}
+:root{
+  --bg:#08080F;--c1:#0D0D1A;--c2:#131320;--bd:rgba(255,255,255,0.06);
+  --a:#00E67A;--b:#0099FF;--r:#FF4455;
+  --tx:#F0F0F8;--m:#606080;--ms:#8888A8;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--tx);font-family:'Inter',system-ui,sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ─── Login ─────────────────────────────────────────────────────────── */
+#login{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.lbox{width:100%;max-width:400px}
+.logo-mark{font-size:32px;font-weight:800;letter-spacing:-0.04em;color:var(--tx);margin-bottom:4px}
+.logo-mark span{color:var(--a)}
+.logo-sub{font-size:11px;color:var(--m);letter-spacing:.2em;text-transform:uppercase;margin-bottom:40px}
+.card{background:var(--c1);border:1px solid var(--bd);border-radius:16px;padding:28px}
+.lbl{font-size:11px;font-weight:600;color:var(--m);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;display:block}
+.inp{width:100%;padding:13px 16px;border-radius:10px;border:1px solid var(--bd);background:var(--c2);color:var(--tx);font-size:16px;font-family:inherit;outline:none;letter-spacing:.12em;text-align:center;transition:border-color .15s}
+.inp:focus{border-color:var(--a)}
+.inp::placeholder{color:var(--m);letter-spacing:.08em}
+.btn-primary{width:100%;margin-top:14px;padding:13px;border-radius:10px;border:none;cursor:pointer;background:var(--a);color:#08080F;font-weight:700;font-size:14px;font-family:inherit;letter-spacing:.01em;transition:opacity .15s}
+.btn-primary:hover{opacity:.88}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed}
+.err-msg{color:var(--r);font-size:12px;margin-top:10px;text-align:center}
+
+/* ─── App Shell ─────────────────────────────────────────────────────── */
+#app{display:none;flex-direction:column;min-height:100vh}
+.hdr{padding:0 28px;height:60px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0}
+.hdr-logo{font-size:17px;font-weight:800;letter-spacing:-.03em}
+.hdr-logo span{color:var(--a)}
+.hdr-mid{display:flex;align-items:center;gap:10px}
+.hdr-name{font-size:14px;font-weight:500;color:var(--tx)}
+.chip{font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;background:rgba(0,230,122,.1);color:var(--a);border:1px solid rgba(0,230,122,.2)}
+.chip-b{background:rgba(0,153,255,.1);color:var(--b);border-color:rgba(0,153,255,.2)}
+.btn-ghost{padding:6px 12px;border-radius:8px;border:1px solid var(--bd);background:transparent;color:var(--m);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;transition:all .15s}
+.btn-ghost:hover{border-color:var(--ms);color:var(--tx)}
+
+/* ─── Tabs ─────────────────────────────────────────────────────────── */
+.tabs{padding:0 28px;border-bottom:1px solid var(--bd);display:flex;gap:0;overflow-x:auto;flex-shrink:0}
+.tabs::-webkit-scrollbar{height:2px}
+.tabs::-webkit-scrollbar-thumb{background:var(--bd)}
+.tab{padding:14px 16px;font-size:13px;font-weight:500;color:var(--m);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.on{color:var(--tx);border-bottom-color:var(--a)}
+
+/* ─── Content ─────────────────────────────────────────────────────── */
+.cnt{flex:1;overflow-y:auto;padding:28px;max-width:960px;margin:0 auto;width:100%}
+.pane{display:none}
+.pane.on{display:block}
+
+/* ─── Cards ─────────────────────────────────────────────────────────── */
+.card-sm{background:var(--c1);border:1px solid var(--bd);border-radius:14px;padding:20px;margin-bottom:14px}
+.card-sm.done{border-color:rgba(0,230,122,.15);background:rgba(0,230,122,.03)}
+.card-sm.blue{border-color:rgba(0,153,255,.15);background:rgba(0,153,255,.03)}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:600px){.grid2{grid-template-columns:1fr}}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:640px){.grid4{grid-template-columns:repeat(2,1fr)}}
+
+/* ─── KPI / Stat ─────────────────────────────────────────────────────── */
+.kpi{background:var(--c1);border:1px solid var(--bd);border-radius:12px;padding:16px}
+.kpi-n{font-size:26px;font-weight:800;color:var(--tx)}
+.kpi-l{font-size:11px;color:var(--m);margin-top:3px}
+
+/* ─── Progress ─────────────────────────────────────────────────────── */
+.prog-wrap{display:flex;gap:6px;margin:10px 0 6px}
+.prog-seg{flex:1;height:4px;border-radius:4px;background:var(--bd);transition:background .3s}
+.prog-seg.done{background:var(--a)}
+
+/* ─── Doc card ─────────────────────────────────────────────────────── */
+.doc-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.doc-step{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(0,230,122,.1);color:var(--a);border:1px solid rgba(0,230,122,.2)}
+.doc-step.pending{background:rgba(255,255,255,.04);color:var(--m);border-color:var(--bd)}
+.doc-title{font-size:15px;font-weight:700;color:var(--tx);margin:4px 0 2px}
+.doc-meta{font-size:11px;color:var(--m)}
+.doc-preview{background:var(--c2);border-radius:8px;padding:12px;font-size:11px;line-height:1.75;white-space:pre-wrap;max-height:220px;overflow:auto;color:var(--ms);margin-top:10px;border:1px solid var(--bd)}
+.doc-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+
+/* ─── Buttons ─────────────────────────────────────────────────────── */
+.btn-dl{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid rgba(0,153,255,.25);background:rgba(0,153,255,.08);color:var(--b);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;text-decoration:none;transition:all .15s}
+.btn-dl:hover{background:rgba(0,153,255,.16);border-color:rgba(0,153,255,.4)}
+.btn-sign{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid rgba(0,230,122,.3);background:rgba(0,230,122,.08);color:var(--a);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s}
+.btn-sign:hover{background:rgba(0,230,122,.16)}
+.signed-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:rgba(0,230,122,.1);color:var(--a);font-size:11px;font-weight:600;border:1px solid rgba(0,230,122,.2)}
+
+/* ─── Activity ─────────────────────────────────────────────────────── */
+.act-row{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.act-row:last-child{border-bottom:none}
+.act-dot{width:7px;height:7px;border-radius:50%;background:var(--a);margin-top:6px;flex-shrink:0}
+.act-txt{font-size:13px;color:var(--tx)}
+.act-t{font-size:11px;color:var(--m);margin-top:2px}
+
+/* ─── Campaign ─────────────────────────────────────────────────────── */
+.copy-box{background:var(--c2);border:1px solid var(--bd);border-radius:8px;padding:12px;font-size:12px;line-height:1.7;color:var(--ms);margin-top:8px;position:relative}
+.copy-btn{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--m);padding:2px;transition:color .15s}
+.copy-btn:hover{color:var(--a)}
+
+/* ─── Section header ─────────────────────────────────────────────────── */
+.sec-hdr{font-size:11px;font-weight:600;color:var(--m);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px}
+.sec-title{font-size:18px;font-weight:700;color:var(--tx);margin-bottom:4px}
+.sec-sub{font-size:13px;color:var(--m);margin-bottom:20px}
+.empty{text-align:center;color:var(--m);padding:48px 0;font-size:13px}
+
+/* ─── Signature modal ─────────────────────────────────────────────────── */
+#sig-modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.75);align-items:center;justify-content:center;padding:20px}
+#sig-modal.show{display:flex}
+.sig-box{background:var(--c1);border:1px solid var(--bd);border-radius:18px;width:100%;max-width:520px;padding:28px}
+.sig-title{font-size:17px;font-weight:700;margin-bottom:6px}
+.sig-sub{font-size:12px;color:var(--m);margin-bottom:20px}
+#sig-canvas{width:100%;height:200px;background:var(--c2);border:1px solid var(--bd);border-radius:10px;cursor:crosshair;display:block;touch-action:none}
+.sig-actions{display:flex;gap:10px;margin-top:14px;justify-content:flex-end}
+.btn-clear{padding:8px 16px;border-radius:8px;border:1px solid var(--bd);background:transparent;color:var(--m);font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;transition:all .15s}
+.btn-clear:hover{border-color:var(--ms);color:var(--tx)}
+.btn-confirm{padding:8px 18px;border-radius:8px;border:none;background:var(--a);color:#08080F;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity .15s}
+.btn-confirm:hover{opacity:.88}
+.btn-confirm:disabled{opacity:.45;cursor:not-allowed}
+
+/* ─── Spinner ─────────────────────────────────────────────────────── */
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--a);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─── Discovery Form ─────────────────────────────────────────────── */
+.disc-section{margin-bottom:24px}
+.disc-section-title{font-size:11px;font-weight:700;color:var(--m);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+.disc-field{margin-bottom:14px}
+.disc-field label{display:block;font-size:12px;font-weight:500;color:var(--ms);margin-bottom:6px}
+.disc-inp,.disc-ta{width:100%;padding:10px 14px;border-radius:9px;border:1px solid var(--bd);background:var(--c2);color:var(--tx);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;box-sizing:border-box}
+.disc-inp:focus,.disc-ta:focus{border-color:var(--a)}
+.disc-ta{resize:vertical;min-height:80px;line-height:1.6}
+.disc-inp::placeholder,.disc-ta::placeholder{color:var(--m)}
+.disc-save-row{display:flex;align-items:center;gap:12px;margin-top:20px}
+.btn-disc-save{padding:11px 24px;border-radius:9px;border:none;background:var(--a);color:#08080F;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;transition:opacity .15s}
+.btn-disc-save:hover{opacity:.88}
+.btn-disc-save:disabled{opacity:.45;cursor:not-allowed}
+.disc-ok{font-size:12px;color:var(--a)}
+.disc-err{font-size:12px;color:var(--r)}
 </style>
 </head>
 <body>
-<div id="app"></div>
+
+<!-- ── LOGIN ─────────────────────────────────────────────────────────── -->
+<div id="login">
+  <div class="lbox">
+    <div class="logo-mark">XENT<span>TECH</span></div>
+    <div class="logo-sub">Portal de Cliente</div>
+    <div class="card">
+      <label class="lbl" for="tk-inp">Token de acceso</label>
+      <input id="tk-inp" class="inp" type="text" placeholder="XT-XXXXXXXX" autocomplete="off" spellcheck="false">
+      <button id="login-btn" class="btn-primary" onclick="doLogin()">Ingresar</button>
+      <div id="login-err" class="err-msg" style="display:none"></div>
+    </div>
+    <p style="text-align:center;font-size:11px;color:var(--m);margin-top:16px">
+      ¿No tienes tu token? Contacta a tu agencia.
+    </p>
+  </div>
+</div>
+
+<!-- ── APP ───────────────────────────────────────────────────────────── -->
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-logo">XENT<span>TECH</span></div>
+    <div class="hdr-mid">
+      <span id="hdr-name" class="hdr-name"></span>
+      <span id="hdr-plan" class="chip" style="display:none"></span>
+    </div>
+    <button class="btn-ghost" onclick="logout()">Cerrar sesión</button>
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="showTab('inicio',this)">Inicio</button>
+    <button class="tab" onclick="showTab('docs',this)">Documentos</button>
+    <button class="tab" onclick="showTab('cuestionario',this)">Cuestionario</button>
+    <button class="tab" onclick="showTab('camps',this)">Campañas</button>
+    <button class="tab" onclick="showTab('strat',this)">Estrategia</button>
+    <button class="tab" onclick="showTab('designs',this)">Diseños</button>
+    <button class="tab" onclick="showTab('activity',this)">Actividad</button>
+  </div>
+  <div class="cnt">
+
+    <!-- INICIO -->
+    <div id="pane-inicio" class="pane on">
+      <div id="inicio-html"></div>
+    </div>
+
+    <!-- DOCUMENTOS -->
+    <div id="pane-docs" class="pane">
+      <p class="sec-hdr">Documentos de onboarding</p>
+      <div id="docs-html"></div>
+    </div>
+
+    <!-- CUESTIONARIO -->
+    <div id="pane-cuestionario" class="pane">
+      <p class="sec-hdr">Cuestionario de descubrimiento</p>
+      <div id="cuestionario-html"></div>
+    </div>
+
+    <!-- CAMPAÑAS -->
+    <div id="pane-camps" class="pane">
+      <p class="sec-hdr">Campañas publicitarias</p>
+      <div id="camps-html"></div>
+    </div>
+
+    <!-- ESTRATEGIA -->
+    <div id="pane-strat" class="pane">
+      <p class="sec-hdr">Estrategia digital</p>
+      <div id="strat-html"></div>
+    </div>
+
+    <!-- DISEÑOS -->
+    <div id="pane-designs" class="pane">
+      <p class="sec-hdr">Diseños creativos</p>
+      <div id="designs-html"></div>
+    </div>
+
+    <!-- ACTIVIDAD -->
+    <div id="pane-activity" class="pane">
+      <p class="sec-hdr">Historial de actividad</p>
+      <div id="activity-html"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── SIGNATURE MODAL ──────────────────────────────────────────────── -->
+<div id="sig-modal">
+  <div class="sig-box">
+    <div class="sig-title">Firma digital del contrato</div>
+    <div class="sig-sub">Dibuja tu firma en el recuadro de abajo. Esta firma quedará registrada digitalmente.</div>
+    <canvas id="sig-canvas" width="460" height="200"></canvas>
+    <div class="sig-actions">
+      <button class="btn-clear" onclick="clearSig()">Borrar</button>
+      <button class="btn-clear" onclick="closeSigModal()" style="margin-right:auto">Cancelar</button>
+      <button id="sig-confirm" class="btn-confirm" onclick="submitSig()">Firmar contrato</button>
+    </div>
+    <p id="sig-err" style="color:var(--r);font-size:12px;margin-top:10px;display:none"></p>
+  </div>
+</div>
+
 <script>
-// ── Supabase config — main XENTTECH project ───────────────────────────────────
 var SU = "https://oxlhmndvpogpdjutfxzr.supabase.co";
 var SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94bGhtbmR2cG9ncGRqdXRmeHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MzUxMzgsImV4cCI6MjA5MjUxMTEzOH0.4_eOtdaMZDsmiYPKeRkwgaZHuSRlGm3TS1XHbxkt96s";
-var HD = {"Content-Type":"application/json",apikey:SK,Authorization:"Bearer "+SK,Prefer:"return=representation"};
 
-function db(t,p){return fetch(SU+"/rest/v1/"+t+"?"+(p||""),{headers:HD}).then(function(r){if(!r.ok)return[];return r.json()})}
-function $(s){return document.querySelector(s)}
-function esc(s){if(!s)return"";var d=document.createElement("div");d.textContent=String(s);return d.innerHTML}
-function fmt(d){if(!d)return"";try{return new Date(d).toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"})}catch(e){return d}}
-function fmts(d){if(!d)return"";try{return new Date(d).toLocaleString("es-MX",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}catch(e){return d}}
+var HD = {"apikey":SK,"Authorization":"Bearer "+SK,"Content-Type":"application/json"};
+var CID = "", clientData = {}, allDocs = [], allCamps = [], allStrats = [], allDesigns = [];
+window._docs=[]; window._camps=[]; window._strats=[]; window._designs=[];
 
-var client=null,docs=[],camps=[],strats=[],designs=[],acts=[],tab="inicio";
+// clientVisible step numbers (step 4 = Discovery Form is internal only)
+var CLIENT_STEPS = [1,2,3,5,6];
+var STEP_NAMES = {1:"Contrato",2:"Factura",3:"Welcome Document",5:"Setup de Estrategia",6:"Kickoff"};
 
-function render(){document.getElementById("app").innerHTML=client?portal():loginPage()}
-
-function loginPage(){
-  return '<div class="wrap"><div class="box">'+
-  '<div class="logo">XENTTECH</div>'+
-  '<div class="sub">PORTAL DE CLIENTE</div>'+
-  '<div class="card">'+
-  '<div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00FF88" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>'+
-  '<label class="lbl">Token de Acceso</label>'+
-  '<input class="tk" id="tok" placeholder="••••••••" autocomplete="off">'+
-  '<div id="err" class="err"></div>'+
-  '<button class="btn" id="lb" onclick="doLogin()">Entrar al Portal</button>'+
-  '</div>'+
-  '<div class="hint">Token proporcionado por el equipo XENTTECH</div>'+
-  '</div></div>';
+function esc(s){
+  if(!s)return"";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
-function portal(){
-  var steps=["Contrato","Factura","Brief","Welcome","Portal","Estrategia","Llamada"];
-  var ts=[
-    {i:"inicio",l:"Inicio"},
-    {i:"docs",l:"Documentos"},
-    {i:"camps",l:"Campañas"},
-    {i:"strat",l:"Estrategia"},
-    {i:"designs",l:"Diseños"},
-    {i:"activity",l:"Actividad"}
-  ];
-
-  var h='<div class="hdr">'+
-    '<div class="hdr-l">'+
-      '<span class="logo" style="font-size:20px">XENTTECH</span>'+
-      '<span style="font-size:11px;color:var(--m);border-left:1px solid var(--bd);padding-left:12px">Portal de Cliente</span>'+
-    '</div>'+
-    '<div class="hdr-r">'+
-      '<span class="nm">'+esc(client.name)+'</span>'+
-      (client.status?'<span class="tag tg">'+esc(client.status)+'</span>':'')+
-      (client.plan?'<span class="tag tb">'+esc(client.plan)+'</span>':'')+
-      '<button class="bsm" onclick="doLogout()">Salir</button>'+
-    '</div>'+
-  '</div>';
-
-  h+='<div class="tabs">';
-  for(var i=0;i<ts.length;i++){
-    h+='<button class="bsm'+((tab===ts[i].i)?" on":"")+'" onclick="sw(\''+ts[i].i+'\')">'+ts[i].l+'</button>';
-  }
-  h+='</div><div class="cnt">';
-
-  // ── INICIO ──────────────────────────────────────────────────────────────────
-  if(tab==="inicio"){
-    h+='<h2>Bienvenido, '+esc(client.name)+' 👋</h2>';
-
-    // Progress tracker
-    h+='<div class="card" style="margin-bottom:20px">'+
-      '<div style="font-size:14px;font-weight:700;margin-bottom:4px">Progreso del Proyecto</div>'+
-      '<div style="font-size:11px;color:var(--m);margin-bottom:16px">Paso '+(client.onboarding_step||1)+' de '+steps.length+'</div>'+
-      '<div class="pb">';
-    for(var i=0;i<steps.length;i++){
-      var done=i+1<=(client.onboarding_step||1);
-      h+='<div style="flex:1;text-align:center">'+
-        '<div class="sc '+(done?"d":"p")+'">'+(done?"✓":(i+1))+'</div>'+
-        '<div class="stn">'+steps[i]+'</div>'+
-      '</div>';
-    }
-    h+='</div>';
-    var pct=Math.round(((client.onboarding_step||1)/steps.length)*100);
-    h+='<div class="prog" style="margin-top:16px"><div class="prog-b" style="width:'+pct+'%"></div></div>'+
-      '<div style="text-align:right;font-size:10px;color:var(--a);margin-top:4px">'+pct+'% completado</div>';
-    h+='</div>';
-
-    // Stats
-    h+='<div class="sg">';
-    var ss=[
-      {n:docs.length,l:"Documentos",c:"var(--a)"},
-      {n:camps.length,l:"Campañas",c:"var(--a2)"},
-      {n:strats.length,l:"Estrategias",c:"#FFD93D"},
-      {n:designs.length,l:"Diseños",c:"#FF6B9D"}
-    ];
-    for(var i=0;i<ss.length;i++){
-      h+='<div class="card" style="text-align:center;margin-bottom:0">'+
-        '<div class="sn" style="color:'+ss[i].c+'">'+ss[i].n+'</div>'+
-        '<div class="sl">'+ss[i].l+'</div>'+
-      '</div>';
-    }
-    h+='</div>';
-
-    // Recent activity
-    if(acts.length>0){
-      h+='<div class="card"><div style="font-size:14px;font-weight:700;margin-bottom:12px">Actividad Reciente</div>';
-      for(var i=0;i<Math.min(acts.length,5);i++){
-        h+='<div class="ai">'+
-          '<div class="adot"></div>'+
-          '<div><div class="at">'+esc(acts[i].action)+'</div>'+
-          '<div class="adl">'+(acts[i].details?esc(acts[i].details)+' · ':'')+fmts(acts[i].created_at)+'</div></div>'+
-        '</div>';
-      }
-      h+='</div>';
-    }
-
-    // Quick links
-    h+='<div class="card"><div style="font-size:14px;font-weight:700;margin-bottom:12px">Accesos Directos</div>'+
-      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-      '<button class="bsm" onclick="sw(\'docs\')">📄 Documentos</button>'+
-      '<button class="bsm" onclick="sw(\'camps\')">📊 Campañas</button>'+
-      '<button class="bsm" onclick="sw(\'strat\')">🎯 Estrategia</button>'+
-      '<button class="bsm" onclick="sw(\'designs\')">🎨 Diseños</button>'+
-      '</div></div>';
-  }
-
-  // ── DOCUMENTOS ──────────────────────────────────────────────────────────────
-  if(tab==="docs"){
-    h+='<h2>📄 Documentos del Proyecto</h2>';
-    if(!docs.length){
-      h+='<div class="card emp">'+
-        '<div style="font-size:32px;margin-bottom:12px">📋</div>'+
-        'Tus documentos aparecerán aquí cuando el equipo los genere.<br>'+
-        '<span style="font-size:11px">Normalmente listos en las primeras 48 horas.</span>'+
-      '</div>';
-    }
-    for(var i=0;i<docs.length;i++){
-      var d=docs[i];
-      var icons={"Contrato":"📝","Factura":"🧾","Welcome Document":"💛","Portal de Cliente":"🌐","Setup de Estrategia":"🎯","Llamada de Estrategia":"📞"};
-      var ico=icons[d.step_name]||"📄";
-      var sc={"pending":"tb","in_progress":"tb","completed":"tg"};
-      h+='<div class="card">'+
-        '<div class="dh">'+
-          '<div><div class="dt">'+ico+' '+esc(d.step_name||"Paso "+d.step_number)+'</div>'+
-          '<div class="dd">'+fmt(d.created_at)+'</div></div>'+
-          '<span class="tag '+(sc[d.status]||"tb")+'">'+esc(d.status)+'</span>'+
-        '</div>'+
-        (d.content?'<div class="dc">'+esc(d.content)+'</div>':'')+
-      '</div>';
-    }
-  }
-
-  // ── CAMPAÑAS ────────────────────────────────────────────────────────────────
-  if(tab==="camps"){
-    h+='<h2>📊 Campañas Activas</h2>';
-    if(!camps.length){
-      h+='<div class="card emp">'+
-        '<div style="font-size:32px;margin-bottom:12px">📣</div>'+
-        'Sin campañas activas aún.<br>'+
-        '<span style="font-size:11px">Se mostrarán una vez que se lancen.</span>'+
-      '</div>';
-    }
-    for(var i=0;i<camps.length;i++){
-      var c=camps[i];
-      var pi={"meta":"📘","google":"🔍","tiktok":"🎵","linkedin":"💼","youtube":"▶️"};
-      var pico=pi[c.platform]||"📣";
-      var sc2={"active":"tg","paused":"tb","draft":"tb","completed":"tg"};
-      h+='<div class="card">'+
-        '<div class="dh">'+
-          '<div>'+
-            '<div class="dt">'+pico+' '+esc(c.campaign_name)+'</div>'+
-            '<div class="dd">'+esc(c.platform||"")+' · '+esc(c.objective||"")+' · '+(c.budget_monthly?'$'+Number(c.budget_monthly).toLocaleString()+'/mes':'')+'</div>'+
-          '</div>'+
-          '<span class="tag '+(sc2[c.status]||"tb")+'">'+esc(c.status)+'</span>'+
-        '</div>'+
-        (c.audience?'<div class="dd" style="margin-top:8px">👥 Audiencia: '+esc(c.audience)+'</div>':'')+
-      '</div>';
-    }
-  }
-
-  // ── ESTRATEGIA ──────────────────────────────────────────────────────────────
-  if(tab==="strat"){
-    h+='<h2>🎯 Estrategia Digital</h2>';
-    if(!strats.length){
-      h+='<div class="card emp">'+
-        '<div style="font-size:32px;margin-bottom:12px">🗺️</div>'+
-        'Tu estrategia aparecerá aquí cuando esté lista.<br>'+
-        '<span style="font-size:11px">Generada y revisada por el equipo XENTTECH.</span>'+
-      '</div>';
-    }
-    for(var i=0;i<strats.length;i++){
-      var s=strats[i];
-      var sc3={"active":"tg","approved":"tg","draft":"tb","archived":"tb"};
-      h+='<div class="card">'+
-        '<div class="dh">'+
-          '<div class="dt">'+esc(s.title)+'</div>'+
-          '<span class="tag '+(sc3[s.status]||"tb")+'">'+esc(s.status)+'</span>'+
-        '</div>'+
-        (s.content?'<div class="dc">'+esc(s.content)+'</div>':'')+
-      '</div>';
-    }
-  }
-
-  // ── DISEÑOS ─────────────────────────────────────────────────────────────────
-  if(tab==="designs"){
-    h+='<h2>🎨 Diseños y Creativos</h2>';
-    if(!designs.length){
-      h+='<div class="card emp">'+
-        '<div style="font-size:32px;margin-bottom:12px">🖼️</div>'+
-        'Tus piezas de diseño aparecerán aquí.<br>'+
-        '<span style="font-size:11px">Incluye posts, stories, banners y más.</span>'+
-      '</div>';
-    }
-    for(var i=0;i<designs.length;i++){
-      var d2=designs[i];
-      var ti={"post":"🖼️","story":"📱","banner":"🎯","video_script":"🎬","carousel":"🎠","reels_script":"🎥","email_header":"📧"};
-      var sc4={"pending":"tb","in_review":"tb","approved":"tg","delivered":"tg"};
-      h+='<div class="card">'+
-        '<div class="dh">'+
-          '<div class="dt">'+(ti[d2.design_type]||"🎨")+' '+esc((d2.design_type||"").replace(/_/g," "))+'</div>'+
-          '<span class="tag '+(sc4[d2.status]||"tb")+'">'+esc(d2.status)+'</span>'+
-        '</div>'+
-        (d2.brief?'<div class="dc">'+esc(d2.brief)+'</div>':'')+
-        (d2.canva_url?'<a href="'+esc(d2.canva_url)+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;padding:8px 16px;border-radius:8px;border:1px solid rgba(0,255,136,.3);font-size:12px;font-weight:700;color:var(--a)">Ver diseño en Canva →</a>':'')+
-      '</div>';
-    }
-  }
-
-  // ── ACTIVIDAD ───────────────────────────────────────────────────────────────
-  if(tab==="activity"){
-    h+='<h2>📋 Historial de Actividad</h2>';
-    if(!acts.length){
-      h+='<div class="card emp">Sin actividad registrada aún.</div>';
-    } else {
-      h+='<div class="card">';
-      for(var i=0;i<acts.length;i++){
-        h+='<div class="ai">'+
-          '<div class="adot"></div>'+
-          '<div><div class="at">'+esc(acts[i].action)+'</div>'+
-          '<div class="adl">'+(acts[i].details?esc(acts[i].details)+' · ':'')+fmts(acts[i].created_at)+'</div></div>'+
-        '</div>';
-      }
-      h+='</div>';
-    }
-  }
-
-  h+='</div>';
-  return h;
+function db(t,p){
+  return fetch(SU+"/rest/v1/"+t+"?"+(p||""),{headers:HD}).then(function(r){if(!r.ok)return[];return r.json()});
 }
 
+function dbl(t){
+  return fetch(SU+"/rest/v1/"+t,{method:"POST",headers:{...HD,"Prefer":"return=minimal"},body:JSON.stringify(t)});
+}
+
+function rel(s){
+  var d=new Date(s),now=new Date(),diff=now-d,m=Math.floor(diff/60000),h=Math.floor(m/60),dd=Math.floor(h/24);
+  if(m<2)return"hace un momento";
+  if(m<60)return"hace "+m+" min";
+  if(h<24)return"hace "+h+"h";
+  if(dd<7)return"hace "+dd+" día"+(dd!==1?"s":"");
+  return d.toLocaleDateString("es-MX",{day:"numeric",month:"short"});
+}
+
+function fmt(v,type){
+  var n=Number(v||0);
+  if(isNaN(n))return'—';
+  if(type==='count')return n.toLocaleString('es-MX');
+  if(type==='money')return'$'+n.toFixed(2);
+  if(type==='pct')return n.toFixed(2)+'%';
+  if(type==='dec')return n.toFixed(1);
+  return String(n);
+}
+
+function svgDl(){
+  return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+}
+
+function svgPen(){
+  return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
+}
+
+function svgCheck(){
+  return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+}
+
+// ── PDF Generation ────────────────────────────────────────────────────
+function addFooterPDF(doc,pw,ph,mg){
+  doc.setFontSize(7);doc.setTextColor(150,150,150);
+  doc.text('Documento generado por XENTTECH — Confidencial',pw/2,ph-10,{align:'center'});
+}
+
+function downloadPDF(title, name, company, content){
+  var jsPDF = window.jspdf && window.jspdf.jsPDF;
+  if(!jsPDF){
+    // Fallback: print-friendly tab if CDN failed
+    var w=window.open('','_blank');
+    if(!w){alert('Activa las ventanas emergentes para ver el documento.');return;}
+    w.document.write('<html><head><title>'+title+'</title><style>body{font-family:Georgia,serif;max-width:700px;margin:40px auto;color:#222;line-height:1.8}h1{color:#006644;border-bottom:2px solid #006644;padding-bottom:10px}h2{color:#333;margin-top:24px}p.meta{color:#888;font-size:13px}pre{white-space:pre-wrap;font-family:Georgia,serif;font-size:14px}</style></head><body>');
+    w.document.write('<h1>XENTTECH</h1>');
+    w.document.write('<p class="meta">Cliente: '+(name||'')+' | '+(company||'')+'</p>');
+    w.document.write('<h2>'+(title||'')+'</h2>');
+    w.document.write('<pre>'+(content||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</pre>');
+    w.document.write('</body></html>');
+    w.document.close();
+    w.print();
+    return;
+  }
+  var doc=new jsPDF('p','mm','letter');
+  var pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight(),mg=20,uw=pw-mg*2,y=mg;
+
+  var clean=(content||'')
+    .replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')
+    .replace(/^#{1,6}\s+/gm,'').replace(/^[-•]\s+/gm,'  ')
+    .replace(/`([^`]+)`/g,'$1').replace(/```[\s\S]*?```/g,'')
+    .replace(/\n{3,}/g,'\n\n').trim();
+
+  doc.setFontSize(18);doc.setTextColor(0,170,102);
+  doc.text('XENTTECH',mg,y);y+=3;
+  doc.setDrawColor(0,170,102);doc.setLineWidth(0.5);
+  doc.line(mg,y,pw-mg,y);y+=8;
+
+  doc.setFontSize(9);doc.setTextColor(100,100,100);
+  doc.text('Cliente: '+(name||'')+' — '+(company||''),mg,y);y+=5;
+  doc.text('Fecha: '+new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'}),mg,y);y+=10;
+
+  doc.setFontSize(14);doc.setTextColor(0,0,0);
+  doc.text((title||'').toUpperCase(),pw/2,y,{align:'center'});y+=12;
+
+  doc.setFontSize(10);doc.setTextColor(50,50,50);
+  var lines=doc.splitTextToSize(clean,uw);
+  for(var i=0;i<lines.length;i++){
+    if(y>ph-30){addFooterPDF(doc,pw,ph,mg);doc.addPage();y=mg;}
+    var ln=lines[i];
+    if(/^[A-ZÀ-ÖØ-Þ\s]{8,}$/.test(ln.trim())||/^(PRIMERA|SEGUNDA|TERCERA|CUARTA|QUINTA|SEXTA|SEPTIMA|OCTAVA|NOVENA|DECIMA|DECLARACIONES|CLAUSULAS)/.test(ln.trim())){
+      y+=4;doc.setFontSize(11);doc.setFont('helvetica','bold');
+      doc.text(ln,mg,y);doc.setFont('helvetica','normal');doc.setFontSize(10);y+=6;
+    }else{doc.text(ln,mg,y);y+=5;}
+  }
+
+  if((title||'').toLowerCase().indexOf('contrato')!==-1){
+    if(y>ph-80){addFooterPDF(doc,pw,ph,mg);doc.addPage();y=mg;}
+    y+=15;doc.setFontSize(11);doc.setFont('helvetica','bold');
+    doc.text('FIRMAS',pw/2,y,{align:'center'});y+=15;
+    doc.setFont('helvetica','normal');doc.setFontSize(9);
+    doc.text('Por "LA AGENCIA":',mg,y);doc.text('Por "EL CLIENTE":',pw/2+10,y);y+=20;
+    doc.line(mg,y,mg+60,y);doc.line(pw/2+10,y,pw/2+70,y);y+=5;
+    doc.text('Nombre: ___________________',mg,y);doc.text('Nombre: '+(name||''),pw/2+10,y);y+=6;
+    doc.text('Cargo: Director General',mg,y);doc.text('Cargo: ___________________',pw/2+10,y);y+=6;
+    doc.text('Fecha: '+new Date().toLocaleDateString('es-MX'),mg,y);doc.text('Fecha: ___________________',pw/2+10,y);
+    if(clientData.contract_signed&&clientData.signature_data){
+      try{
+        y+=8;
+        doc.addImage(clientData.signature_data,'PNG',pw/2+10,y-18,50,16);
+        doc.setFontSize(7);doc.setTextColor(100,100,100);
+        var sigDate=clientData.signed_at?new Date(clientData.signed_at).toLocaleDateString('es-MX'):new Date().toLocaleDateString('es-MX');
+        doc.text('Firmado digitalmente el '+sigDate,pw/2+10,y);
+      }catch(sigErr){console.log('sig img failed',sigErr);}
+    }
+  }
+
+  addFooterPDF(doc,pw,ph,mg);
+  doc.save((title||'documento').toLowerCase().replace(/\s+/g,'-')+'.pdf');
+}
+
+// ── Login ────────────────────────────────────────────────────────────
 function doLogin(){
-  var t=document.getElementById("tok").value.trim();
-  if(!t)return;
-  var b=document.getElementById("lb");
-  b.disabled=true;b.textContent="Verificando...";
-  var errEl=document.getElementById("err");
-  errEl.textContent="";
+  var tk=document.getElementById("tk-inp").value.trim().toUpperCase();
+  if(!tk){showErr("Ingresa tu token de acceso.");return;}
+  var btn=document.getElementById("login-btn");
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>';
+  var err=document.getElementById("login-err");err.style.display="none";
+  db("portal_tokens","select=id,client_id,is_active&token=eq."+encodeURIComponent(tk)+"&is_active=eq.true&limit=1")
+    .then(function(rows){
+      if(!rows||!rows.length){showErr("Token inválido o inactivo.");btn.disabled=false;btn.textContent="Ingresar";return;}
+      CID=rows[0].client_id;
+      sessionStorage.setItem("cid",CID);
+      sessionStorage.setItem("tk",tk);
+      return loadAll();
+    })
+    .catch(function(){showErr("Error de conexión.");btn.disabled=false;btn.textContent="Ingresar";});
+}
+function showErr(m){var e=document.getElementById("login-err");e.textContent=m;e.style.display="block";}
 
-  db("portal_tokens","token=eq."+encodeURIComponent(t)+"&is_active=eq.true&select=*").then(function(tks){
-    if(!tks||!tks.length){
-      errEl.textContent="Token inválido o inactivo";
-      b.disabled=false;b.textContent="Entrar al Portal";
-      return;
-    }
-    return db("clients","id=eq."+tks[0].client_id+"&select=*").then(function(cls){
-      if(!cls||!cls.length){
-        errEl.textContent="Cliente no encontrado";
-        b.disabled=false;b.textContent="Entrar al Portal";
-        return;
-      }
-      client=cls[0];
+document.getElementById("tk-inp").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
+
+// ── Logout ───────────────────────────────────────────────────────────
+function logout(){
+  sessionStorage.clear();
+  document.getElementById("app").style.display="none";
+  document.getElementById("login").style.display="flex";
+  document.getElementById("tk-inp").value="";
+  document.getElementById("login-btn").disabled=false;
+  document.getElementById("login-btn").textContent="Ingresar";
+}
+
+// ── Load all data ────────────────────────────────────────────────────
+function loadAll(){
+  return db("clients","select=id,name,company,plan,status,onboarding_step,contract_signed,signature_data,signed_at,notes&id=eq."+CID+"&limit=1")
+    .then(function(rows){
+      clientData=rows&&rows.length?rows[0]:{};
       return Promise.all([
-        db("onboarding_documents","client_id=eq."+client.id+"&order=step_number.asc&select=*"),
-        db("campaigns","client_id=eq."+client.id+"&order=created_at.desc&select=*"),
-        db("strategies","client_id=eq."+client.id+"&order=created_at.desc&select=*"),
-        db("designs","client_id=eq."+client.id+"&order=created_at.desc&select=*"),
-        db("activity_log","client_id=eq."+client.id+"&order=created_at.desc&limit=30&select=*")
-      ]).then(function(r){
-        docs=r[0]||[];camps=r[1]||[];strats=r[2]||[];designs=r[3]||[];acts=r[4]||[];
-        render();
-      });
+        db("onboarding_documents","select=*&client_id=eq."+CID+"&order=step_number"),
+        db("campaigns","select=*&client_id=eq."+CID+"&order=created_at.desc"),
+        db("strategies","select=*&client_id=eq."+CID+"&title=not.ilike.Manual de Marca*&order=created_at.desc"),
+        db("designs","select=*&client_id=eq."+CID+"&order=created_at.desc"),
+        db("activity_log","select=*&client_id=eq."+CID+"&order=created_at.desc&limit=25"),
+      ]);
+    })
+    .then(function(res){
+      allDocs=res[0]||[];allCamps=res[1]||[];allStrats=res[2]||[];allDesigns=res[3]||[];
+      var acts=res[4]||[];
+      showApp(acts);
     });
-  }).catch(function(e){
-    errEl.textContent="Error de conexión. Intenta de nuevo.";
-    b.disabled=false;b.textContent="Entrar al Portal";
+}
+
+// ── Show app ─────────────────────────────────────────────────────────
+function showApp(acts){
+  document.getElementById("login").style.display="none";
+  var app=document.getElementById("app");app.style.display="flex";
+  document.getElementById("hdr-name").textContent=clientData.name||"";
+  var planEl=document.getElementById("hdr-plan");
+  if(clientData.plan){planEl.textContent=clientData.plan;planEl.style.display="inline-block";}
+
+  renderDocs();
+  renderCamps();
+  renderStrat();
+  renderDesigns();
+  renderDiscovery();
+  renderInicio();
+  renderActivity(acts);
+}
+
+function showTab(id,el){
+  document.querySelectorAll(".pane").forEach(function(p){p.classList.remove("on")});
+  document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("on")});
+  document.getElementById("pane-"+id).classList.add("on");
+  el.classList.add("on");
+}
+
+// ── Inicio ───────────────────────────────────────────────────────────
+function renderInicio(){
+  var clientDocs=allDocs.filter(function(d){return CLIENT_STEPS.indexOf(d.step_number)!==-1&&d.status==="completado";});
+  var total=CLIENT_STEPS.length,done=clientDocs.length;
+  var signed=clientData.contract_signed;
+
+  var segs="";
+  for(var i=0;i<total;i++){
+    var sn=CLIENT_STEPS[i];
+    var isDone=allDocs.some(function(d){return d.step_number===sn&&d.status==="completado";});
+    segs+='<div class="prog-seg'+(isDone?" done":"")+'"></div>';
+  }
+
+  var h='<div class="card-sm" style="margin-bottom:20px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">';
+  h+='<div><div class="sec-title">Bienvenido, '+(clientData.name||"cliente")+'</div>';
+  h+='<div class="sec-sub">Aquí puedes ver el progreso de tu proyecto en tiempo real.</div></div>';
+  if(clientData.status==="active"){
+    h+='<span class="chip">Activo</span>';
+  }
+  h+='</div>';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+  h+='<span style="font-size:12px;color:var(--m)">Progreso de onboarding</span>';
+  h+='<span style="font-size:14px;font-weight:700;color:var(--a)">'+done+'/'+total+'</span>';
+  h+='</div>';
+  h+='<div class="prog-wrap">'+segs+'</div>';
+  h+='</div>';
+
+  // Contract status
+  if(allDocs.some(function(d){return d.step_number===1&&d.status==="completado";})){
+    h+='<div class="card-sm '+(signed?"done":"")+('" style="margin-bottom:14px">');
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">';
+    h+='<div><div style="font-size:14px;font-weight:600;color:var(--tx)">Contrato de servicios</div>';
+    h+='<div style="font-size:12px;color:var(--m);margin-top:2px">'+(signed?"Firmado digitalmente":"Pendiente de firma")+' </div></div>';
+    if(signed){
+      h+='<span class="signed-badge">'+svgCheck()+' Firmado</span>';
+    } else {
+      h+='<button class="btn-sign" onclick="openSigModal()">'+svgPen()+' Firmar digitalmente</button>';
+    }
+    h+='</div></div>';
+  }
+
+  // Collect all available PDFs from arrays populated by render functions
+  var pdfs=[];
+  for(var pi=0;pi<window._docs.length;pi++){pdfs.push({n:esc(window._docs[pi].title),arr:'_docs',idx:pi});}
+  for(var pi=0;pi<window._camps.length;pi++){pdfs.push({n:esc(window._camps[pi].title),arr:'_camps',idx:pi});}
+  for(var pi=0;pi<window._strats.length;pi++){pdfs.push({n:esc(window._strats[pi].title),arr:'_strats',idx:pi});}
+  for(var pi=0;pi<window._designs.length;pi++){pdfs.push({n:esc(window._designs[pi].title),arr:'_designs',idx:pi});}
+
+  if(pdfs.length){
+    h+='<div class="card-sm" style="margin-bottom:14px">';
+    h+='<div style="font-size:13px;font-weight:600;color:var(--tx);margin-bottom:12px">Documentos del proyecto</div>';
+    for(var pi=0;pi<pdfs.length;pi++){
+      h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)">';
+      h+='<span style="font-size:13px;color:var(--ms)">'+pdfs[pi].n+'</span>';
+      h+='<button class="btn-dl" onclick="var d=window[\''+pdfs[pi].arr+'\']['+pdfs[pi].idx+'];downloadPDF(d.title,d.clientName,d.company,d.content)">'+svgDl()+' PDF</button>';
+      h+='</div>';
+    }
+    h+='</div>';
+  }
+
+  document.getElementById("inicio-html").innerHTML=h;
+}
+
+// ── Documentos ───────────────────────────────────────────────────────
+function renderDocs(){
+  window._docs=[];
+  var h="";
+  var signed=clientData.contract_signed;
+
+  CLIENT_STEPS.forEach(function(sn){
+    var doc=allDocs.find(function(d){return d.step_number===sn;});
+    var done=doc&&doc.status==="completado";
+    var name=STEP_NAMES[sn]||"Documento";
+
+    h+='<div class="card-sm'+(done?" done":"")+'"">';
+    h+='<div class="doc-hdr">';
+    h+='<div style="flex:1">';
+    h+='<span class="doc-step'+(done?"":" pending")+'">PASO '+sn+'</span>';
+    h+='<div class="doc-title">'+esc(name)+'</div>';
+    if(done&&doc.created_at){h+='<div class="doc-meta">Generado '+rel(doc.created_at)+'</div>';}
+    h+='</div>';
+    h+='</div>';
+
+    if(!done){
+      h+='<p style="font-size:12px;color:var(--m)">Este documento aún no ha sido generado.</p>';
+    } else {
+      h+='<div class="doc-actions">';
+      if(doc.content){
+        var dIdx=window._docs.length;
+        window._docs.push({title:name,clientName:clientData.name||"",company:clientData.company||"",content:doc.content,filename:'doc-'+sn+'.pdf'});
+        h+='<button class="btn-dl" onclick="var d=window._docs['+dIdx+'];downloadPDF(d.title,d.clientName,d.company,d.content)">'+svgDl()+' Descargar PDF</button>';
+      }
+      if(sn===1){
+        if(signed){
+          h+='<span class="signed-badge">'+svgCheck()+' Firmado digitalmente</span>';
+        } else {
+          h+='<button class="btn-sign" onclick="openSigModal()">'+svgPen()+' Firmar contrato</button>';
+        }
+      }
+      h+='</div>';
+      if(doc.content){
+        var preview=doc.content.slice(0,400)+(doc.content.length>400?"…":"");
+        h+='<div class="doc-preview">'+esc(preview)+'</div>';
+      }
+    }
+    h+='</div>';
+  });
+
+  if(!h)h='<p class="empty">No hay documentos disponibles aún.</p>';
+  document.getElementById("docs-html").innerHTML=h;
+}
+
+// ── Portal campaign filter ─────────────────────────────────────────────
+var portalCampFilter = 'active';
+
+function filterPortalCamps(f){
+  portalCampFilter = f;
+  renderCamps();
+}
+
+// ── Excel download ─────────────────────────────────────────────────────
+function downloadCampaignExcel(){
+  if(!window.XLSX){alert('Librería no disponible, recarga la página.');return;}
+  var camps=window._campaignData||[];
+  if(!camps.length){alert('Sin campañas para exportar.');return;}
+  var wb=XLSX.utils.book_new();
+  var date=new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'});
+  var totalSpend=0,totalImpr=0,totalClicks=0,totalRes=0,totalMsg=0;
+  camps.forEach(function(c){var s=(c.metrics&&c.metrics.last_stats)||{};totalSpend+=parseFloat(s.spend||0);totalImpr+=parseInt(s.impressions||0);totalClicks+=parseInt(s.clicks||0);totalRes+=parseInt(s.results_count||0);totalMsg+=parseInt(s.messages_count||0);});
+  var ws1=XLSX.utils.aoa_to_sheet([
+    ['REPORTE DE CAMPAÑAS — '+(clientData.name||'')],
+    ['Empresa: '+(clientData.company||'')],
+    ['Generado: '+date],[''],
+    ['RESUMEN'],
+    ['Total campañas',camps.length],
+    ['Campañas activas',camps.filter(function(c){return c.status==='active';}).length],
+    ['Total invertido','$'+totalSpend.toFixed(2)+' MXN'],
+    ['Impresiones',totalImpr.toLocaleString()],
+    ['Clicks',totalClicks.toLocaleString()],
+    ['Resultados',totalRes.toLocaleString()],
+    ['Mensajes',totalMsg.toLocaleString()],
+  ]);
+  ws1['!cols']=[{wch:25},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws1,'Resumen');
+  var hdrs=['Campaña','Estado','Objetivo','Impresiones','Alcance','Clicks','CTR %','CPC','CPM','Gastado MXN','Frecuencia','Resultados','Costo/Resultado','Mensajes','Costo/Mensaje'];
+  var rows=camps.map(function(c){var s=(c.metrics&&c.metrics.last_stats)||{};return[c.campaign_name,c.status,c.objective||'',parseInt(s.impressions||0),parseInt(s.reach||0),parseInt(s.clicks||0),parseFloat(s.ctr||0).toFixed(2),parseFloat(s.cpc||0).toFixed(2),parseFloat(s.cpm||0).toFixed(2),parseFloat(s.spend||0).toFixed(2),parseFloat(s.frequency||0).toFixed(1),parseInt(s.results_count||0),parseFloat(s.cost_per_result||0).toFixed(2),parseInt(s.messages_count||0),parseFloat(s.cost_per_message||0).toFixed(2)];});
+  var ws2=XLSX.utils.aoa_to_sheet([hdrs].concat(rows));
+  ws2['!cols']=[{wch:40}].concat(hdrs.slice(1).map(function(){return{wch:16};}));
+  XLSX.utils.book_append_sheet(wb,ws2,'Campañas');
+  XLSX.writeFile(wb,'XENTTECH-'+(clientData.name||'Reporte').replace(/\s+/g,'-')+'-'+new Date().toISOString().split('T')[0]+'.xlsx');
+}
+
+// ── PDF — all campaigns summary ──────────────────────────────────────────
+function downloadAllCampaignsPDF(){
+  var camps=window._campaignData||[];
+  if(!camps.length){alert('Sin campañas para exportar.');return;}
+  if(!window.jspdf){
+    var w=window.open('','_blank');if(!w){alert('Activa ventanas emergentes.');return;}
+    w.document.write('<html><head><title>Reporte XENTTECH</title><style>body{font-family:Arial,sans-serif;max-width:700px;margin:40px auto;color:#222;line-height:1.7}h1{color:#006644}h2{color:#333;margin-top:20px}table{width:100%;border-collapse:collapse;margin:10px 0}td,th{border:1px solid #ddd;padding:8px;font-size:12px}th{background:#f5f5f5}</style></head><body>');
+    w.document.write('<h1>XENTTECH — Reporte de Campañas</h1>');
+    w.document.write('<p>Cliente: '+(clientData.name||'')+' | '+new Date().toLocaleDateString('es-MX')+'</p>');
+    camps.forEach(function(c){var s=(c.metrics&&c.metrics.last_stats)||{};w.document.write('<h2>'+c.campaign_name+' ('+c.status+')</h2><table><tr><th>Métrica</th><th>Valor</th></tr><tr><td>Impresiones</td><td>'+Number(s.impressions||0).toLocaleString()+'</td></tr><tr><td>Clicks</td><td>'+Number(s.clicks||0).toLocaleString()+'</td></tr><tr><td>Gastado</td><td>$'+Number(s.spend||0).toFixed(2)+'</td></tr><tr><td>CTR</td><td>'+Number(s.ctr||0).toFixed(2)+'%</td></tr><tr><td>Resultados</td><td>'+Number(s.results_count||0)+'</td></tr><tr><td>Mensajes</td><td>'+Number(s.messages_count||0)+'</td></tr></table>');});
+    w.document.write('</body></html>');w.document.close();w.print();return;
+  }
+  var doc=new window.jspdf.jsPDF('p','mm','letter');
+  var m=20,y=m,pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight();
+  doc.setFontSize(18);doc.setTextColor(0,170,102);doc.text('XENTTECH',m,y);y+=4;
+  doc.setDrawColor(0,170,102);doc.line(m,y,pw-m,y);y+=10;
+  doc.setFontSize(10);doc.setTextColor(100,100,100);
+  doc.text('Cliente: '+(clientData.name||'')+' — '+(clientData.company||''),m,y);y+=5;
+  doc.text('Generado: '+new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'}),m,y);y+=10;
+  doc.setFontSize(14);doc.setTextColor(0,0,0);doc.text('REPORTE DE CAMPAÑAS',pw/2,y,{align:'center'});y+=12;
+  var ts=0,ti=0,tc=0,tr=0,tm=0;
+  camps.forEach(function(c){var s=(c.metrics&&c.metrics.last_stats)||{};ts+=parseFloat(s.spend||0);ti+=parseInt(s.impressions||0);tc+=parseInt(s.clicks||0);tr+=parseInt(s.results_count||0);tm+=parseInt(s.messages_count||0);});
+  doc.setFontSize(11);doc.setTextColor(0,0,0);doc.text('RESUMEN GENERAL',m,y);y+=7;
+  doc.setFontSize(10);doc.setTextColor(50,50,50);
+  [['Total invertido','$'+ts.toFixed(2)+' MXN'],['Impresiones',ti.toLocaleString()],['Clicks',tc.toLocaleString()],['Resultados',tr.toLocaleString()],['Mensajes',tm.toLocaleString()]].forEach(function(row){doc.text(row[0]+': '+row[1],m,y);y+=5;});
+  y+=7;
+  camps.forEach(function(c){
+    if(y>ph-60){doc.addPage();y=m;}
+    var s=(c.metrics&&c.metrics.last_stats)||{};
+    doc.setFontSize(11);doc.setTextColor(0,0,0);doc.text(String(c.campaign_name)+' ('+c.status+')',m,y);y+=6;
+    doc.setFontSize(9);doc.setTextColor(80,80,80);
+    doc.text('Impresiones: '+Number(s.impressions||0).toLocaleString()+'  |  Alcance: '+Number(s.reach||0).toLocaleString()+'  |  Clicks: '+Number(s.clicks||0).toLocaleString(),m,y);y+=5;
+    doc.text('CTR: '+Number(s.ctr||0).toFixed(2)+'%  |  CPC: $'+Number(s.cpc||0).toFixed(2)+'  |  Gastado: $'+Number(s.spend||0).toFixed(2)+' MXN',m,y);y+=5;
+    doc.text('Resultados: '+Number(s.results_count||0).toLocaleString()+'  |  Costo/Resultado: $'+Number(s.cost_per_result||0).toFixed(2)+'  |  Mensajes: '+Number(s.messages_count||0).toLocaleString(),m,y);y+=8;
+    doc.setDrawColor(200,200,200);doc.line(m,y-2,pw-m,y-2);
+  });
+  doc.setFontSize(7);doc.setTextColor(150,150,150);
+  doc.text('XENTTECH — Reporte Confidencial',pw/2,ph-10,{align:'center'});
+  doc.save('XENTTECH-Reporte-'+(clientData.name||'').replace(/\s+/g,'-')+'.pdf');
+}
+
+// ── Campañas ─────────────────────────────────────────────────────────
+function renderCamps(){
+  window._camps=[];
+  window._campsList=allCamps;
+  window._campaignData=allCamps; // used by Excel/PDF export
+
+  var filtered=portalCampFilter==='all'?allCamps:allCamps.filter(function(c){return c.status===portalCampFilter;});
+
+  // Download + filter bar
+  var h='<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">';
+  h+='<button onclick="downloadCampaignExcel()" style="padding:9px 18px;border-radius:9px;background:rgba(0,230,122,0.08);color:var(--a);border:1px solid rgba(0,230,122,0.15);cursor:pointer;font-size:13px;font-weight:600">&#8595; Excel</button>';
+  h+='<button onclick="downloadAllCampaignsPDF()" style="padding:9px 18px;border-radius:9px;background:rgba(59,130,246,0.08);color:var(--b);border:1px solid rgba(59,130,246,0.15);cursor:pointer;font-size:13px;font-weight:600">&#8595; PDF</button>';
+  h+='<div style="flex:1"></div>';
+  [{v:'active',l:'Activas'},{v:'paused',l:'Pausadas'},{v:'all',l:'Todas'}].forEach(function(f){
+    var cnt=f.v==='all'?allCamps.length:allCamps.filter(function(c){return c.status===f.v;}).length;
+    var on=portalCampFilter===f.v;
+    h+='<button onclick="filterPortalCamps(\''+f.v+'\')" style="padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;'+(on?'background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);color:var(--b)':'background:transparent;border:1px solid var(--bd);color:var(--m)')+'">';
+    h+=f.l+' ('+cnt+')</button>';
+  });
+  h+='</div>';
+
+  filtered.forEach(function(c,ci){
+    h+='<div class="card-sm">';
+    h+='<div class="doc-hdr">';
+    h+='<div style="flex:1">';
+    h+='<span class="chip chip-b" style="font-size:10px">'+esc(c.platform||"Meta")+'</span>';
+    h+='<div class="doc-title" style="margin-top:6px">'+esc(c.campaign_name||"Campaña")+'</div>';
+    if(c.objective)h+='<div class="doc-meta">Objetivo: '+esc(c.objective)+'</div>';
+    h+='</div>';
+    if(c.status){var sc=c.status==="active"?"var(--a)":c.status==="paused"?"var(--b)":"var(--m)";h+='<span style="font-size:11px;font-weight:600;color:'+sc+'">'+esc(c.status)+'</span>';}
+    h+='</div>';
+
+    if(c.audience||c.budget_monthly){
+      h+='<div style="display:flex;gap:16px;margin-bottom:10px">';
+      if(c.audience)h+='<div><span style="font-size:10px;color:var(--m)">Audiencia</span><div style="font-size:12px;color:var(--ms);margin-top:2px">'+esc(c.audience)+'</div></div>';
+      if(c.budget_monthly)h+='<div><span style="font-size:10px;color:var(--m)">Presupuesto</span><div style="font-size:12px;color:var(--ms);margin-top:2px">$'+esc(String(c.budget_monthly))+' MXN/mes</div></div>';
+      h+='</div>';
+    }
+
+    // Linked design image
+    var metrics={}; try{metrics=typeof c.metrics==='string'?JSON.parse(c.metrics):c.metrics||{};}catch(e){}
+    if(metrics.design_id){
+      var linkedDesign=null;
+      for(var di=0;di<allDesigns.length;di++){if(allDesigns[di].id===metrics.design_id){linkedDesign=allDesigns[di];break;}}
+      if(linkedDesign&&linkedDesign.image_svg){
+        h+='<div id="cdes-'+ci+'" style="border-radius:10px;overflow:hidden;margin:10px 0;line-height:0;max-width:260px;border:1px solid rgba(255,255,255,0.08)"></div>';
+      }
+    }
+
+    // Stats grid
+    if(metrics.last_stats){
+      var s=metrics.last_stats;
+      h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0;padding:14px;background:rgba(255,255,255,0.03);border-radius:12px">';
+      h+='<div><div style="font-size:18px;font-weight:700;color:var(--a)">'+fmt(s.impressions,'count')+'</div><div style="font-size:10px;color:var(--m)">Impresiones</div></div>';
+      h+='<div><div style="font-size:18px;font-weight:700;color:var(--b)">'+fmt(s.reach,'count')+'</div><div style="font-size:10px;color:var(--m)">Alcance</div></div>';
+      h+='<div><div style="font-size:18px;font-weight:700;color:#a78bfa">'+fmt(s.clicks,'count')+'</div><div style="font-size:10px;color:var(--m)">Clicks</div></div>';
+      h+='<div><div style="font-size:18px;font-weight:700;color:#06b6d4">'+fmt(s.ctr,'pct')+'</div><div style="font-size:10px;color:var(--m)">CTR</div></div>';
+      h+='<div><div style="font-size:18px;font-weight:700;color:#fbbf24">'+fmt(s.cpc,'money')+'</div><div style="font-size:10px;color:var(--m)">CPC</div></div>';
+      h+='<div><div style="font-size:18px;font-weight:700;color:#f97316">'+fmt(s.cpm,'money')+'</div><div style="font-size:10px;color:var(--m)">CPM</div></div>';
+      h+='<div><div style="font-size:18px;font-weight:700;color:#f43f5e">'+fmt(s.spend,'money')+'</div><div style="font-size:10px;color:var(--m)">Gastado MXN</div></div>';
+      h+='<div><div style="font-size:18px;font-weight:700;color:#94a3b8">'+fmt(s.frequency,'dec')+'</div><div style="font-size:10px;color:var(--m)">Frecuencia</div></div>';
+      if(metrics.stats_updated_at)h+='<div style="grid-column:1/-1;font-size:10px;color:var(--m);margin-top:4px">Actualizado: '+new Date(metrics.stats_updated_at).toLocaleDateString('es-MX')+(metrics.date_range?' · '+metrics.date_range:'')+'</div>';
+      h+='</div>';
+      // Results row
+      if(s.results_count||s.messages_count){
+        h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px;padding:12px;background:rgba(255,255,255,0.02);border-radius:10px">';
+        h+='<div><div style="font-size:16px;font-weight:700;color:#06b6d4">'+fmt(s.results_count,'count')+'</div><div style="font-size:10px;color:var(--m)">Resultados</div></div>';
+        h+='<div><div style="font-size:16px;font-weight:700;color:#a78bfa">'+fmt(s.messages_count,'count')+'</div><div style="font-size:10px;color:var(--m)">Mensajes</div></div>';
+        h+='<div><div style="font-size:16px;font-weight:700;color:#f472b6">'+fmt(s.cost_per_result,'money')+'</div><div style="font-size:10px;color:var(--m)">Costo/Resultado</div></div>';
+        h+='<div><div style="font-size:16px;font-weight:700;color:#fb923c">'+fmt(s.cost_per_message,'money')+'</div><div style="font-size:10px;color:var(--m)">Costo/Mensaje</div></div>';
+        h+='</div>';
+      }
+    }
+
+    // Ad copies (new format: {text, format})
+    var copyText='';
+    if(c.ad_copies){
+      try{
+        var ac=typeof c.ad_copies==='string'?JSON.parse(c.ad_copies):c.ad_copies;
+        if(ac&&typeof ac.text==='string')copyText=ac.text;
+        else if(typeof ac==='string')copyText=ac;
+        else if(Array.isArray(ac)&&ac.length)copyText=typeof ac[0]==='string'?ac[0]:(ac[0].text||JSON.stringify(ac[0]));
+      }catch(e){copyText=typeof c.ad_copies==='string'?c.ad_copies:'';}
+    }
+    if(copyText){
+      h+='<details style="margin-bottom:10px"><summary style="color:var(--b);cursor:pointer;font-size:13px;font-weight:600;padding:4px 0">Ver copies del anuncio</summary>';
+      h+='<div class="doc-preview" style="margin-top:8px;white-space:pre-wrap">'+esc(copyText.slice(0,800))+(copyText.length>800?'…':'')+'</div>';
+      h+='</details>';
+    }
+
+    h+='<div class="doc-actions">';
+    if(copyText){
+      var cIdx=window._camps.length;
+      window._camps.push({title:"Campaña: "+(c.campaign_name||""),clientName:clientData.name||"",company:clientData.company||"",content:copyText,filename:'camp-'+c.id+'.pdf'});
+      h+='<button class="btn-dl" onclick="var d=window._camps['+cIdx+'];downloadPDF(d.title,d.clientName,d.company,d.content)">'+svgDl()+' PDF copies</button>';
+    }
+    var campForReport=c;window['_cr_'+ci]=campForReport;
+    h+='<button class="btn-dl" style="color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.07)" onclick="downloadCampaignReport_obj(window[\'_cr_'+ci+'\'])">'+svgDl()+' Reporte PDF</button>';
+    h+='</div></div>';
+  });
+  if(!filtered.length)
+    h+='<p class="empty">No hay campañas '+(portalCampFilter==='all'?'registradas':'con estado '+portalCampFilter)+'.</p>';
+  document.getElementById("camps-html").innerHTML=h;
+  // Inject linked design SVGs
+  filtered.forEach(function(c,ci){
+    var metrics={}; try{metrics=typeof c.metrics==='string'?JSON.parse(c.metrics):c.metrics||{};}catch(e){}
+    if(metrics.design_id){
+      for(var di=0;di<allDesigns.length;di++){
+        if(allDesigns[di].id===metrics.design_id&&allDesigns[di].image_svg){
+          var el=document.getElementById("cdes-"+ci);
+          if(el)el.innerHTML=allDesigns[di].image_svg;
+          break;
+        }
+      }
+    }
   });
 }
 
-function doLogout(){client=null;docs=[];camps=[];strats=[];designs=[];acts=[];tab="inicio";render()}
-function sw(t){tab=t;render();window.scrollTo(0,0)}
-document.addEventListener("keydown",function(e){if(e.key==="Enter"&&document.getElementById("tok"))doLogin()});
-render();
+// ── Campaign report PDF ───────────────────────────────────────────────
+function downloadCampaignReport_obj(c){if(!c)return;downloadCampaignReport_core(c);}
+function downloadCampaignReport(ci){var c=allCamps[ci];if(!c)return;downloadCampaignReport_core(c);}
+function downloadCampaignReport_core(c){
+  if(!window.jspdf){alert('Recarga la página e intenta de nuevo');return;}
+  var doc=new window.jspdf.jsPDF('p','mm','letter');
+  var m=20,y=m,pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight();
+  var metrics={}; try{metrics=typeof c.metrics==='string'?JSON.parse(c.metrics):c.metrics||{};}catch(e){}
+
+  doc.setFontSize(18);doc.setTextColor(0,170,102);
+  doc.text('XENTTECH',m,y);y+=8;
+  doc.setDrawColor(0,170,102);doc.line(m,y,pw-m,y);y+=10;
+  doc.setFontSize(14);doc.setTextColor(0,0,0);
+  doc.text('REPORTE DE CAMPAÑA',pw/2,y,{align:'center'});y+=12;
+  doc.setFontSize(10);doc.setTextColor(50,50,50);
+  doc.text('Campaña: '+esc(c.campaign_name||''),m,y);y+=6;
+  doc.text('Plataforma: '+(c.platform||''),m,y);y+=6;
+  doc.text('Objetivo: '+(c.objective||'—'),m,y);y+=6;
+  doc.text('Presupuesto: $'+Number(c.budget_monthly||0).toLocaleString()+' MXN/mes',m,y);y+=6;
+  if(c.audience){doc.text('Audiencia: '+c.audience.slice(0,80),m,y);y+=6;}
+  y+=4;
+  if(metrics.last_stats){
+    var s=metrics.last_stats;
+    doc.setFontSize(12);doc.setTextColor(0,0,0);doc.text('MÉTRICAS DE RENDIMIENTO',m,y);y+=8;
+    doc.setFontSize(10);doc.setTextColor(50,50,50);
+    [
+      ['Impresiones',Number(s.impressions||0).toLocaleString()],
+      ['Alcance',Number(s.reach||0).toLocaleString()],
+      ['Clicks',Number(s.clicks||0).toLocaleString()],
+      ['CTR',(s.ctr||'0')+'%'],
+      ['CPC','$'+Number(s.cpc||0).toFixed(2)],
+      ['CPM','$'+Number(s.cpm||0).toFixed(2)],
+      ['Gastado','$'+Number(s.spend||0).toFixed(2)],
+      ['Frecuencia',Number(s.frequency||0).toFixed(1)],
+    ].forEach(function(row){doc.text(row[0]+': '+row[1],m,y);y+=6;});
+    y+=4;
+  }
+  var copyText='';
+  if(c.ad_copies){try{var ac=typeof c.ad_copies==='string'?JSON.parse(c.ad_copies):c.ad_copies;copyText=ac&&ac.text?ac.text:(typeof ac==='string'?ac:'');}catch(e){copyText='';}}
+  if(copyText){
+    doc.setFontSize(12);doc.setTextColor(0,0,0);doc.text('COPIES DEL ANUNCIO',m,y);y+=8;
+    doc.setFontSize(9);doc.setTextColor(80,80,80);
+    var lines=doc.splitTextToSize(copyText.slice(0,3000),pw-m*2);
+    lines.forEach(function(line){if(y>ph-30){doc.addPage();y=m;}doc.text(line,m,y);y+=4.5;});
+  }
+  doc.setFontSize(7);doc.setTextColor(150,150,150);
+  doc.text('XENTTECH — Reporte Confidencial — '+new Date().toLocaleDateString('es-MX'),pw/2,ph-10,{align:'center'});
+  doc.save('XENTTECH-Reporte-'+(c.campaign_name||'campaña').replace(/\s+/g,'-')+'.pdf');
+}
+
+// ── Estrategia ───────────────────────────────────────────────────────
+function renderStrat(){
+  window._strats=[];
+  var h="";
+  allStrats.forEach(function(s){
+    h+='<div class="card-sm">';
+    h+='<div class="doc-title">'+esc(s.title||"Estrategia")+'</div>';
+    if(s.created_at)h+='<div class="doc-meta" style="margin-bottom:10px">'+rel(s.created_at)+'</div>';
+    if(s.content){
+      var preview=s.content.slice(0,400)+(s.content.length>400?"…":"");
+      h+='<div class="doc-preview">'+esc(preview)+'</div>';
+    }
+    if(s.content){
+      var sIdx=window._strats.length;
+      window._strats.push({title:s.title||"Estrategia",clientName:clientData.name||"",company:clientData.company||"",content:s.content,filename:'strat-'+s.id+'.pdf'});
+      h+='<div class="doc-actions"><button class="btn-dl" onclick="var d=window._strats['+sIdx+'];downloadPDF(d.title,d.clientName,d.company,d.content)">'+svgDl()+' Descargar PDF</button></div>';
+    }
+    h+='</div>';
+  });
+  if(!h)h='<p class="empty">No hay estrategia disponible aún.</p>';
+  document.getElementById("strat-html").innerHTML=h;
+}
+
+// ── Diseños ──────────────────────────────────────────────────────────
+function renderDesigns(){
+  window._designs=[];
+  var h="";
+  allDesigns.forEach(function(d,idx){
+    h+='<div class="card-sm">';
+    h+='<div class="doc-hdr">';
+    h+='<div style="flex:1">';
+    if(d.design_type)h+='<span class="chip" style="font-size:10px">'+esc(d.design_type.replace(/_/g,' '))+'</span>';
+    h+='<div class="doc-title" style="margin-top:4px">Brief de diseño</div>';
+    if(d.created_at)h+='<div class="doc-meta">'+rel(d.created_at)+'</div>';
+    h+='</div>';
+    if(d.status){var sc=d.status==="approved"?"var(--a)":d.status==="in_review"?"var(--b)":"var(--m)";h+='<span style="font-size:11px;font-weight:600;color:'+sc+'">'+esc(d.status)+'</span>';}
+    h+='</div>';
+    // SVG image preview
+    if(d.image_svg){
+      h+='<div id="dsvg-'+idx+'" style="width:100%;border-radius:10px;overflow:hidden;margin:10px 0;border:1px solid rgba(255,255,255,0.08);max-height:280px;cursor:pointer" onclick="openDesignImg('+idx+')" title="Ver imagen completa"></div>';
+    }
+    if(d.brief&&!d.image_svg){h+='<div class="doc-preview">'+esc(d.brief.slice(0,300))+'</div>';}
+    var designContent=d.content||d.brief||"";
+    h+='<div class="doc-actions">';
+    if(d.canva_url)h+='<a href="'+esc(d.canva_url)+'" target="_blank" rel="noopener" class="btn-dl" style="color:var(--a);border-color:rgba(0,230,122,.25);background:rgba(0,230,122,.06)">Ver en Canva</a>';
+    if(d.image_svg)h+='<button class="btn-dl" style="color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.07)" onclick="downloadDesignPNG('+idx+')">&#8595; PNG</button>';
+    if(d.image_url)h+='<a href="'+esc(d.image_url)+'" target="_blank" rel="noopener" download class="btn-dl" style="color:#c084fc;border-color:rgba(192,132,252,.25);background:rgba(192,132,252,.07)">&#8595; SVG</a>';
+    if(designContent){
+      var dgIdx=window._designs.length;
+      window._designs.push({title:"Diseño: "+(d.design_type||"Brief"),clientName:clientData.name||"",company:clientData.company||"",content:designContent,filename:'design-'+d.id+'.pdf'});
+      h+='<button class="btn-dl" onclick="var d=window._designs['+dgIdx+'];downloadPDF(d.title,d.clientName,d.company,d.content)">'+svgDl()+' PDF</button>';
+    }
+    h+='</div></div>';
+  });
+  if(!h)h='<p class="empty">No hay diseños registrados aún.</p>';
+  document.getElementById("designs-html").innerHTML=h;
+  // Inject SVG images after render (avoid HTML injection in string building)
+  allDesigns.forEach(function(d,idx){
+    if(d.image_svg){
+      var el=document.getElementById("dsvg-"+idx);
+      if(el)el.innerHTML=d.image_svg;
+    }
+  });
+}
+// ── Design image lightbox ─────────────────────────────────────────────
+function openDesignImg(idx){
+  var d=allDesigns[idx];
+  if(!d||!d.image_svg)return;
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;cursor:pointer';
+  overlay.onclick=function(){document.body.removeChild(overlay)};
+  var inner=document.createElement('div');
+  inner.style.cssText='max-width:600px;width:100%;border-radius:16px;overflow:hidden;box-shadow:0 0 80px rgba(0,0,0,.8)';
+  inner.innerHTML=d.image_svg;
+  inner.onclick=function(e){e.stopPropagation()};
+  var closeBtn=document.createElement('button');
+  closeBtn.textContent='✕ Cerrar';
+  closeBtn.style.cssText='margin-top:16px;padding:8px 24px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:transparent;color:#fff;font-size:13px;font-family:inherit;cursor:pointer';
+  closeBtn.onclick=function(){document.body.removeChild(overlay)};
+  overlay.appendChild(inner);
+  overlay.appendChild(closeBtn);
+  document.body.appendChild(overlay);
+}
+
+// ── Design PNG download ───────────────────────────────────────────────
+function downloadDesignPNG(idx){
+  var d=allDesigns[idx];
+  if(!d||!d.image_svg)return;
+  var isStory=(d.design_type||'').indexOf('story')>-1||(d.design_type||'').indexOf('reel')>-1;
+  var canvas=document.createElement('canvas');
+  canvas.width=1080; canvas.height=isStory?1920:1080;
+  var ctx=canvas.getContext('2d');
+  var blob=new Blob([d.image_svg],{type:'image/svg+xml;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var img=new Image();
+  img.onload=function(){
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    URL.revokeObjectURL(url);
+    canvas.toBlob(function(b){
+      var a=document.createElement('a');
+      a.download='XENTTECH-'+(d.design_type||'design').replace(/\s+/g,'-')+'.png';
+      a.href=URL.createObjectURL(b);a.click();URL.revokeObjectURL(a.href);
+    },'image/png');
+  };
+  img.src=url;
+}
+
+// ── Cuestionario de Descubrimiento ───────────────────────────────────
+var DISC_FIELDS = [
+  {section:'SOBRE TU NEGOCIO',fields:[
+    {k:'descripcion_negocio',label:'¿A qué se dedica tu negocio?',ta:true,ph:'Describe brevemente tu actividad...'},
+    {k:'producto_servicio',label:'Producto o servicio principal',ta:false,ph:'Ej: Consultoría de marketing'},
+    {k:'ticket_promedio',label:'Ticket promedio de venta (pesos)',ta:false,ph:'Ej: 5000',num:true},
+    {k:'clientes_por_mes',label:'Clientes promedio por mes',ta:false,ph:'Ej: 20',num:true},
+  ]},
+  {section:'SOBRE TUS CLIENTES',fields:[
+    {k:'cliente_ideal',label:'Describe a tu cliente ideal',ta:true,ph:'Edad, género, ocupación, intereses...'},
+    {k:'problema_principal',label:'¿Qué problema principal resuelves?',ta:true,ph:'El dolor o necesidad que satisfaces...'},
+    {k:'como_compran',label:'¿Cómo compran tus clientes?',ta:true,ph:'Proceso de decisión, canales, tiempo...'},
+    {k:'objeciones',label:'Objeciones más comunes al comprar',ta:true,ph:'Las razones por las que no compran...'},
+  ]},
+  {section:'PRESENCIA DIGITAL',fields:[
+    {k:'sitio_web',label:'URL de tu sitio web',ta:false,ph:'https://tusitio.com'},
+    {k:'redes_sociales',label:'Redes sociales (URLs)',ta:true,ph:'Instagram: @usuario\nFacebook: ...'},
+    {k:'marketing_actual',label:'¿Qué marketing haces actualmente?',ta:true,ph:'Anuncios, redes, email...'},
+    {k:'que_funciona',label:'¿Qué te ha funcionado?',ta:true,ph:'Estrategias o canales con mejores resultados...'},
+    {k:'que_no_funciona',label:'¿Qué NO te ha funcionado?',ta:true,ph:'Lo que intentaste y no dio resultados...'},
+  ]},
+  {section:'COMPETENCIA',fields:[
+    {k:'competidores',label:'3 competidores principales',ta:true,ph:'Nombre y URL si tienes...'},
+    {k:'diferenciador',label:'¿Qué te diferencia de la competencia?',ta:true,ph:'Tu ventaja competitiva única...'},
+  ]},
+  {section:'OBJETIVOS',fields:[
+    {k:'objetivo_90_dias',label:'Objetivo principal a 90 días',ta:true,ph:'Ej: Duplicar leads mensuales...'},
+    {k:'resultado_12_meses',label:'Resultado soñado a 12 meses',ta:true,ph:'Visión de cómo se ve el éxito...'},
+    {k:'presupuesto_marketing',label:'Presupuesto mensual cómodo para marketing (pesos)',ta:false,ph:'Ej: 10000',num:true},
+  ]},
+];
+
+function renderDiscovery(){
+  var saved={};
+  try{
+    var notesObj=JSON.parse(clientData.notes||'{}');
+    saved=notesObj.discovery||{};
+  }catch(e){}
+
+  var filled=Object.keys(saved).some(function(k){return saved[k];});
+  var h='';
+
+  if(filled){
+    h+='<div class="card-sm done" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">';
+    h+='<div><div style="font-size:14px;font-weight:600;color:var(--a)">Cuestionario completado</div>';
+    h+='<div style="font-size:12px;color:var(--m);margin-top:2px">Tus respuestas han sido guardadas. Puedes actualizarlas cuando quieras.</div></div>';
+    h+='</div>';
+  }
+
+  DISC_FIELDS.forEach(function(sec){
+    h+='<div class="disc-section">';
+    h+='<div class="disc-section-title">'+sec.section+'</div>';
+    sec.fields.forEach(function(f){
+      var val=esc(saved[f.k]||'');
+      h+='<div class="disc-field">';
+      h+='<label for="disc-'+f.k+'">'+f.label+'</label>';
+      if(f.ta){
+        h+='<textarea class="disc-ta" id="disc-'+f.k+'" placeholder="'+esc(f.ph)+'">'+val+'</textarea>';
+      }else{
+        h+='<input class="disc-inp" id="disc-'+f.k+'" type="'+(f.num?'number':'text')+'" placeholder="'+esc(f.ph)+'" value="'+val+'">';
+      }
+      h+='</div>';
+    });
+    h+='</div>';
+  });
+
+  h+='<div class="disc-save-row">';
+  h+='<button class="btn-disc-save" onclick="saveDiscovery()" id="disc-save-btn">Guardar respuestas</button>';
+  h+='<span id="disc-feedback" class="disc-ok" style="display:none"></span>';
+  h+='</div>';
+
+  document.getElementById("cuestionario-html").innerHTML=h;
+}
+
+function saveDiscovery(){
+  var btn=document.getElementById("disc-save-btn");
+  var fb=document.getElementById("disc-feedback");
+  btn.disabled=true;btn.textContent='Guardando...';
+  fb.style.display='none';
+
+  var data={};
+  DISC_FIELDS.forEach(function(sec){
+    sec.fields.forEach(function(f){
+      var el=document.getElementById("disc-"+f.k);
+      if(el)data[f.k]=el.value.trim();
+    });
+  });
+
+  // Get current notes, merge discovery
+  fetch(SU+"/rest/v1/clients?id=eq."+CID+"&select=notes",{headers:HD})
+  .then(function(r){return r.json();})
+  .then(function(rows){
+    var currentNotes={};
+    try{currentNotes=JSON.parse((rows[0]&&rows[0].notes)||'{}');}catch(e){}
+    currentNotes.discovery=data;
+    return fetch(SU+"/rest/v1/clients?id=eq."+CID,{
+      method:"PATCH",
+      headers:Object.assign({},HD,{"Prefer":"return=representation"}),
+      body:JSON.stringify({notes:JSON.stringify(currentNotes)}),
+    });
+  })
+  .then(function(){
+    // Update clientData.notes locally
+    try{
+      var n=JSON.parse(clientData.notes||'{}');n.discovery=data;
+      clientData.notes=JSON.stringify(n);
+    }catch(e){}
+    // Mark step 4 as completado in onboarding_documents (upsert)
+    return fetch(SU+"/rest/v1/onboarding_documents",{
+      method:"POST",
+      headers:Object.assign({},HD,{"Prefer":"resolution=merge-duplicates,return=minimal"}),
+      body:JSON.stringify({
+        client_id:CID,
+        step_number:4,
+        step_name:"Descubrimiento del Negocio",
+        content:JSON.stringify(data,null,2),
+        status:"completado",
+      }),
+    });
+  })
+  .then(function(){
+    return fetch(SU+"/rest/v1/activity_log",{
+      method:"POST",
+      headers:HD,
+      body:JSON.stringify({
+        client_id:CID,
+        action:"Cuestionario de descubrimiento completado",
+        details:"Completado por el cliente desde el portal",
+      }),
+    });
+  })
+  .then(function(){
+    btn.disabled=false;btn.textContent="Guardar respuestas";
+    fb.style.display="inline";fb.textContent="Guardado correctamente";fb.className="disc-ok";
+    setTimeout(function(){fb.style.display="none";},3000);
+    renderDiscovery();
+  })
+  .catch(function(){
+    btn.disabled=false;btn.textContent="Guardar respuestas";
+    fb.style.display="inline";fb.textContent="Error al guardar. Intenta de nuevo.";fb.className="disc-err";
+  });
+}
+
+// ── Actividad ────────────────────────────────────────────────────────
+function renderActivity(acts){
+  var h="";
+  (acts||[]).forEach(function(a){
+    h+='<div class="act-row">';
+    h+='<div class="act-dot"></div>';
+    h+='<div><div class="act-txt">'+esc(a.action)+'</div>';
+    if(a.details)h+='<div style="font-size:12px;color:var(--m);margin-top:1px">'+esc(a.details)+'</div>';
+    if(a.created_at)h+='<div class="act-t">'+rel(a.created_at)+'</div>';
+    h+='</div></div>';
+  });
+  if(!h)h='<p class="empty">Sin actividad registrada.</p>';
+  document.getElementById("activity-html").innerHTML=h;
+}
+
+// ── Copy helper ──────────────────────────────────────────────────────
+function copyText(enc,btn){
+  var txt=decodeURIComponent(enc);
+  navigator.clipboard.writeText(txt).then(function(){
+    var orig=btn.innerHTML;
+    btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--a)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    setTimeout(function(){btn.innerHTML=orig;},2000);
+  });
+}
+
+// ── Signature canvas ──────────────────────────────────────────────────
+var sigDrawing=false,sigCanvas,sigCtx,sigLastX=0,sigLastY=0;
+
+function openSigModal(){
+  document.getElementById("sig-modal").classList.add("show");
+  sigCanvas=document.getElementById("sig-canvas");
+  sigCtx=sigCanvas.getContext("2d");
+  sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+  sigCtx.strokeStyle="#F0F0F8";
+  sigCtx.lineWidth=2.5;
+  sigCtx.lineCap="round";
+  sigCtx.lineJoin="round";
+  document.getElementById("sig-err").style.display="none";
+
+  function getPos(e){
+    var r=sigCanvas.getBoundingClientRect();
+    var scaleX=sigCanvas.width/r.width,scaleY=sigCanvas.height/r.height;
+    if(e.touches){return{x:(e.touches[0].clientX-r.left)*scaleX,y:(e.touches[0].clientY-r.top)*scaleY};}
+    return{x:(e.clientX-r.left)*scaleX,y:(e.clientY-r.top)*scaleY};
+  }
+  sigCanvas.onmousedown=sigCanvas.ontouchstart=function(e){
+    e.preventDefault();sigDrawing=true;var p=getPos(e);
+    sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);sigLastX=p.x;sigLastY=p.y;
+  };
+  sigCanvas.onmousemove=sigCanvas.ontouchmove=function(e){
+    e.preventDefault();if(!sigDrawing)return;var p=getPos(e);
+    sigCtx.lineTo(p.x,p.y);sigCtx.stroke();sigLastX=p.x;sigLastY=p.y;
+  };
+  sigCanvas.onmouseup=sigCanvas.ontouchend=function(){sigDrawing=false;};
+  sigCanvas.onmouseleave=function(){sigDrawing=false;};
+}
+
+function clearSig(){
+  if(sigCtx)sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+}
+
+function closeSigModal(){
+  document.getElementById("sig-modal").classList.remove("show");
+}
+
+function isCanvasBlank(){
+  var blank=document.createElement("canvas");
+  blank.width=sigCanvas.width;blank.height=sigCanvas.height;
+  return sigCanvas.toDataURL()===blank.toDataURL();
+}
+
+function submitSig(){
+  if(isCanvasBlank()){
+    var e=document.getElementById("sig-err");e.textContent="Por favor dibuja tu firma.";e.style.display="block";return;
+  }
+  var btn=document.getElementById("sig-confirm");
+  btn.disabled=true;btn.innerHTML='<span class="spin" style="border-top-color:#08080F"></span>';
+  var sigData=sigCanvas.toDataURL("image/png");
+  fetch(SU+"/rest/v1/clients?id=eq."+CID,{
+    method:"PATCH",
+    headers:Object.assign({},HD,{"Prefer":"return=representation"}),
+    body:JSON.stringify({contract_signed:true,signature_data:sigData,signed_at:new Date().toISOString()}),
+  })
+  .then(function(){
+    return fetch(SU+"/rest/v1/activity_log",{
+      method:"POST",
+      headers:HD,
+      body:JSON.stringify({client_id:CID,action:"Contrato firmado digitalmente",details:"Firma registrada desde portal del cliente"}),
+    });
+  })
+  .then(function(){
+    clientData.contract_signed=true;
+    clientData.signature_data=sigData;
+    clientData.signed_at=new Date().toISOString();
+    closeSigModal();
+    renderDocs();
+    renderCamps();
+    renderStrat();
+    renderDesigns();
+    renderDiscovery();
+    renderInicio();
+    btn.disabled=false;btn.textContent="Firmar contrato";
+  })
+  .catch(function(){
+    var e=document.getElementById("sig-err");e.textContent="Error al guardar. Intenta de nuevo.";e.style.display="block";
+    btn.disabled=false;btn.textContent="Firmar contrato";
+  });
+}
+
+// ── Resume session ─────────────────────────────────────────────────
+(function(){
+  var cid=sessionStorage.getItem("cid");
+  if(cid){CID=cid;loadAll();}
+})();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
 </body>
 </html>

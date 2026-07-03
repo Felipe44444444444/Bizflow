@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -43,10 +43,11 @@ async function ensureOrganization(userId: string, userEmail: string) {
 }
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   if (!user) redirect("/login");
+
+  const supabase = createClient();
 
   let { data: membership } = await supabase
     .from("organization_members")

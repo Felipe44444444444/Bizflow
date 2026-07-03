@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Solicita la eliminación de tus datos de usuario en Conectachat conforme a las políticas de Meta.">
+<title>Eliminación de Datos — Conectachat</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050510;--bg2:#08081a;--bg3:#0d0d25;
+  --cyan:#00F5FF;--purple:#7B2FFF;--pink:#FF2F7B;--green:#00E676;
+  --white:#ffffff;--muted:#94A3B8;--border:rgba(255,255,255,0.07);
+  --card:rgba(255,255,255,0.03);
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--white);line-height:1.6;overflow-x:hidden}
+h1,h2,h3,h4{font-family:'Clash Display',sans-serif;line-height:1.2}
+a{color:var(--cyan);text-decoration:none}
+a:hover{text-decoration:underline}
+
+nav{position:sticky;top:0;z-index:1000;padding:0 5%;height:70px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(20px);border-bottom:1px solid var(--border);background:rgba(5,5,16,0.9)}
+.nav-logo{font-family:'Clash Display',sans-serif;font-weight:800;font-size:22px;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-links a{font-size:14px;font-weight:500;color:var(--muted);transition:color .2s;text-decoration:none}
+.nav-links a:hover{color:var(--white);text-decoration:none}
+.nav-cta{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#050510!important;padding:10px 22px;border-radius:10px;font-weight:700!important;-webkit-text-fill-color:#050510!important}
+@media(max-width:640px){.nav-links a:not(.nav-cta){display:none}}
+
+.page-header{padding:80px 5% 56px;text-align:center;position:relative;overflow:hidden}
+.page-header::before{content:'';position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:700px;height:700px;background:radial-gradient(circle,rgba(255,47,123,0.06) 0%,transparent 65%);pointer-events:none}
+.pill{display:inline-block;font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--pink);background:rgba(255,47,123,0.08);border:1px solid rgba(255,47,123,0.20);padding:6px 14px;border-radius:999px;margin-bottom:20px}
+.page-header h1{font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-0.03em;margin-bottom:12px}
+.page-header p{color:var(--muted);font-size:15px}
+
+.content{max-width:720px;margin:0 auto;padding:40px 5% 100px}
+.info-box{background:rgba(0,245,255,0.04);border:1px solid rgba(0,245,255,0.15);border-radius:14px;padding:20px 24px;margin:28px 0}
+.info-box p{color:rgba(255,255,255,0.85);margin:0;font-size:14px;line-height:1.7}
+.info-box strong{color:var(--cyan)}
+.warn-box{background:rgba(255,47,123,0.05);border:1px solid rgba(255,47,123,0.20);border-radius:14px;padding:20px 24px;margin:28px 0}
+.warn-box p{color:rgba(255,255,255,0.85);margin:0;font-size:14px;line-height:1.7}
+.section-divider{height:1px;background:var(--border);margin:48px 0}
+h2{font-size:20px;font-weight:700;margin:48px 0 14px;color:var(--white);letter-spacing:-0.01em}
+h2:first-of-type{margin-top:0}
+p{color:var(--muted);margin-bottom:14px;font-size:14px;line-height:1.8}
+ul{color:var(--muted);font-size:14px;line-height:1.8;padding-left:20px;margin-bottom:16px}
+li{margin-bottom:8px}
+strong{color:rgba(255,255,255,0.9)}
+
+/* Status checker */
+.checker-card{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:18px;padding:32px;margin-bottom:40px}
+.checker-card h2{margin:0 0 8px;font-size:18px}
+.checker-card p.sub{color:var(--muted);font-size:13px;margin:0 0 24px}
+.input-row{display:flex;gap:12px;flex-wrap:wrap}
+.code-input{flex:1;min-width:220px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 16px;color:var(--white);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s}
+.code-input:focus{border-color:rgba(0,245,255,0.4)}
+.code-input::placeholder{color:var(--muted)}
+.btn-check{padding:12px 24px;border-radius:10px;background:linear-gradient(135deg,var(--cyan),var(--purple));color:#050510;font-weight:700;font-size:14px;border:none;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:opacity .2s}
+.btn-check:hover{opacity:.85}
+.btn-check:disabled{opacity:.5;cursor:not-allowed}
+.status-result{margin-top:20px;display:none}
+.status-badge{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600}
+.status-pending{background:rgba(255,183,0,0.12);border:1px solid rgba(255,183,0,0.25);color:#FFB700}
+.status-completed{background:rgba(0,230,118,0.12);border:1px solid rgba(0,230,118,0.25);color:var(--green)}
+.status-error{background:rgba(255,47,123,0.12);border:1px solid rgba(255,47,123,0.25);color:var(--pink)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.status-detail{margin-top:12px;font-size:12px;color:var(--muted)}
+
+footer{border-top:1px solid var(--border);padding:40px 5%;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center}
+.footer-logo{font-family:'Clash Display',sans-serif;font-weight:700;font-size:18px;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.footer-links a{font-size:13px;color:var(--muted);transition:color .2s}
+.footer-links a:hover{color:var(--white)}
+.footer-copy{width:100%;text-align:center;font-size:12px;color:rgba(255,255,255,0.25);margin-top:8px}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">Conectachat</a>
+  <div class="nav-links">
+    <a href="/#precios">Precios</a>
+    <a href="/privacy">Privacidad</a>
+    <a href="/terms">Términos</a>
+    <a href="https://app.conectaachat.com" class="nav-cta">Iniciar sesión</a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="pill">Requerido por Meta</div>
+  <h1>Eliminación de<br>Datos de Usuario</h1>
+  <p>Verifica el estado de tu solicitud de eliminación de datos<br>o conoce qué información recopilamos y cómo se elimina.</p>
+</div>
+
+<div class="content">
+
+  <!-- Status checker -->
+  <div class="checker-card">
+    <h2>Verificar estado de solicitud</h2>
+    <p class="sub">Ingresa el código de confirmación que recibiste al solicitar la eliminación.</p>
+    <div class="input-row">
+      <input
+        id="codeInput"
+        class="code-input"
+        type="text"
+        placeholder="del_123456789_1746700000000"
+        autocomplete="off"
+      />
+      <button class="btn-check" id="checkBtn" onclick="checkStatus()">Verificar</button>
+    </div>
+    <div class="status-result" id="statusResult"></div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <h2>¿Qué datos se eliminan?</h2>
+  <p>
+    Cuando solicitas la eliminación de tus datos desde Facebook, Meta nos notifica automáticamente.
+    Procesamos la solicitud de forma inmediata y eliminamos:
+  </p>
+  <ul>
+    <li><strong>Conversaciones</strong> — todos los mensajes intercambiados con nuestros asistentes de IA</li>
+    <li><strong>Información de contacto</strong> — nombre, teléfono, correo electrónico asociados a tu cuenta de Facebook</li>
+    <li><strong>Leads y seguimientos</strong> — registros de seguimiento automático (retargeting) generados a partir de tu interacción</li>
+    <li><strong>Integraciones</strong> — conexiones entre tu cuenta de Facebook/Instagram y las organizaciones de Conectachat</li>
+  </ul>
+
+  <div class="info-box">
+    <p>
+      <strong>Proceso automático:</strong> La eliminación ocurre en tiempo real cuando Meta nos envía la solicitud.
+      Recibirás un código de confirmación que puedes usar en el verificador de arriba.
+      El tiempo máximo de procesamiento es de <strong>24 horas</strong>.
+    </p>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <h2>¿Cómo solicitar la eliminación?</h2>
+  <p>Puedes solicitar la eliminación de tus datos directamente desde Facebook:</p>
+  <ul>
+    <li>Ve a <strong>Configuración de Facebook → Tu información en Facebook → Ver</strong></li>
+    <li>Busca "Conectachat" en las aplicaciones vinculadas</li>
+    <li>Selecciona <strong>"Eliminar"</strong> — Facebook enviará la solicitud automáticamente</li>
+  </ul>
+  <p>
+    También puedes contactarnos directamente:<br>
+    <strong>Email:</strong> <a href="mailto:privacidad@conectaachat.com">privacidad@conectaachat.com</a>
+  </p>
+
+  <div class="section-divider"></div>
+
+  <h2>Datos que NO se eliminan</h2>
+  <p>Los siguientes datos pueden conservarse por obligaciones legales o de seguridad:</p>
+  <ul>
+    <li>Registros de facturación requeridos por la legislación fiscal mexicana (hasta 5 años)</li>
+    <li>Registros de auditoría de seguridad anonimizados</li>
+    <li>Información necesaria para resolver disputas o reclamaciones pendientes</li>
+  </ul>
+
+  <div class="warn-box">
+    <p>
+      <strong>Nota importante:</strong> Si eres administrador o propietario de una página de Facebook conectada
+      a Conectachat, la eliminación de tus datos también eliminará las conversaciones de tus usuarios finales
+      asociadas a esa integración. Asegúrate de notificarlo a tu equipo antes de proceder.
+    </p>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <h2>Endpoint técnico para Meta</h2>
+  <p>
+    El endpoint de callback para eliminación de datos de Conectachat registrado en Meta es:
+  </p>
+  <div class="info-box">
+    <p>
+      <strong>URL:</strong> <code style="color:var(--cyan);font-size:13px">https://api.conectaachat.com/api/data-deletion/facebook</code><br>
+      <strong>Método:</strong> POST<br>
+      <strong>Formato:</strong> <code style="color:var(--cyan);font-size:13px">application/x-www-form-urlencoded</code> con campo <code style="color:var(--cyan);font-size:13px">signed_request</code>
+    </p>
+  </div>
+
+  <p style="font-size:12px;color:rgba(255,255,255,0.25);margin-top:40px">
+    Última actualización: Mayo 2026 · Conectachat · Chihuahua, México
+  </p>
+
+</div>
+
+<footer>
+  <span class="footer-logo">Conectachat</span>
+  <div class="footer-links">
+    <a href="/privacy">Privacidad</a>
+    <a href="/terms">Términos</a>
+    <a href="/data-deletion">Eliminación de datos</a>
+    <a href="mailto:hola@conectaachat.com">Contacto</a>
+  </div>
+  <p class="footer-copy">© 2026 Conectachat · Todos los derechos reservados</p>
+</footer>
+
+<script>
+const API = 'https://api.conectaachat.com';
+
+// Pre-fill code from ?code= URL param
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (code) {
+    document.getElementById('codeInput').value = code;
+    checkStatus();
+  }
+})();
+
+async function checkStatus() {
+  const code = document.getElementById('codeInput').value.trim();
+  if (!code) return;
+
+  const btn = document.getElementById('checkBtn');
+  const result = document.getElementById('statusResult');
+  btn.disabled = true;
+  btn.textContent = 'Verificando…';
+  result.style.display = 'none';
+
+  try {
+    const res = await fetch(`${API}/api/data-deletion/status?code=${encodeURIComponent(code)}`);
+    const json = await res.json();
+
+    if (!res.ok) {
+      result.innerHTML = `
+        <div class="status-badge status-error">
+          <span class="status-dot"></span> Código no encontrado
+        </div>
+        <p class="status-detail">Verifica que el código sea correcto o contacta a <a href="mailto:privacidad@conectaachat.com">privacidad@conectaachat.com</a></p>
+      `;
+    } else {
+      const isCompleted = json.status === 'completed';
+      const dateStr = isCompleted && json.completed_at
+        ? new Date(json.completed_at).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })
+        : json.requested_at
+          ? new Date(json.requested_at).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })
+          : '';
+
+      result.innerHTML = `
+        <div class="status-badge ${isCompleted ? 'status-completed' : 'status-pending'}">
+          <span class="status-dot"></span>
+          ${isCompleted ? 'Datos eliminados' : 'Solicitud pendiente'}
+        </div>
+        <p class="status-detail">
+          ${isCompleted
+            ? `Tus datos fueron eliminados el ${dateStr}`
+            : `Solicitud recibida el ${dateStr}. La eliminación se completa en un máximo de 24 horas.`}
+        </p>
+      `;
+    }
+    result.style.display = 'block';
+  } catch (e) {
+    result.innerHTML = `
+      <div class="status-badge status-error">
+        <span class="status-dot"></span> Error de conexión
+      </div>
+      <p class="status-detail">Inténtalo de nuevo o contacta a <a href="mailto:privacidad@conectaachat.com">privacidad@conectaachat.com</a></p>
+    `;
+    result.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Verificar';
+  }
+}
+
+document.getElementById('codeInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkStatus();
+});
+</script>
+</body>
+</html>

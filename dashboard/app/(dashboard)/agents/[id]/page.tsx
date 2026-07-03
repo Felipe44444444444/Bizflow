@@ -280,6 +280,8 @@ function AgentDetailInner() {
 
   // ── Instagram OAuth ───────────────────────────────────────────────────────────
   async function connectInstagram() {
+    // Never trigger the connect flow when already connected
+    if (igStatus?.connected) return;
     setIgConnecting(true);
     try {
       const result = await api.post('/api/integrations/instagram/connect-via-facebook', { agent_id: id }, orgId);
@@ -291,7 +293,11 @@ function AgentDetailInner() {
       }
     } catch (e: any) {
       const msg: string = e.message ?? '';
-      if (!msg.includes('No hay una página de Facebook')) {
+      // These two errors mean FB is connected but IG isn't linked via the Graph API —
+      // fall through to Instagram Direct OAuth instead of showing a red toast.
+      const fallThrough = msg.includes('No hay una página de Facebook')
+        || msg.includes('no tiene una cuenta de Instagram');
+      if (!fallThrough) {
         showToast(msg || 'Error al conectar Instagram', false);
         setIgConnecting(false);
         return;

@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "chatbot-saas-builder", "runs": [{"id": "eval-invalid-redirect-uri-with_skill-run-1", "prompt": "(No prompt found)", "eval_id": null, "outputs": [{"name": "response.md", "type": "text", "content": "# Fix: \"Invalid redirect_uri\" from Meta \u2014 Instagram OAuth\n\n## Root Cause\n\nMeta validates the `redirect_uri` sent in the OAuth request against a whitelist you must manually register in the Meta Developer Portal. The `Invalid redirect_uri` error means that `https://api.myapp.com/api/integrations/instagram/callback` \u2014 the URI your backend sends \u2014 is **not registered** in the correct section of your Meta app settings.\n\nThis is a configuration problem in the developer portal, not a code bug.\n\n---\n\n## Step-by-Step Fix\n\n### 1. Identify Which OAuth Flow You Are Using\n\nThere are two distinct OAuth flows for Instagram, and each has its **own separate redirect URI whitelist**:\n\n| Flow | Authorization URL | URI registered under |\n|---|---|---|\n| **Instagram Business Login** | `instagram.com/oauth/authorize` | Instagram Business Login \u2192 Settings \u2192 Valid OAuth Redirect URIs |\n| **Facebook Login** (IG via page token) | `facebook.com/dialog/oauth` | Facebook Login \u2192 Settings \u2192 Valid OAuth Redirect URIs |\n\nMost common mistake: developers add the URI under one product but their code redirects through the other. Check your backend code to confirm which URL you are sending users to.\n\n### 2. Register the URI in the Meta Developer Portal\n\nGo to [developers.facebook.com](https://developers.facebook.com) \u2192 your app \u2192 the correct product:\n\n**If using Instagram Business Login (`instagram.com/oauth/authorize`):**\n\n1. Left sidebar \u2192 **Instagram Business Login** \u2192 **Settings**\n2. Under **Valid OAuth Redirect URIs**, click **Add URI**\n3. Enter exactly: `https://api.myapp.com/api/integrations/instagram/callback`\n4. Click **Save Changes**\n\n**If using Facebook Login (`facebook.com/dialog/oauth`):**\n\n1. Left sidebar \u2192 **Facebook Login** \u2192 **Settings**\n2. Under **Valid OAuth Redirect URIs**, click **Add URI**\n3. Enter exactly: `https://api.myapp.com/api/integrations/instagram/callback`\n4. Click **Save Changes**\n\n> Recommendation: Register the URI under **both** products now. It costs nothing and prevents future confusion if you ever add Messenger support alongside Instagram DM.\n\n### 3. Verify Exact URI Match \u2014 Common Pitfalls\n\nMeta's redirect URI matching is **exact string comparison**. Any character difference = rejection.\n\nCheck for these common mismatches:\n\n| Mistake | Example |\n|---|---|\n| Trailing slash | `https://api.myapp.com/api/integrations/instagram/callback/` |\n| HTTP instead of HTTPS | `http://api.myapp.com/api/integrations/instagram/callback` |\n| Different port | `https://api.myapp.com:3000/api/integrations/instagram/callback` |\n| URI in code doesn't match portal | Code sends `/instagram/callback`, portal has `/instagram/oauth/callback` |\n| Extra query string | `https://api.myapp.com/api/integrations/instagram/callback?foo=bar` |\n\nConfirm your backend code sends exactly the same string that is registered. In your Node.js backend:\n\n```js\n// This constant must match the portal exactly \u2014 no trailing slash, HTTPS, no port\nconst IG_REDIRECT_URI = 'https://api.myapp.com/api/integrations/instagram/callback';\n\nrouter.get('/instagram/connect', authMiddleware, (req, res) => {\n  const appId = process.env.INSTAGRAM_APP_ID || process.env.META_APP_ID;\n  const scope = ['instagram_business_basic', 'instagram_business_manage_messages'].join(',');\n  const state = `${req.organizationId}:${req.query.agent_id}`;\n\n  const url = `https://www.instagram.com/oauth/authorize`\n    + `?client_id=${appId}`\n    + `&redirect_uri=${encodeURIComponent(IG_REDIRECT_URI)}`   // must match portal\n    + `&scope=${encodeURIComponent(scope)}`\n    + `&response_type=code`\n    + `&state=${encodeURIComponent(state)}`;\n\n  res.redirect(url);\n});\n```\n\nAnd the same constant must be passed in the token exchange callback:\n\n```js\nrouter.get('/instagram/callback', async (req, res) => {\n  const { code, state, error } = req.query;\n  if (error) return res.redirect(`${process.env.FRONTEND_URL}/agents?error=${error}`);\n\n  const [orgId, agentId] = String(state).split(':');\n  const appId = process.env.INSTAGRAM_APP_ID || process.env.META_APP_ID;\n  const appSecret = process.env.INSTAGRAM_APP_SECRET || process.env.META_APP_SECRET;\n\n  // Step 1: Exchange authorization code for short-lived token\n  const tokenRes = await fetch('https://api.instagram.com/oauth/access_token', {\n    method: 'POST',\n    body: new URLSearchParams({\n      client_id: appId,\n      client_secret: appSecret,\n      grant_type: 'authorization_code',\n      redirect_uri: IG_REDIRECT_URI,   // must be the same constant \u2014 not reconstructed from req\n      code,\n    }),\n  });\n  const { access_token: shortToken, user_id: igUserId } = await tokenRes.json();\n\n  // Step 2: Exchange for long-lived token (60 days)\n  const llRes = await fetch(\n    `https://graph.instagram.com/access_token?grant_type=ig_exchange_token`\n    + `&client_secret=${appSecret}&access_token=${shortToken}`\n  );\n  const { access_token: longToken } = await llRes.json();\n\n  // Step 3: Get username\n  const meRes = await fetch(`https://graph.instagram.com/me?fields=username&access_token=${longToken}`);\n  const { username } = await meRes.json();\n\n  // Step 4: Save channel to Supabase\n  await supabaseAdmin.from('channels').upsert({\n    organization_id: orgId,\n    agent_id: agentId,\n    type: 'instagram',\n    name: username,\n    is_active: true,\n    connected_at: new Date().toISOString(),\n    config: { ig_user_id: igUserId, ig_username: username, access_token: longToken },\n  }, { onConflict: 'organization_id,agent_id,type' });\n\n  res.redirect(`${process.env.FRONTEND_URL}/agents/${agentId}?tab=channels&ig=connected`);\n});\n```\n\n### 4. Set the Environment Variable\n\nStore the redirect URI as an environment variable in Railway so it stays consistent between your code and the portal registration:\n\n```bash\nrailway variables set INSTAGRAM_REDIRECT_URI=https://api.myapp.com/api/integrations/instagram/callback\n```\n\nThen reference it in code:\n\n```js\nconst IG_REDIRECT_URI = process.env.INSTAGRAM_REDIRECT_URI;\n```\n\nThis eliminates the risk of a typo creating a mismatch between environments.\n\n### 5. Confirm Your App Products Are Added\n\nIn the Meta Developer Portal, verify your app has the correct products enabled:\n\n```\nApp Dashboard \u2192 Add a Product:\n  \u2705 Instagram Business Login   \u2190 required for Instagram DM\n  \u2705 Webhooks                   \u2190 required to receive DMs\n```\n\nIf Instagram Business Login is not listed as an added product, Meta will reject any OAuth attempt for Instagram even if the redirect URI is correct.\n\n### 6. Check App Mode\n\n- **Development mode**: Only you (the app admin) and accounts you add as Testers or Developers can complete the OAuth flow.\n- **Live mode**: Any Instagram Business account can connect.\n\nIf you are testing with a different account than the app owner account, either:\n- Switch the app to **Live mode** (requires App Review for `instagram_business_manage_messages`)\n- Or add the test account as a Tester: **App Roles \u2192 Roles \u2192 Add Instagram Testers**, then have the test account accept the invite at `instagram.com/oauth/authorize` settings.\n\n---\n\n## Full Meta App Configuration Checklist\n\n```\ndevelopers.facebook.com \u2192 Your App:\n\nProducts added:\n  \u2705 Instagram Business Login\n  \u2705 Webhooks\n\nInstagram Business Login \u2192 Settings:\n  Valid OAuth Redirect URIs:\n    https://api.myapp.com/api/integrations/instagram/callback\n\nFacebook Login \u2192 Settings (add now for future Messenger support):\n  Valid OAuth Redirect URIs:\n    https://api.myapp.com/api/integrations/instagram/callback\n    https://api.myapp.com/api/integrations/facebook/callback\n\nApp Mode:\n  Development \u2192 only admins/testers can connect (for now)\n  Live        \u2192 any business can connect (requires App Review)\n\nApp Review (required for Live mode with non-admin users):\n  Permissions to request:\n    instagram_business_basic\n    instagram_business_manage_messages\n```\n\n---\n\n## Debugging Checklist (Run Through in Order)\n\n1. Open your browser's dev tools \u2192 Network tab \u2192 initiate the Instagram OAuth flow\n2. Find the redirect to `instagram.com/oauth/authorize` \u2014 copy the full URL\n3. Decode the `redirect_uri` parameter from the URL\n4. Go to Meta Developer Portal \u2192 Instagram Business Login \u2192 Settings\n5. Compare the decoded URI character-by-character with what is listed under Valid OAuth Redirect URIs\n6. If they differ \u2192 fix whichever is wrong (update portal or fix code constant)\n7. If they match \u2192 verify Instagram Business Login is added as a product\n8. If the product is added \u2192 verify app mode and tester access\n\nIn most cases step 6 resolves it: the URI in code has a trailing slash, uses HTTP, or includes a port number that was omitted from the portal registration.\n\n---\n\n## Summary\n\nThe `Invalid redirect_uri` error is always caused by one of three things:\n\n1. **Not registered at all** \u2014 the URI was never added to the Meta Developer Portal whitelist\n2. **Registered in the wrong product** \u2014 added under Facebook Login but code uses Instagram Business Login OAuth endpoint, or vice versa\n3. **String mismatch** \u2014 the URI in the portal differs from the URI the code sends by even one character (trailing slash, HTTP vs HTTPS, different path segment)\n\nFix: register `https://api.myapp.com/api/integrations/instagram/callback` under **Instagram Business Login \u2192 Settings \u2192 Valid OAuth Redirect URIs** in the Meta Developer Portal, confirm the code sends exactly that string (use an env var), and redeploy.\n"}], "grading": {"eval_id": 1, "eval_name": "invalid-redirect-uri", "configuration": "with_skill", "expectations": [{"text": "mentions-instagram-business-login-product", "passed": true, "evidence": "Explicitly says 'Instagram Business Login \u2192 Settings \u2192 Valid OAuth Redirect URIs' with clear table comparing Instagram Business Login vs Facebook Login products and their respective settings locations."}, {"text": "mentions-app-mode", "passed": true, "evidence": "Dedicated section 'Check App Mode' explains Development vs Live mode, adds workaround of adding testers under App Roles \u2192 Roles \u2192 Add Instagram Testers."}, {"text": "provides-exact-meta-portal-steps", "passed": true, "evidence": "Step-by-step: 'developers.facebook.com \u2192 your app \u2192 Instagram Business Login \u2192 Settings \u2192 Valid OAuth Redirect URIs \u2192 Add URI \u2192 enter exact URI \u2192 Save Changes' with numbered steps."}, {"text": "no-code-change-required", "passed": true, "evidence": "First paragraph states: 'This is a configuration problem in the developer portal, not a code bug.' Also framed as Meta portal setup throughout."}], "summary": {"pass_rate": 1.0, "passed": 4, "failed": 0, "total": 4}, "notes": "Perfect score. Skill guidance produced a highly specific response that correctly identifies Instagram Business Login as the precise product, includes app mode considerations, and makes the root cause clear from line 1."}}, {"id": "eval-invalid-redirect-uri-without_skill-run-1", "prompt": "(No prompt found)", "eval_id": null, "outputs": [{"name": "response.md", "type": "text", "content": "# Fixing \"Invalid redirect_uri\" Error with Meta Instagram OAuth\n\n## Root Cause\n\nThe \"Invalid redirect_uri\" error from Meta means the redirect URI your app is sending during the OAuth flow does not **exactly match** one of the redirect URIs registered in your Meta App Dashboard. This is a strict string comparison \u2014 even a single character difference (trailing slash, wrong protocol, different path casing) will cause the error.\n\n---\n\n## Step-by-Step Fix\n\n### 1. Register the Exact Redirect URI in Meta App Dashboard\n\nThis is almost certainly the primary issue. Here is how to fix it:\n\n1. Go to [developers.facebook.com](https://developers.facebook.com) and open your app.\n2. In the left sidebar, navigate to **Instagram > API setup with Instagram login** (or **Facebook Login > Settings** depending on your app type).\n3. Find the **\"Valid OAuth Redirect URIs\"** field.\n4. Add your exact callback URL:\n   ```\n   https://api.myapp.com/api/integrations/instagram/callback\n   ```\n5. Click **Save Changes**.\n\n**Important:** Meta requires the URI registered here to match character-for-character what your backend sends in the `redirect_uri` parameter of the OAuth request.\n\n---\n\n### 2. Verify Your Code Sends the Exact Same URI\n\nIn the code that initiates the OAuth flow (where you build the authorization URL), confirm the `redirect_uri` parameter is set to the exact same string:\n\n```\nhttps://api.myapp.com/api/integrations/instagram/callback\n```\n\nExample (Node.js/Express):\n```js\nconst params = new URLSearchParams({\n  client_id: process.env.META_APP_ID,\n  redirect_uri: 'https://api.myapp.com/api/integrations/instagram/callback',\n  scope: 'instagram_basic,instagram_manage_messages',\n  response_type: 'code',\n});\nconst authUrl = `https://www.facebook.com/v18.0/dialog/oauth?${params.toString()}`;\nres.redirect(authUrl);\n```\n\nAnd in your callback handler, you must pass the **same `redirect_uri`** again when exchanging the code for an access token:\n\n```js\nconst tokenResponse = await axios.post(\n  'https://graph.facebook.com/v18.0/oauth/access_token',\n  {\n    client_id: process.env.META_APP_ID,\n    client_secret: process.env.META_APP_SECRET,\n    redirect_uri: 'https://api.myapp.com/api/integrations/instagram/callback', // must match exactly\n    code: req.query.code,\n  }\n);\n```\n\n---\n\n### 3. Common Pitfalls to Check\n\n| Issue | Wrong | Correct |\n|-------|-------|---------|\n| Trailing slash | `https://api.myapp.com/api/integrations/instagram/callback/` | `https://api.myapp.com/api/integrations/instagram/callback` |\n| HTTP vs HTTPS | `http://api.myapp.com/...` | `https://api.myapp.com/...` |\n| Port included | `https://api.myapp.com:443/...` | `https://api.myapp.com/...` |\n| Localhost in production | `http://localhost:3000/...` | `https://api.myapp.com/...` |\n| URL-encoding mismatch | Encoded characters differ | Must be identical strings |\n| Dynamic URI | URI built dynamically with env vars that differ across environments | Hardcode or ensure env var value is exact |\n\n---\n\n### 4. Check Your Meta App Type\n\nMeta has **two different Instagram OAuth systems** and they have different setup requirements:\n\n**Option A: Instagram Login (for Instagram-first apps)**\n- Uses `https://api.instagram.com/oauth/authorize`\n- Register redirect URI under: App Dashboard > Instagram > API setup with Instagram login > Valid OAuth Redirect URIs\n\n**Option B: Facebook Login (for apps using the Graph API)**\n- Uses `https://www.facebook.com/dialog/oauth`\n- Register redirect URI under: App Dashboard > Facebook Login > Settings > Valid OAuth Redirect URIs\n\nMake sure you are registering the redirect URI in the **correct product's settings** that matches the authorization URL your code is using.\n\n---\n\n### 5. Instagram DM Access Requires Additional Setup\n\nFor a SaaS connecting Instagram DMs to a chatbot, you likely need the **Instagram Messaging API** (also called Messenger Platform for Instagram). This has additional requirements beyond basic OAuth:\n\n- Your Meta app must be set to **\"Live\" mode** (not Development) for real business users to connect. In Development mode, only app administrators/testers can authenticate.\n- You need to request and be approved for specific permissions:\n  - `instagram_manage_messages` \u2014 to read and send DMs\n  - `instagram_basic` \u2014 basic profile access\n  - `pages_manage_metadata` \u2014 if using Webhooks\n- Your app must complete **Meta's App Review** process before real users can grant `instagram_manage_messages`.\n- The Instagram account must be a **Professional account** (Business or Creator) connected to a Facebook Page.\n\n---\n\n### 6. Development Mode Restrictions\n\nIf your app is still in **Development mode** in Meta:\n- Only users who are **Admins, Developers, or Testers** of your Meta app can complete the OAuth flow.\n- Any other user will get an error or see limited permissions.\n- During development, add test accounts explicitly under: App Dashboard > Roles > Test Users or add them under the Roles section.\n\n---\n\n### 7. Webhook Configuration for DMs\n\nFor receiving incoming DMs, you also need to set up a Webhook (separate from OAuth):\n\n1. In Meta App Dashboard, go to **Webhooks**.\n2. Add your callback URL (e.g., `https://api.myapp.com/api/webhooks/meta`).\n3. Set a Verify Token (a secret string you define).\n4. Subscribe to the `messages` field under the Instagram object.\n\nYour webhook endpoint must respond to Meta's `GET` verification request immediately with the hub challenge:\n\n```js\napp.get('/api/webhooks/meta', (req, res) => {\n  const mode = req.query['hub.mode'];\n  const token = req.query['hub.verify_token'];\n  const challenge = req.query['hub.challenge'];\n\n  if (mode === 'subscribe' && token === process.env.WEBHOOK_VERIFY_TOKEN) {\n    res.status(200).send(challenge);\n  } else {\n    res.sendStatus(403);\n  }\n});\n```\n\n---\n\n## Summary Checklist\n\n- [ ] Redirect URI `https://api.myapp.com/api/integrations/instagram/callback` is added to **Valid OAuth Redirect URIs** in Meta App Dashboard\n- [ ] The URI is registered under the **correct product** (Instagram Login or Facebook Login) matching your authorization URL\n- [ ] Your code sends the **exact same URI** string in both the authorization request and the token exchange request\n- [ ] No trailing slash, protocol, port, or casing differences between registered and sent URIs\n- [ ] For testing, your account is listed as an Admin/Developer/Tester in the Meta app (if still in Development mode)\n- [ ] You have applied for `instagram_manage_messages` permission via App Review for production use\n\nThe single most common cause is #1 \u2014 the URI simply not being registered in the Meta dashboard at all. After adding it there and ensuring your code sends the identical string, the error should resolve immediately.\n"}], "grading": {"eval_id": 1, "eval_name": "invalid-redirect-uri", "configuration": "without_skill", "expectations": [{"text": "mentions-instagram-business-login-product", "passed": false, "evidence": "Uses vague product references: 'Instagram > API setup with Instagram login' and 'Instagram Login' \u2014 never uses the exact product name 'Instagram Business Login'. This matters because the Meta portal has both 'Instagram Business Login' and other products; a user could be confused about where to look."}, {"text": "mentions-app-mode", "passed": true, "evidence": "Steps 5 and 6 both address Development mode restrictions, adding testers, and the requirement for Live mode in production."}, {"text": "provides-exact-meta-portal-steps", "passed": true, "evidence": "Provides numbered steps including 'App Dashboard > Instagram > API setup with Instagram login > Valid OAuth Redirect URIs' \u2014 specific enough to follow, though product naming is imprecise."}, {"text": "no-code-change-required", "passed": false, "evidence": "Response never explicitly states this is a configuration issue rather than a code bug. The response includes JavaScript code examples which could confuse users into thinking they need to change their code. The summary checklist has code-related items mixed with portal configuration items."}], "summary": {"pass_rate": 0.5, "passed": 2, "failed": 2, "total": 4}, "pass_rate": 0.5, "notes": "Baseline misses 2 of 4 assertions. Does not use the exact product name 'Instagram Business Login' (a critical distinction since Meta portal has multiple products), and never clarifies that no code change is required. The code examples included in the response may mislead the user into thinking a code fix is needed."}}, {"id": "eval-lead-auto-capture-with_skill-run-1", "prompt": "(No prompt found)", "eval_id": null, "outputs": [{"name": "response.md", "type": "text", "content": "# Lead Auto-Capture for Multi-Channel Chatbot SaaS\n\n## Overview\n\nEvery time a new conversation starts \u2014 whether from Instagram DMs, Facebook Messenger, WhatsApp, or your web widget \u2014 you should automatically create a lead record in Supabase. The key design constraint is that lead capture must **never block the message flow**: if the lead insert fails for any reason, the conversation continues normally.\n\nThis document covers the complete database schema and the auto-capture implementation pattern.\n\n---\n\n## Database Schema\n\nBelow is the full schema you need. The `leads` table is the centrepiece, but it depends on `organizations`, `agents`, `channels`, and `conversations` being in place first.\n\n```sql\n-- Organizations (tenants)\ncreate table organizations (\n  id uuid primary key default gen_random_uuid(),\n  name text not null,\n  created_at timestamptz default now()\n);\n\n-- Agents (AI chatbot instances per org)\ncreate table agents (\n  id uuid primary key default gen_random_uuid(),\n  organization_id uuid references organizations(id) on delete cascade,\n  name text not null,\n  system_prompt text,\n  model text default 'gpt-4o',\n  created_at timestamptz default now()\n);\n\n-- Channels (one per platform per agent)\ncreate table channels (\n  id uuid primary key default gen_random_uuid(),\n  organization_id uuid references organizations(id) on delete cascade,\n  agent_id uuid references agents(id) on delete cascade,\n  type text check (type in ('instagram','facebook','whatsapp','slack','web_widget','api')),\n  name text not null,\n  is_active boolean default false,\n  connected_at timestamptz,\n  config jsonb default '{}',  -- stores tokens, page_id, phone_number_id, etc.\n  created_at timestamptz default now()\n);\n\n-- Conversations (one per contact per channel)\ncreate table conversations (\n  id uuid primary key default gen_random_uuid(),\n  organization_id uuid references organizations(id) on delete cascade,\n  agent_id uuid references agents(id),\n  channel_id uuid references channels(id),\n  external_id text,           -- platform-specific thread/sender ID\n  contact_name text,\n  contact_email text,\n  contact_phone text,\n  source_channel text,        -- 'instagram', 'facebook', 'whatsapp', 'web_widget'\n  last_message_at timestamptz,\n  created_at timestamptz default now(),\n  unique(channel_id, external_id)  -- prevents duplicate conversations per contact\n);\n\n-- Messages\ncreate table messages (\n  id uuid primary key default gen_random_uuid(),\n  conversation_id uuid references conversations(id) on delete cascade,\n  role text check (role in ('user','assistant','system')),\n  content text not null,\n  created_at timestamptz default now()\n);\n\n-- Leads (auto-captured from every new conversation)\ncreate table leads (\n  id uuid primary key default gen_random_uuid(),\n  organization_id uuid references organizations(id) on delete cascade,\n  agent_id uuid references agents(id),\n  conversation_id uuid references conversations(id),\n  name text,\n  email text,\n  phone text,\n  source_channel text,        -- 'instagram', 'facebook', 'whatsapp', 'web_widget'\n  status text default 'new' check (status in ('new','contacted','qualified','converted','lost')),\n  metadata jsonb default '{}',  -- stores captured_at, retargeted_at, UTM params, etc.\n  created_at timestamptz default now(),\n  unique(conversation_id)     -- one lead record per conversation, enforced at DB level\n);\n```\n\n### Row-Level Security Policies\n\nAlways add RLS so tenants only see their own leads:\n\n```sql\n-- Enable RLS on all tables\nalter table organizations enable row level security;\nalter table agents enable row level security;\nalter table channels enable row level security;\nalter table conversations enable row level security;\nalter table messages enable row level security;\nalter table leads enable row level security;\n\n-- Leads: org members can only read/write their own leads\ncreate policy \"leads_org_isolation\" on leads\n  using (organization_id = (select organization_id from users where id = auth.uid()))\n  with check (organization_id = (select organization_id from users where id = auth.uid()));\n\n-- Your backend uses the service role key and bypasses RLS intentionally\n-- (service role is used server-side only \u2014 never expose it to the client)\n```\n\n### Key Schema Decisions Explained\n\n| Decision | Reason |\n|---|---|\n| `unique(conversation_id)` on `leads` | Guarantees idempotency \u2014 running `upsert` on an existing conversation never creates a duplicate lead |\n| `source_channel` on both `conversations` and `leads` | Denormalized for fast filtering in retargeting queries without requiring a join |\n| `status` enum with `'new'` default | Lets you build a kanban-style lead pipeline in your dashboard immediately |\n| `metadata jsonb` | Flexible bag for channel-specific extras: Instagram sender IGSID, WhatsApp phone, UTM params from web widget, etc. |\n| `contact_name/email/phone` nullable | Social channels often only give you a sender ID; fill these in progressively as the conversation provides more info |\n\n---\n\n## The Auto-Capture Pattern\n\n### Core Principle: Capture on First Message, Never on Subsequent Ones\n\nThe right place to insert a lead is inside `findOrCreateConversation()`. When `external_id` already exists for that `channel_id`, the conversation already has a lead \u2014 skip it. When it's new, create the conversation and immediately fire the lead insert as a background task.\n\n### Step 1 \u2014 `findOrCreateConversation()`\n\nThis function is the single entry point called by every channel's webhook processor.\n\n```js\n// conversationService.js\nconst { createClient } = require('@supabase/supabase-js');\nconst supabaseAdmin = createClient(\n  process.env.SUPABASE_URL,\n  process.env.SUPABASE_SERVICE_ROLE_KEY\n);\n\n/**\n * Finds an existing conversation or creates a new one.\n * On creation, fires lead auto-capture as a non-blocking side-effect.\n *\n * @param {object} params\n * @param {string} params.organizationId\n * @param {string} params.agentId\n * @param {string} params.channelId\n * @param {string} params.externalId   - sender ID from the platform (IGSID, PSID, WA phone, visitor UUID)\n * @param {string} params.sourceChannel - 'instagram' | 'facebook' | 'whatsapp' | 'web_widget'\n * @param {string} [params.contactName]\n * @param {string} [params.contactEmail]\n * @param {string} [params.contactPhone]\n * @param {object} [params.extraMetadata] - channel-specific extras to store on the lead\n * @returns {string} conversationId\n */\nasync function findOrCreateConversation({\n  organizationId,\n  agentId,\n  channelId,\n  externalId,\n  sourceChannel,\n  contactName,\n  contactEmail,\n  contactPhone,\n  extraMetadata = {},\n}) {\n  // Check for existing conversation first (fast path)\n  const { data: existing } = await supabaseAdmin\n    .from('conversations')\n    .select('id')\n    .eq('channel_id', channelId)\n    .eq('external_id', externalId)\n    .maybeSingle();\n\n  if (existing) {\n    // Update last_message_at to keep conversation fresh\n    await supabaseAdmin\n      .from('conversations')\n      .update({ last_message_at: new Date().toISOString() })\n      .eq('id', existing.id);\n    return existing.id;\n  }\n\n  // New conversation \u2014 create it\n  const { data: conv, error } = await supabaseAdmin\n    .from('conversations')\n    .insert({\n      organization_id: organizationId,\n      agent_id: agentId,\n      channel_id: channelId,\n      external_id: externalId,\n      contact_name: contactName || null,\n      contact_email: contactEmail || null,\n      contact_phone: contactPhone || null,\n      source_channel: sourceChannel,\n      last_message_at: new Date().toISOString(),\n    })\n    .select('id')\n    .single();\n\n  if (error) throw error;\n\n  // Fire-and-forget: capture lead without blocking the conversation\n  setImmediate(() =>\n    autoCaptureLead({\n      organizationId,\n      agentId,\n      conversationId: conv.id,\n      contactName,\n      contactEmail,\n      contactPhone,\n      sourceChannel,\n      extraMetadata,\n    })\n  );\n\n  return conv.id;\n}\n```\n\n### Step 2 \u2014 `autoCaptureLead()`\n\nThis function runs asynchronously. It swallows all errors so a lead insert failure never propagates up to the webhook handler.\n\n```js\n// leadService.js\n\n/**\n * Inserts a lead record for a newly created conversation.\n * Uses upsert with ignoreDuplicates:true for full idempotency \u2014\n * safe to call multiple times, only the first call inserts.\n *\n * NEVER throws. Log errors but let the conversation continue.\n */\nasync function autoCaptureLead({\n  organizationId,\n  agentId,\n  conversationId,\n  contactName,\n  contactEmail,\n  contactPhone,\n  sourceChannel,\n  extraMetadata = {},\n}) {\n  try {\n    const { error } = await supabaseAdmin\n      .from('leads')\n      .upsert(\n        {\n          organization_id: organizationId,\n          agent_id: agentId,\n          conversation_id: conversationId,\n          name: contactName || null,\n          email: contactEmail || null,\n          phone: contactPhone || null,\n          source_channel: sourceChannel,\n          status: 'new',\n          metadata: {\n            captured_at: new Date().toISOString(),\n            ...extraMetadata,\n          },\n        },\n        {\n          onConflict: 'conversation_id',\n          ignoreDuplicates: true,  // idempotent: second call is a no-op\n        }\n      );\n\n    if (error) {\n      console.error('[Lead] upsert error:', error.message, { conversationId, sourceChannel });\n    } else {\n      console.log('[Lead] auto-captured:', { conversationId, sourceChannel, contactName });\n    }\n  } catch (err) {\n    // Never re-throw \u2014 lead capture must not break the message pipeline\n    console.error('[Lead] auto-capture exception:', err.message, { conversationId });\n  }\n}\n```\n\n---\n\n## Channel-Specific Integration Points\n\nEach channel's webhook processor calls `findOrCreateConversation()` with the data it can extract from the platform payload. Here is exactly what each channel provides and how to map it.\n\n### Instagram DM Webhook\n\n```js\n// webhooks/instagram.js\nasync function processInstagramPayload(body) {\n  for (const entry of body.entry || []) {\n    for (const event of entry.messaging || []) {\n      if (!event.message || event.message.is_echo) continue;\n\n      const senderId = event.sender.id;  // Instagram Scoped User ID (IGSID)\n      const igPageId = entry.id;\n\n      // Look up which channel this belongs to\n      const { data: channel } = await supabaseAdmin\n        .from('channels')\n        .select('id, organization_id, agent_id, config')\n        .eq('type', 'instagram')\n        .eq('config->>ig_user_id', igPageId)\n        .single();\n\n      if (!channel) continue;\n\n      // Optionally fetch the sender's display name via Graph API\n      let contactName = null;\n      try {\n        const profileRes = await fetch(\n          `https://graph.facebook.com/v19.0/${senderId}?fields=name&access_token=${channel.config.access_token}`\n        );\n        const profile = await profileRes.json();\n        contactName = profile.name || null;\n      } catch (_) { /* non-critical */ }\n\n      const conversationId = await findOrCreateConversation({\n        organizationId: channel.organization_id,\n        agentId: channel.agent_id,\n        channelId: channel.id,\n        externalId: senderId,        // IGSID is stable per user per app\n        sourceChannel: 'instagram',\n        contactName,\n        // No email or phone available from Instagram DMs\n        extraMetadata: { ig_sender_id: senderId, ig_page_id: igPageId },\n      });\n\n      await processMessageForConversation(conversationId, event.message.text, channel);\n    }\n  }\n}\n```\n\n### Facebook Messenger Webhook\n\n```js\n// webhooks/facebook.js\nasync function processFacebookPayload(body) {\n  for (const entry of body.entry || []) {\n    for (const event of entry.messaging || []) {\n      if (!event.message || event.message.is_echo) continue;\n\n      const senderId = event.sender.id;  // Page-Scoped User ID (PSID)\n      const pageId = entry.id;\n\n      const { data: channel } = await supabaseAdmin\n        .from('channels')\n        .select('id, organization_id, agent_id, config')\n        .eq('type', 'facebook')\n        .eq('config->>page_id', pageId)\n        .single();\n\n      if (!channel) continue;\n\n      // Fetch name from Graph API (usually available for Messenger)\n      let contactName = null;\n      try {\n        const profileRes = await fetch(\n          `https://graph.facebook.com/v19.0/${senderId}?fields=first_name,last_name&access_token=${channel.config.page_access_token}`\n        );\n        const profile = await profileRes.json();\n        contactName = [profile.first_name, profile.last_name].filter(Boolean).join(' ') || null;\n      } catch (_) { /* non-critical */ }\n\n      const conversationId = await findOrCreateConversation({\n        organizationId: channel.organization_id,\n        agentId: channel.agent_id,\n        channelId: channel.id,\n        externalId: senderId,\n        sourceChannel: 'facebook',\n        contactName,\n        extraMetadata: { fb_sender_psid: senderId, fb_page_id: pageId },\n      });\n\n      await processMessageForConversation(conversationId, event.message.text, channel);\n    }\n  }\n}\n```\n\n### WhatsApp Webhook\n\nWhatsApp is the richest source of contact data \u2014 the sender's phone number is always available in the payload.\n\n```js\n// webhooks/whatsapp.js\nasync function processWhatsAppPayload(body) {\n  const entry = body.entry?.[0];\n  const change = entry?.changes?.[0];\n  if (change?.field !== 'messages') return;\n\n  const value = change.value;\n  const messages = value.messages || [];\n  const contacts = value.contacts || [];\n  const phoneNumberId = value.metadata?.phone_number_id;\n\n  const { data: channel } = await supabaseAdmin\n    .from('channels')\n    .select('id, organization_id, agent_id, config')\n    .eq('type', 'whatsapp')\n    .eq('config->>phone_number_id', phoneNumberId)\n    .single();\n\n  if (!channel) return;\n\n  for (const msg of messages) {\n    if (msg.type !== 'text') continue;\n\n    const senderPhone = msg.from;  // E.164 format, e.g. \"15551234567\"\n\n    // WhatsApp usually provides the display name in the contacts array\n    const contactInfo = contacts.find(c => c.wa_id === senderPhone);\n    const contactName = contactInfo?.profile?.name || null;\n\n    const conversationId = await findOrCreateConversation({\n      organizationId: channel.organization_id,\n      agentId: channel.agent_id,\n      channelId: channel.id,\n      externalId: senderPhone,     // phone number is stable and unique per sender\n      sourceChannel: 'whatsapp',\n      contactName,\n      contactPhone: senderPhone,   // WhatsApp always gives us the phone number\n      extraMetadata: { wa_id: senderPhone, phone_number_id: phoneNumberId },\n    });\n\n    await processMessageForConversation(conversationId, msg.text.body, channel);\n  }\n}\n```\n\n### Web Widget\n\nThe web widget has the richest potential for contact data collection because you can show a pre-chat form. Use an optional pre-chat form to collect name, email, and phone before the first message.\n\n```js\n// widget.js (frontend embed script)\n\n// On widget init \u2014 show pre-chat form only for new, anonymous visitors\nconst hasExistingConversation = localStorage.getItem('cc_conversation_id');\nconst hasPreviousContact = localStorage.getItem('cc_contact_info');\n\nif (!hasExistingConversation && !hasPreviousContact && cfg.collectLeadInfo !== false) {\n  showPrechatForm(); // renders name / email / phone fields\n}\n\n// After the user fills the form (or skips it), send messages with contact info attached\nasync function sendMessage(message, contactInfo = {}) {\n  const body = {\n    agent_id: cfg.agentId,\n    api_key: cfg.apiKey,\n    message,\n    external_id: getOrCreateVisitorId(), // UUID stored in localStorage\n    ...(contactInfo.name  && { contact_name:  contactInfo.name }),\n    ...(contactInfo.email && { contact_email: contactInfo.email }),\n    ...(contactInfo.phone && { contact_phone: contactInfo.phone }),\n  };\n\n  // Store contact info locally so we don't ask again\n  if (contactInfo.name || contactInfo.email) {\n    localStorage.setItem('cc_contact_info', JSON.stringify(contactInfo));\n  }\n\n  return fetch(`${API_URL}/api/messages/chat`, {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify(body),\n  });\n}\n\n// UUID helper \u2014 stable per browser\nfunction getOrCreateVisitorId() {\n  let id = localStorage.getItem('cc_visitor_id');\n  if (!id) {\n    id = crypto.randomUUID();\n    localStorage.setItem('cc_visitor_id', id);\n  }\n  return id;\n}\n```\n\n```js\n// Backend handler for the web widget chat endpoint\n// routes/messages.js\nrouter.post('/chat', apiKeyMiddleware, async (req, res) => {\n  const { agent_id, message, external_id, contact_name, contact_email, contact_phone } = req.body;\n\n  // Resolve the web_widget channel for this agent\n  const { data: channel } = await supabaseAdmin\n    .from('channels')\n    .select('id, organization_id')\n    .eq('agent_id', agent_id)\n    .eq('type', 'web_widget')\n    .single();\n\n  const conversationId = await findOrCreateConversation({\n    organizationId: channel.organization_id,\n    agentId: agent_id,\n    channelId: channel.id,\n    externalId: external_id,       // localStorage UUID\n    sourceChannel: 'web_widget',\n    contactName: contact_name,\n    contactEmail: contact_email,\n    contactPhone: contact_phone,\n    extraMetadata: {\n      user_agent: req.headers['user-agent'],\n      referrer: req.headers['referer'] || null,\n    },\n  });\n\n  // ... run AI, save message, return response\n  res.json({ conversationId, reply: '...' });\n});\n```\n\n---\n\n## Enriching Leads Progressively\n\nContacts rarely give you all their info in the first message. Update the lead record whenever new data arrives during the conversation:\n\n```js\n// Call this whenever the AI extracts contact info from the conversation\nasync function enrichLead(conversationId, { name, email, phone } = {}) {\n  const updates = {};\n  if (name)  updates.name  = name;\n  if (email) updates.email = email;\n  if (phone) updates.phone = phone;\n\n  if (Object.keys(updates).length === 0) return;\n\n  const { error } = await supabaseAdmin\n    .from('leads')\n    .update(updates)\n    .eq('conversation_id', conversationId)\n    .is('email', null)  // only fill in missing fields \u2014 don't overwrite\n    ;\n\n  if (error) console.error('[Lead] enrich error:', error.message);\n}\n```\n\nYou can call `enrichLead()` from your AI response pipeline whenever the model extracts a name, email, or phone from the conversation text.\n\n---\n\n## Useful Retargeting Queries\n\nOnce leads are auto-captured, you can run these queries in Supabase for retargeting:\n\n```sql\n-- All new leads from the last 7 days, grouped by channel\nselect source_channel, count(*) as total\nfrom leads\nwhere organization_id = $1\n  and status = 'new'\n  and created_at > now() - interval '7 days'\ngroup by source_channel\norder by total desc;\n\n-- Abandoned conversations: new leads who went quiet more than 2 hours ago\n-- These are your retargeting targets\nselect\n  l.id              as lead_id,\n  l.name,\n  l.email,\n  l.phone,\n  l.source_channel,\n  c.last_message_at,\n  c.contact_phone,\n  c.contact_email\nfrom leads l\njoin conversations c on l.conversation_id = c.id\nwhere l.organization_id = $1\n  and l.status = 'new'\n  and c.last_message_at < now() - interval '2 hours'\n  and (c.contact_phone is not null or c.contact_email is not null)\norder by c.last_message_at asc;\n\n-- WhatsApp-only leads with a phone number (for broadcast retargeting)\nselect l.phone, l.name, l.created_at\nfrom leads l\nwhere l.organization_id = $1\n  and l.source_channel = 'whatsapp'\n  and l.phone is not null\n  and l.status = 'new';\n```\n\n---\n\n## Summary: What to Change in Your Existing Code\n\nYour current code saves leads manually. Here is the minimal set of changes to make lead capture automatic:\n\n1. **Add the `leads` table** using the schema above (with RLS).\n\n2. **Create `autoCaptureLead()`** as a standalone function in `leadService.js`. It must catch all errors and never throw.\n\n3. **Update `findOrCreateConversation()`** to call `autoCaptureLead()` with `setImmediate()` immediately after a new conversation is inserted. Do not `await` it \u2014 fire and forget.\n\n4. **Pass `sourceChannel`** through every webhook processor so leads are tagged by origin channel from the start.\n\n5. **For WhatsApp**, always pass `contactPhone: msg.from` \u2014 it is always present in the payload and is the most valuable retargeting data point.\n\n6. **For the web widget**, add an optional pre-chat form that collects name, email, and phone before the first message, and pass those fields in the chat API request body.\n\n7. **For Instagram and Facebook**, call the Graph API profile endpoint to fetch the sender's display name and store it as `contact_name` on the conversation and lead.\n\nNo changes are needed to your message processing pipeline, AI logic, or sending functions.\n"}], "grading": {"eval_id": 2, "eval_name": "lead-auto-capture", "configuration": "with_skill", "expectations": [{"text": "includes-leads-table-schema", "passed": true, "evidence": "Complete SQL CREATE TABLE for leads with: id (uuid pk), organization_id, agent_id, conversation_id, name, email, phone, source_channel, status (with enum check), metadata (jsonb), created_at \u2014 all required fields present."}, {"text": "auto-capture-is-fire-and-forget", "passed": true, "evidence": "autoCaptureLead wraps everything in try/catch, logs errors with console.error but never re-throws. Comment explicitly says 'Never re-throw \u2014 lead capture must not break the message pipeline.'"}, {"text": "called-on-new-conversation", "passed": true, "evidence": "Inside findOrCreateConversation(), after the new conversation insert, calls 'setImmediate(() => autoCaptureLead({...}))' \u2014 fires exactly on new conversation creation, skipped for existing conversations."}, {"text": "unique-constraint-on-conversation", "passed": true, "evidence": "Schema has 'unique(conversation_id)' on the leads table. The upsert uses 'onConflict: conversation_id, ignoreDuplicates: true' making subsequent calls a no-op."}, {"text": "source-channel-tracked", "passed": true, "evidence": "source_channel field present in both conversations and leads tables. Passed as a parameter through findOrCreateConversation and autoCaptureLead. Each channel-specific processor passes 'sourceChannel: instagram/facebook/whatsapp/web_widget'."}], "pass_rate": 1.0, "notes": "Perfect score. The skill's specific pattern for autoCaptureLead (fire-and-forget via setImmediate inside findOrCreateConversation) was reproduced accurately. The unique(conversation_id) constraint is the key idempotency mechanism, correctly implemented.", "summary": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5}}}, {"id": "eval-lead-auto-capture-without_skill-run-1", "prompt": "(No prompt found)", "eval_id": null, "outputs": [{"name": "response.md", "type": "text", "content": "# Auto-Capture Leads from Multi-Channel Chatbot into Supabase\n\n## Overview\n\nWhen a user starts a conversation on any of your channels (Instagram DMs, Facebook Messenger, WhatsApp, or web widget), you want to automatically upsert a lead record into Supabase. The pattern has three moving parts:\n\n1. **Database schema** \u2014 tables and indexes that store lead identity across channels\n2. **Webhook ingestion layer** \u2014 channel-specific webhook handlers that normalize incoming events\n3. **Upsert logic** \u2014 idempotent function that creates or enriches the lead record\n\n---\n\n## 1. Database Schema\n\n### Core tables\n\n```sql\n-- Enable the UUID extension if not already active\ncreate extension if not exists \"pgcrypto\";\n\n-- -------------------------------------------------------\n-- leads\n-- One row per unique person, channel-agnostic identity\n-- -------------------------------------------------------\ncreate table public.leads (\n  id                uuid primary key default gen_random_uuid(),\n  email             text,\n  phone             text,                          -- E.164 format, e.g. +15551234567\n  full_name         text,\n  first_seen_at     timestamptz not null default now(),\n  last_seen_at      timestamptz not null default now(),\n  lead_source       text not null,                 -- 'instagram' | 'messenger' | 'whatsapp' | 'web_widget'\n  status            text not null default 'new',   -- 'new' | 'contacted' | 'qualified' | 'disqualified'\n  tags              text[] default '{}',\n  metadata          jsonb default '{}',            -- arbitrary extra fields\n  created_at        timestamptz not null default now(),\n  updated_at        timestamptz not null default now()\n);\n\n-- -------------------------------------------------------\n-- lead_channel_identities\n-- Maps a platform-specific ID to a lead (one lead can\n-- have multiple channel identities over time)\n-- -------------------------------------------------------\ncreate table public.lead_channel_identities (\n  id            uuid primary key default gen_random_uuid(),\n  lead_id       uuid not null references public.leads(id) on delete cascade,\n  channel       text not null,          -- 'instagram' | 'messenger' | 'whatsapp' | 'web_widget'\n  external_id   text not null,          -- platform user ID (PSID, IGSID, WA phone, session ID)\n  username      text,                   -- @handle or display name from the platform\n  profile_pic   text,                   -- avatar URL if available\n  raw_profile   jsonb default '{}',     -- full profile payload from the platform\n  first_seen_at timestamptz not null default now(),\n  last_seen_at  timestamptz not null default now(),\n  constraint uq_channel_external unique (channel, external_id)\n);\n\n-- -------------------------------------------------------\n-- lead_conversations\n-- One row per conversation session for audit & retargeting\n-- -------------------------------------------------------\ncreate table public.lead_conversations (\n  id              uuid primary key default gen_random_uuid(),\n  lead_id         uuid not null references public.leads(id) on delete cascade,\n  identity_id     uuid not null references public.lead_channel_identities(id),\n  channel         text not null,\n  started_at      timestamptz not null default now(),\n  last_message_at timestamptz not null default now(),\n  message_count   int not null default 1,\n  conversation_id text,                  -- platform conversation/thread ID\n  metadata        jsonb default '{}'\n);\n\n-- -------------------------------------------------------\n-- Indexes\n-- -------------------------------------------------------\ncreate index idx_leads_source        on public.leads(lead_source);\ncreate index idx_leads_status        on public.leads(status);\ncreate index idx_leads_last_seen     on public.leads(last_seen_at desc);\ncreate index idx_leads_phone         on public.leads(phone) where phone is not null;\ncreate index idx_leads_email         on public.leads(email) where email is not null;\ncreate index idx_lci_lead            on public.lead_channel_identities(lead_id);\ncreate index idx_lci_channel_ext     on public.lead_channel_identities(channel, external_id);\ncreate index idx_lconv_lead          on public.lead_conversations(lead_id);\ncreate index idx_lconv_started       on public.lead_conversations(started_at desc);\n\n-- -------------------------------------------------------\n-- updated_at trigger\n-- -------------------------------------------------------\ncreate or replace function public.set_updated_at()\nreturns trigger language plpgsql as $$\nbegin\n  new.updated_at = now();\n  return new;\nend;\n$$;\n\ncreate trigger trg_leads_updated_at\n  before update on public.leads\n  for each row execute procedure public.set_updated_at();\n```\n\n### Why this structure?\n\n| Design choice | Rationale |\n|---|---|\n| Separate `lead_channel_identities` table | A person may reach you from both Instagram and WhatsApp. Two rows here, one row in `leads`. |\n| `UNIQUE (channel, external_id)` | Prevents duplicate capture on every message; enables safe upsert. |\n| `metadata jsonb` on leads | Store UTM params, referral codes, or any future field without schema migrations. |\n| `lead_conversations` table | Tracks conversation history for retargeting sequences (\"re-engage leads silent for 7 days\"). |\n\n---\n\n## 2. Channel Webhook Normalization\n\nEach platform delivers webhooks in a different shape. Create a thin normalization layer that produces a unified `ChannelEvent` before calling the upsert logic.\n\n```typescript\n// types.ts\nexport interface ChannelEvent {\n  channel: 'instagram' | 'messenger' | 'whatsapp' | 'web_widget';\n  externalId: string;        // platform's user/sender ID\n  conversationId?: string;   // thread/conversation ID if available\n  displayName?: string;\n  phone?: string;            // E.164; WhatsApp only\n  email?: string;            // web widget only if collected\n  profilePic?: string;\n  rawProfile?: Record<string, unknown>;\n  messageText?: string;\n  timestamp: string;         // ISO-8601\n}\n```\n\n### Instagram DMs\n\nMeta sends Instagram webhooks to the same endpoint as Messenger but with `object: \"instagram\"`.\n\n```typescript\n// parsers/instagram.ts\nimport { ChannelEvent } from '../types';\n\nexport function parseInstagramWebhook(body: any): ChannelEvent[] {\n  const events: ChannelEvent[] = [];\n  for (const entry of body.entry ?? []) {\n    for (const msg of entry.messaging ?? []) {\n      if (!msg.message) continue;           // skip delivery/read receipts\n      events.push({\n        channel: 'instagram',\n        externalId: msg.sender.id,          // Instagram-scoped user ID (IGSID)\n        conversationId: entry.id,\n        displayName: undefined,             // not in webhook payload; fetch via Graph API if needed\n        profilePic: undefined,\n        rawProfile: { sender: msg.sender },\n        messageText: msg.message.text,\n        timestamp: new Date(msg.timestamp).toISOString(),\n      });\n    }\n  }\n  return events;\n}\n```\n\n### Facebook Messenger\n\n```typescript\n// parsers/messenger.ts\nimport { ChannelEvent } from '../types';\n\nexport function parseMessengerWebhook(body: any): ChannelEvent[] {\n  const events: ChannelEvent[] = [];\n  for (const entry of body.entry ?? []) {\n    for (const msg of entry.messaging ?? []) {\n      if (!msg.message) continue;\n      events.push({\n        channel: 'messenger',\n        externalId: msg.sender.id,          // Page-scoped user ID (PSID)\n        conversationId: entry.id,\n        rawProfile: { sender: msg.sender },\n        messageText: msg.message.text,\n        timestamp: new Date(msg.timestamp).toISOString(),\n      });\n    }\n  }\n  return events;\n}\n```\n\n> **Profile enrichment tip:** Neither Instagram nor Messenger include display name/avatar in the webhook. After capture, enqueue a background job to call `GET /{user-id}?fields=name,profile_pic` on the Graph API and update `lead_channel_identities.raw_profile`.\n\n### WhatsApp (Cloud API)\n\n```typescript\n// parsers/whatsapp.ts\nimport { ChannelEvent } from '../types';\n\nexport function parseWhatsAppWebhook(body: any): ChannelEvent[] {\n  const events: ChannelEvent[] = [];\n  for (const entry of body.entry ?? []) {\n    for (const change of entry.changes ?? []) {\n      const value = change.value;\n      for (const msg of value.messages ?? []) {\n        const contact = value.contacts?.find((c: any) => c.wa_id === msg.from);\n        events.push({\n          channel: 'whatsapp',\n          externalId: msg.from,             // WhatsApp phone number (no +)\n          phone: `+${msg.from}`,            // convert to E.164\n          conversationId: msg.from,         // WA uses phone as conversation key\n          displayName: contact?.profile?.name,\n          rawProfile: contact ?? {},\n          messageText: msg.type === 'text' ? msg.text?.body : undefined,\n          timestamp: new Date(parseInt(msg.timestamp) * 1000).toISOString(),\n        });\n      }\n    }\n  }\n  return events;\n}\n```\n\n### Web Widget\n\nFor a web widget you control the payload, so design it to send everything you need:\n\n```typescript\n// parsers/webWidget.ts\nimport { ChannelEvent } from '../types';\n\nexport function parseWebWidgetEvent(body: any): ChannelEvent {\n  return {\n    channel: 'web_widget',\n    externalId: body.sessionId,             // your widget's session/visitor ID\n    conversationId: body.sessionId,\n    displayName: body.name,\n    email: body.email,\n    phone: body.phone,\n    rawProfile: { utm: body.utm, referrer: body.referrer },\n    messageText: body.message,\n    timestamp: body.timestamp ?? new Date().toISOString(),\n  };\n}\n```\n\n---\n\n## 3. Core Upsert Logic\n\nThis is the single function that all parsers feed into. It runs as an upsert so it is safe to call on every incoming message \u2014 repeated calls update `last_seen_at` rather than creating duplicates.\n\n```typescript\n// leadCapture.ts\nimport { createClient } from '@supabase/supabase-js';\nimport { ChannelEvent } from './types';\n\nconst supabase = createClient(\n  process.env.SUPABASE_URL!,\n  process.env.SUPABASE_SERVICE_ROLE_KEY!   // use service role \u2014 this runs server-side only\n);\n\nexport async function captureLeadFromEvent(event: ChannelEvent): Promise<string> {\n  // ----------------------------------------------------------------\n  // Step 1: Upsert the channel identity row\n  //         ON CONFLICT updates last_seen_at and enriches profile data\n  // ----------------------------------------------------------------\n  const { data: identity, error: identityError } = await supabase\n    .from('lead_channel_identities')\n    .upsert(\n      {\n        channel: event.channel,\n        external_id: event.externalId,\n        username: event.displayName ?? null,\n        profile_pic: event.profilePic ?? null,\n        raw_profile: event.rawProfile ?? {},\n        last_seen_at: event.timestamp,\n      },\n      {\n        onConflict: 'channel,external_id',\n        ignoreDuplicates: false,            // we want to update last_seen_at\n      }\n    )\n    .select('id, lead_id')\n    .single();\n\n  if (identityError) throw new Error(`Identity upsert failed: ${identityError.message}`);\n\n  let leadId: string;\n\n  if (identity.lead_id) {\n    // ----------------------------------------------------------------\n    // Step 2a: Identity already linked to a lead \u2014 just refresh it\n    // ----------------------------------------------------------------\n    leadId = identity.lead_id;\n\n    await supabase\n      .from('leads')\n      .update({\n        last_seen_at: event.timestamp,\n        // Enrich with any newly available fields (don't overwrite with null)\n        ...(event.email    ? { email: event.email }   : {}),\n        ...(event.phone    ? { phone: event.phone }   : {}),\n        ...(event.displayName ? { full_name: event.displayName } : {}),\n      })\n      .eq('id', leadId);\n  } else {\n    // ----------------------------------------------------------------\n    // Step 2b: New identity \u2014 create the lead and link it\n    // ----------------------------------------------------------------\n    const { data: lead, error: leadError } = await supabase\n      .from('leads')\n      .insert({\n        email: event.email ?? null,\n        phone: event.phone ?? null,\n        full_name: event.displayName ?? null,\n        lead_source: event.channel,\n        first_seen_at: event.timestamp,\n        last_seen_at: event.timestamp,\n        status: 'new',\n      })\n      .select('id')\n      .single();\n\n    if (leadError) throw new Error(`Lead insert failed: ${leadError.message}`);\n    leadId = lead.id;\n\n    // Link identity -> lead\n    await supabase\n      .from('lead_channel_identities')\n      .update({ lead_id: leadId })\n      .eq('id', identity.id);\n  }\n\n  // ----------------------------------------------------------------\n  // Step 3: Upsert a conversation record\n  //         Increment message_count on subsequent messages\n  // ----------------------------------------------------------------\n  await supabase.rpc('upsert_lead_conversation', {\n    p_lead_id:         leadId,\n    p_identity_id:     identity.id,\n    p_channel:         event.channel,\n    p_conversation_id: event.conversationId ?? event.externalId,\n    p_message_at:      event.timestamp,\n  });\n\n  return leadId;\n}\n```\n\n### SQL function for conversation upsert\n\n```sql\ncreate or replace function public.upsert_lead_conversation(\n  p_lead_id         uuid,\n  p_identity_id     uuid,\n  p_channel         text,\n  p_conversation_id text,\n  p_message_at      timestamptz\n) returns void language plpgsql as $$\nbegin\n  insert into public.lead_conversations\n    (lead_id, identity_id, channel, conversation_id, started_at, last_message_at, message_count)\n  values\n    (p_lead_id, p_identity_id, p_channel, p_conversation_id, p_message_at, p_message_at, 1)\n  on conflict (lead_id, conversation_id)\n  do update set\n    last_message_at = excluded.last_message_at,\n    message_count   = lead_conversations.message_count + 1;\nend;\n$$;\n\n-- Unique index to power the ON CONFLICT clause above\ncreate unique index idx_lconv_lead_conv\n  on public.lead_conversations(lead_id, conversation_id);\n```\n\n---\n\n## 4. Webhook Route Handler\n\nWire everything together in a single route (Express / Next.js API route / Supabase Edge Function):\n\n```typescript\n// api/webhook.ts  (Next.js App Router example)\nimport { NextRequest, NextResponse } from 'next/server';\nimport { parseInstagramWebhook }  from '@/parsers/instagram';\nimport { parseMessengerWebhook }  from '@/parsers/messenger';\nimport { parseWhatsAppWebhook }   from '@/parsers/whatsapp';\nimport { parseWebWidgetEvent }    from '@/parsers/webWidget';\nimport { captureLeadFromEvent }   from '@/leadCapture';\nimport { verifyMetaSignature }    from '@/utils/metaSignature'; // HMAC-SHA256 check\n\nexport async function POST(req: NextRequest) {\n  const rawBody = await req.text();\n  const body    = JSON.parse(rawBody);\n\n  // Meta requires signature verification on all webhooks\n  if (['instagram', 'messenger', 'whatsapp'].includes(body.object)) {\n    const sig = req.headers.get('x-hub-signature-256') ?? '';\n    if (!verifyMetaSignature(rawBody, sig, process.env.META_APP_SECRET!)) {\n      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });\n    }\n  }\n\n  let events = [];\n\n  if (body.object === 'instagram')  events = parseInstagramWebhook(body);\n  else if (body.object === 'page')  events = parseMessengerWebhook(body);\n  else if (body.object === 'whatsapp_business_account') events = parseWhatsAppWebhook(body);\n  else if (body.channel === 'web_widget') events = [parseWebWidgetEvent(body)];\n  else return NextResponse.json({ error: 'Unknown channel' }, { status: 400 });\n\n  // Capture all events concurrently; don't let one failure block the others\n  await Promise.allSettled(events.map(captureLeadFromEvent));\n\n  // Meta requires a 200 response within 20 seconds\n  return NextResponse.json({ status: 'ok' });\n}\n\n// Meta webhook verification GET handler\nexport async function GET(req: NextRequest) {\n  const { searchParams } = new URL(req.url);\n  if (\n    searchParams.get('hub.mode')      === 'subscribe' &&\n    searchParams.get('hub.verify_token') === process.env.META_VERIFY_TOKEN\n  ) {\n    return new NextResponse(searchParams.get('hub.challenge'));\n  }\n  return NextResponse.json({ error: 'Forbidden' }, { status: 403 });\n}\n```\n\n---\n\n## 5. Row-Level Security (RLS) Policies\n\nApply RLS so your backend service role has full access but authenticated dashboard users only see leads belonging to their account (if multi-tenant):\n\n```sql\nalter table public.leads                   enable row level security;\nalter table public.lead_channel_identities enable row level security;\nalter table public.lead_conversations      enable row level security;\n\n-- Service role bypasses RLS automatically in Supabase.\n-- Add tenant-scoping policies if you have multiple accounts:\n-- (adjust to your auth scheme \u2014 example uses a tenant_id column)\n--\n-- create policy \"tenant_leads\" on public.leads\n--   using (tenant_id = auth.jwt() ->> 'tenant_id');\n```\n\n---\n\n## 6. Retargeting Queries\n\nWith this schema you can now run targeted queries for outreach campaigns:\n\n```sql\n-- Leads who first messaged via WhatsApp in the last 30 days\n-- and have not been contacted yet\nselect l.id, l.phone, l.full_name, l.first_seen_at\nfrom public.leads l\nwhere l.lead_source = 'whatsapp'\n  and l.status      = 'new'\n  and l.first_seen_at >= now() - interval '30 days'\norder by l.first_seen_at desc;\n\n-- Leads gone silent for more than 7 days (all channels)\nselect l.id, l.full_name, l.lead_source,\n       max(lc.last_message_at) as last_activity\nfrom public.leads l\njoin public.lead_conversations lc on lc.lead_id = l.id\ngroup by l.id, l.full_name, l.lead_source\nhaving max(lc.last_message_at) < now() - interval '7 days'\n   and l.status not in ('disqualified')\norder by last_activity asc;\n\n-- Cross-channel leads (same person messaged on 2+ channels)\nselect l.id, l.full_name, count(lci.channel) as channel_count,\n       array_agg(distinct lci.channel) as channels\nfrom public.leads l\njoin public.lead_channel_identities lci on lci.lead_id = l.id\ngroup by l.id, l.full_name\nhaving count(lci.channel) > 1;\n```\n\n---\n\n## 7. Identity Merging (Optional but Recommended)\n\nOver time you may discover that a WhatsApp lead and a web widget lead are the same person (matched by phone or email). Add a merge utility:\n\n```typescript\n// mergeLeads.ts\nexport async function mergeLeads(survivorId: string, duplicateId: string) {\n  // Re-parent all channel identities and conversations to the survivor\n  await supabase\n    .from('lead_channel_identities')\n    .update({ lead_id: survivorId })\n    .eq('lead_id', duplicateId);\n\n  await supabase\n    .from('lead_conversations')\n    .update({ lead_id: survivorId })\n    .eq('lead_id', duplicateId);\n\n  // Delete the duplicate lead\n  await supabase.from('leads').delete().eq('id', duplicateId);\n}\n```\n\nTrigger this automatically when a web widget session submits an email that already exists on a WhatsApp lead.\n\n---\n\n## 8. Summary Checklist\n\n| Step | Done? |\n|---|---|\n| Create `leads`, `lead_channel_identities`, `lead_conversations` tables | |\n| Add unique constraint `(channel, external_id)` on identities | |\n| Deploy the `upsert_lead_conversation` SQL function | |\n| Build parser for each channel | |\n| Implement `captureLeadFromEvent` upsert function | |\n| Wire parsers into a single POST webhook route | |\n| Add Meta HMAC-SHA256 signature verification | |\n| Enable RLS on all three tables | |\n| (Optional) Background job to enrich profiles via Graph API | |\n| (Optional) Identity merge on email/phone match | |\n\nThis pattern ensures every first message \u2014 regardless of channel \u2014 creates a lead record with zero manual work, and all subsequent messages from the same sender update rather than duplicate the record.\n"}], "grading": {"eval_id": 2, "eval_name": "lead-auto-capture", "configuration": "without_skill", "expectations": [{"text": "includes-leads-table-schema", "passed": false, "evidence": "The baseline uses a different schema architecture: a separate 'leads' table (channel-agnostic) plus 'lead_channel_identities' and 'lead_conversations' tables. The leads table does NOT have a conversation_id field \u2014 that's on lead_conversations. Missing required fields: agent_id, conversation_id in leads."}, {"text": "auto-capture-is-fire-and-forget", "passed": false, "evidence": "captureLeadFromEvent throws errors in multiple code paths: 'throw new Error(Identity upsert failed: ...)' and 'throw new Error(Lead insert failed: ...)'. These uncaught throws could propagate up and break the webhook response flow."}, {"text": "called-on-new-conversation", "passed": true, "evidence": "captureLeadFromEvent is called in the webhook POST handler via 'Promise.allSettled(events.map(captureLeadFromEvent))' \u2014 fires on every inbound event. On the first message from a sender, the identity row is new so a lead is created. Technically satisfies the assertion though via a different pattern."}, {"text": "unique-constraint-on-conversation", "passed": false, "evidence": "The baseline uses UNIQUE(channel, external_id) on lead_channel_identities, not conversation_id. The leads table has no conversation_id column at all. The idempotency mechanism is at the identity level, not the conversation level \u2014 a different architectural choice that doesn't satisfy the conversation-based uniqueness constraint."}, {"text": "source-channel-tracked", "passed": true, "evidence": "leads.lead_source field tracks the originating channel ('instagram', 'messenger', 'whatsapp', 'web_widget'). Functionally equivalent to source_channel."}], "pass_rate": 0.4, "notes": "Baseline passes 2/5. The schema design differs fundamentally from the expected pattern: no conversation_id in leads table, captureLeadFromEvent can throw (breaks fire-and-forget guarantee), and idempotency is per-identity not per-conversation. The approach is architecturally interesting but doesn't match the SaaS-specific patterns the skill encodes.", "summary": {"pass_rate": 0.4, "passed": 2, "failed": 3, "total": 5}}}, {"id": "eval-meta-webhook-setup-with_skill-run-1", "prompt": "(No prompt found)", "eval_id": null, "outputs": [{"name": "response.md", "type": "text", "content": "# Meta Webhook Setup for Instagram DM & Facebook Messenger (Express on Railway)\n\nThis guide walks you through everything needed to receive Instagram DM and Facebook Messenger messages in your chatbot SaaS backend.\n\n---\n\n## Overview\n\nMeta uses a **single unified webhook** for both Instagram DM and Facebook Messenger. Your Express backend needs to:\n\n1. Expose a `GET` endpoint for Meta's one-time verification challenge\n2. Expose a `POST` endpoint that receives all inbound messages\n3. Verify every incoming request with an HMAC-SHA256 signature check\n4. ACK with `200` immediately, then process the payload asynchronously\n\n---\n\n## 1. Webhook Endpoint Code\n\n### Prerequisites: Raw Body Access\n\nMeta's signature verification requires the **raw, unparsed request body** \u2014 not the parsed JSON object. You must capture it before Express parses it.\n\n```js\n// app.js (or server.js) \u2014 set this up BEFORE express.json()\nimport express from 'express';\nimport crypto from 'crypto';\n\nconst app = express();\n\n// Capture raw body for Meta signature verification\napp.use((req, res, next) => {\n  let data = '';\n  req.setEncoding('utf8');\n  req.on('data', (chunk) => { data += chunk; });\n  req.on('end', () => {\n    req.rawBody = data;\n    next();\n  });\n});\n\n// Standard JSON parser (runs AFTER rawBody is captured)\napp.use(express.json());\n```\n\n> **Alternative with `body-parser`:** if you use `body-parser`, pass `{ verify: (req, res, buf) => { req.rawBody = buf; } }` as an option.\n\n### GET \u2014 Verification Challenge\n\nMeta calls this endpoint once when you register the webhook in the Developer Portal. It sends three query params; you must echo back `hub.challenge` only when the verify token matches.\n\n```js\n// routes/integrations.js (or wherever your routes live)\nimport { Router } from 'express';\nimport crypto from 'crypto';\n\nconst router = Router();\n\n// GET /api/integrations/facebook/webhook\nrouter.get('/facebook/webhook', (req, res) => {\n  const mode      = req.query['hub.mode'];\n  const token     = req.query['hub.verify_token'];\n  const challenge = req.query['hub.challenge'];\n\n  if (mode === 'subscribe' && token === process.env.META_VERIFY_TOKEN) {\n    console.log('[Webhook] Meta verification challenge accepted');\n    return res.status(200).send(challenge); // must be plain text, not JSON\n  }\n\n  console.warn('[Webhook] Verification failed \u2014 token mismatch or wrong mode');\n  res.sendStatus(403);\n});\n```\n\n### POST \u2014 Inbound Messages\n\n```js\n// POST /api/integrations/facebook/webhook\nrouter.post('/facebook/webhook', async (req, res) => {\n  // 1. Verify signature FIRST \u2014 reject anything that doesn't match\n  const signature = req.headers['x-hub-signature-256'];\n  if (!verifyMetaSignature(req.rawBody, signature)) {\n    console.warn('[Webhook] Invalid signature \u2014 request rejected');\n    return res.sendStatus(401);\n  }\n\n  // 2. ACK immediately \u2014 Meta retries if your response takes > 20 seconds\n  res.sendStatus(200);\n\n  // 3. Process asynchronously so the 200 is sent before heavy work begins\n  const body = req.body;\n  setImmediate(async () => {\n    try {\n      if (body.object === 'instagram') {\n        await processInstagramPayload(body);\n      } else if (body.object === 'page') {\n        await processFacebookPayload(body);\n      } else {\n        console.log('[Webhook] Unknown object type:', body.object);\n      }\n    } catch (err) {\n      console.error('[Webhook] Processing error:', err.message);\n      // Never throw here \u2014 the 200 is already sent\n    }\n  });\n});\n\nexport default router;\n```\n\n### Processing Functions\n\nThese functions extract the sender, recipient, and message text from Meta's payload format and route to your AI/storage layer.\n\n```js\n// Processes Instagram DM payloads\nasync function processInstagramPayload(body) {\n  for (const entry of body.entry || []) {\n    const igAccountId = entry.id; // your Instagram Business Account ID\n\n    for (const event of entry.messaging || []) {\n      const senderId    = event.sender?.id;\n      const recipientId = event.recipient?.id;\n      const messageText = event.message?.text;\n      const timestamp   = event.timestamp;\n\n      if (!messageText || !senderId) continue;\n      if (senderId === recipientId) continue; // skip echo of your own messages\n\n      console.log(`[IG] Message from ${senderId}: \"${messageText}\"`);\n      await handleInboundMessage({\n        platform:    'instagram',\n        igAccountId,\n        senderId,\n        messageText,\n        timestamp,\n      });\n    }\n  }\n}\n\n// Processes Facebook Messenger payloads\nasync function processFacebookPayload(body) {\n  for (const entry of body.entry || []) {\n    const pageId = entry.id; // your Facebook Page ID\n\n    for (const event of entry.messaging || []) {\n      const senderId    = event.sender?.id;\n      const recipientId = event.recipient?.id;\n      const messageText = event.message?.text;\n      const timestamp   = event.timestamp;\n\n      if (!messageText || !senderId) continue;\n      if (senderId === recipientId) continue; // skip echo\n\n      console.log(`[FB] Message from ${senderId} on page ${pageId}: \"${messageText}\"`);\n      await handleInboundMessage({\n        platform: 'facebook',\n        pageId,\n        senderId,\n        messageText,\n        timestamp,\n      });\n    }\n  }\n}\n\n// Central handler \u2014 look up channel, conversation, generate AI reply\nasync function handleInboundMessage({ platform, igAccountId, pageId, senderId, messageText, timestamp }) {\n  // 1. Find the channel record in your DB by igAccountId or pageId\n  const channelQuery = platform === 'instagram'\n    ? supabase.from('channels').select('*').eq('type', 'instagram').contains('config', { ig_user_id: igAccountId })\n    : supabase.from('channels').select('*').eq('type', 'facebook').contains('config', { page_id: pageId });\n\n  const { data: channel } = await channelQuery.maybeSingle();\n  if (!channel) {\n    console.warn(`[Webhook] No channel found for ${platform} account ${igAccountId || pageId}`);\n    return;\n  }\n\n  // 2. Find or create conversation (also auto-captures lead on first message)\n  const conversationId = await findOrCreateConversation({\n    agentId:        channel.agent_id,\n    channelId:      channel.id,\n    organizationId: channel.organization_id,\n    externalId:     senderId,         // use senderId as the external thread ID\n    contactName:    null,             // Meta doesn't give you the name here\n    sourceChannel:  platform,\n  });\n\n  // 3. Store the inbound message\n  await supabase.from('messages').insert({\n    conversation_id: conversationId,\n    role:            'user',\n    content:         messageText,\n  });\n\n  // 4. Generate AI reply (call OpenAI, your agent, etc.)\n  const replyText = await generateAgentReply(channel.agent_id, conversationId, messageText);\n\n  // 5. Send reply back via Graph API\n  const accessToken = channel.config.access_token;\n  await sendMetaMessage(senderId, replyText, accessToken);\n\n  // 6. Store assistant reply\n  await supabase.from('messages').insert({\n    conversation_id: conversationId,\n    role:            'assistant',\n    content:         replyText,\n  });\n}\n```\n\n### Sending Replies Back\n\n```js\n// Works for both Instagram DM and Facebook Messenger\nasync function sendMetaMessage(recipientId, messageText, pageAccessToken) {\n  const response = await fetch('https://graph.facebook.com/v19.0/me/messages', {\n    method:  'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({\n      recipient:    { id: recipientId },\n      message:      { text: messageText },\n      access_token: pageAccessToken,\n    }),\n  });\n\n  if (!response.ok) {\n    const error = await response.json();\n    console.error('[Meta] Send message error:', JSON.stringify(error));\n    throw new Error(`Meta send failed: ${error.error?.message}`);\n  }\n\n  return response.json();\n}\n```\n\n---\n\n## 2. Signature Verification\n\nMeta signs every POST request with your App Secret using HMAC-SHA256 and sends the result in the `X-Hub-Signature-256` header as `sha256=<hex_digest>`.\n\n```js\nimport crypto from 'crypto';\n\n/**\n * Verifies the X-Hub-Signature-256 header from Meta.\n *\n * @param {string} rawBody   - The raw request body string (before JSON.parse)\n * @param {string} signature - The value of the X-Hub-Signature-256 header\n * @returns {boolean}\n */\nfunction verifyMetaSignature(rawBody, signature) {\n  // Reject if header is missing entirely\n  if (!signature || !signature.startsWith('sha256=')) {\n    console.warn('[Webhook] Missing or malformed X-Hub-Signature-256 header');\n    return false;\n  }\n\n  // Reject if raw body was never captured (misconfigured middleware)\n  if (!rawBody) {\n    console.error('[Webhook] rawBody is undefined \u2014 check middleware order');\n    return false;\n  }\n\n  // Compute expected signature\n  const expected = 'sha256=' + crypto\n    .createHmac('sha256', process.env.META_APP_SECRET)\n    .update(rawBody, 'utf8')\n    .digest('hex');\n\n  // Use timing-safe comparison to prevent timing attacks\n  try {\n    const sigBuffer = Buffer.from(signature);\n    const expBuffer = Buffer.from(expected);\n\n    // Buffers must be same length for timingSafeEqual\n    if (sigBuffer.length !== expBuffer.length) return false;\n\n    return crypto.timingSafeEqual(sigBuffer, expBuffer);\n  } catch (err) {\n    console.error('[Webhook] Signature comparison error:', err.message);\n    return false;\n  }\n}\n```\n\n**Why `timingSafeEqual`?** A standard `===` string comparison short-circuits at the first mismatched character, leaking timing information that an attacker can exploit to forge signatures. `timingSafeEqual` always takes the same amount of time regardless of where the mismatch occurs.\n\n**Why raw body?** Once `express.json()` parses the body, the original bytes are gone. Any difference in whitespace or key ordering between the raw bytes and your re-serialized JSON will produce a different HMAC and fail verification. Always capture `req.rawBody` before the JSON parser runs.\n\n---\n\n## 3. Meta Developer Portal Configuration\n\n### Step 1: Create or Select Your App\n\nGo to [developers.facebook.com/apps](https://developers.facebook.com/apps) and either create a new app or select your existing one. Choose **\"Business\"** as the app type.\n\n### Step 2: Add Required Products\n\nIn the left sidebar under **Products**, add:\n\n| Product | Purpose |\n|---|---|\n| **Webhooks** | Receive inbound events from all Meta platforms |\n| **Facebook Login** | OAuth for Messenger (and Instagram via page token) |\n| **Instagram Business Login** | Direct OAuth for Instagram DM |\n| **Messenger** | Enables Messenger platform features |\n\n### Step 3: Configure the Webhook\n\n1. Go to **Webhooks** in the left sidebar\n2. Click **\"Add Callback URL\"**\n3. Enter:\n   - **Callback URL:** `https://your-railway-app.up.railway.app/api/integrations/facebook/webhook`\n   - **Verify Token:** the exact value you set in `META_VERIFY_TOKEN` env var\n4. Click **\"Verify and Save\"** \u2014 Meta will call your GET endpoint right now; it must respond with the challenge within a few seconds\n5. After saving, click **\"Add Subscriptions\"** and subscribe to:\n   - `messages`\n   - `messaging_postbacks`\n   - `messaging_referrals`\n\n> **For Instagram specifically:** you also need to subscribe the webhook at the Page level. Go to **Messenger > Settings > Webhooks** and subscribe your Page. Meta will then forward Instagram DM events through `body.object === 'instagram'`.\n\n### Step 4: Subscribe Individual Pages/Accounts\n\nAfter a user completes OAuth and connects their Facebook Page or Instagram account, you must subscribe that specific page to your webhook programmatically:\n\n```js\n// Call this after saving a new channel during OAuth callback\nasync function subscribePageToWebhook(pageId, pageAccessToken) {\n  const res = await fetch(\n    `https://graph.facebook.com/v19.0/${pageId}/subscribed_apps`,\n    {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({\n        subscribed_fields: ['messages', 'messaging_postbacks', 'messaging_referrals'],\n        access_token: pageAccessToken,\n      }),\n    }\n  );\n  const data = await res.json();\n  if (!data.success) {\n    console.error('[Webhook] Page subscription failed:', JSON.stringify(data));\n    throw new Error('Failed to subscribe page to webhook');\n  }\n  console.log(`[Webhook] Page ${pageId} subscribed successfully`);\n}\n```\n\nCall this inside your `/facebook/callback` route after you save the channel.\n\n### Step 5: App Mode\n\n- **Development mode:** only works for app admins, developers, and testers added under **Roles**\n- **Live mode:** required for any real user to connect their account\n\nTo add testers while in Development mode: **App Dashboard > Roles > Instagram Testers** \u2014 add Instagram usernames. Those accounts can connect and send test messages.\n\n### Step 6: Valid OAuth Redirect URIs\n\nUnder **Facebook Login > Settings**, add:\n```\nhttps://your-railway-app.up.railway.app/api/integrations/facebook/callback\nhttps://your-railway-app.up.railway.app/api/integrations/instagram/callback\n```\n\nUnder **Instagram Business Login > Settings**, add:\n```\nhttps://your-railway-app.up.railway.app/api/integrations/instagram/callback\n```\n\nThe URIs must match **exactly** (no trailing slash, correct protocol, correct path).\n\n---\n\n## 4. Environment Variables\n\nSet these in your Railway project under **Settings > Variables** (or via the Railway CLI):\n\n```bash\n# \u2500\u2500 Meta Core \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nMETA_APP_ID=123456789012345\n# Your Meta App ID (found at the top of your app dashboard)\n\nMETA_APP_SECRET=abcdef1234567890abcdef1234567890\n# Your Meta App Secret (App Dashboard > Settings > Basic > App Secret)\n# Used for HMAC-SHA256 signature verification on every webhook POST\n\nMETA_VERIFY_TOKEN=myapp_webhook_verify_2025\n# A secret string YOU choose \u2014 can be any random value\n# Must match exactly what you enter in the Meta Developer Portal webhook config\n# Tip: use a long random string, e.g. openssl rand -hex 16\n\n# \u2500\u2500 Instagram-specific (may be same as META_APP_ID/SECRET) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nINSTAGRAM_APP_ID=123456789012345\nINSTAGRAM_APP_SECRET=abcdef1234567890abcdef1234567890\n\n# \u2500\u2500 OAuth Redirect URIs \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nFACEBOOK_REDIRECT_URI=https://your-railway-app.up.railway.app/api/integrations/facebook/callback\nINSTAGRAM_REDIRECT_URI=https://your-railway-app.up.railway.app/api/integrations/instagram/callback\n\n# \u2500\u2500 Database \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nSUPABASE_URL=https://xxxxxxxxxxx.supabase.co\nSUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\n\n# \u2500\u2500 Frontend (for OAuth redirect after callback) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nFRONTEND_URL=https://your-dashboard.vercel.app\n\n# \u2500\u2500 AI \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nOPENAI_API_KEY=sk-...\n```\n\n### Setting Variables via Railway CLI\n\n```bash\nrailway variables set \\\n  META_APP_ID=123456789012345 \\\n  META_APP_SECRET=abcdef1234567890abcdef1234567890 \\\n  META_VERIFY_TOKEN=myapp_webhook_verify_2025 \\\n  INSTAGRAM_APP_ID=123456789012345 \\\n  INSTAGRAM_APP_SECRET=abcdef1234567890abcdef1234567890 \\\n  FACEBOOK_REDIRECT_URI=https://your-railway-app.up.railway.app/api/integrations/facebook/callback \\\n  INSTAGRAM_REDIRECT_URI=https://your-railway-app.up.railway.app/api/integrations/instagram/callback \\\n  SUPABASE_URL=https://xxxxxxxxxxx.supabase.co \\\n  SUPABASE_SERVICE_ROLE_KEY=eyJ... \\\n  FRONTEND_URL=https://your-dashboard.vercel.app \\\n  OPENAI_API_KEY=sk-...\n```\n\n---\n\n## End-to-End Checklist\n\n```\n[ ] rawBody middleware added BEFORE express.json()\n[ ] GET /api/integrations/facebook/webhook returns hub.challenge for correct token\n[ ] POST /api/integrations/facebook/webhook verifies X-Hub-Signature-256\n[ ] POST sends 200 immediately, processes in setImmediate\n[ ] META_APP_SECRET set in Railway (used for HMAC verification)\n[ ] META_VERIFY_TOKEN set in Railway (matches Developer Portal input exactly)\n[ ] Webhook URL registered in Meta Developer Portal and verified\n[ ] Subscriptions: messages, messaging_postbacks, messaging_referrals\n[ ] Each connected Page subscribed via /subscribed_apps after OAuth\n[ ] App in Live mode OR test users added as Instagram Testers\n[ ] Redirect URIs registered under both Facebook Login and Instagram Business Login\n```\n\n## Verification Test\n\nAfter deploying to Railway, run this to confirm the GET endpoint works:\n\n```bash\ncurl \"https://your-railway-app.up.railway.app/api/integrations/facebook/webhook\\\n?hub.mode=subscribe\\\n&hub.verify_token=YOUR_META_VERIFY_TOKEN\\\n&hub.challenge=test_challenge_123\"\n\n# Expected output: test_challenge_123\n```\n\n---\n\n## Common Errors\n\n| Symptom | Cause | Fix |\n|---|---|---|\n| `403` on webhook verify | `META_VERIFY_TOKEN` mismatch | Check exact value in Railway vars vs Developer Portal |\n| `401` on incoming POST | Signature verification fails | Confirm `rawBody` middleware runs before `express.json()` |\n| Webhook saves but no messages arrive | Page not subscribed | Call `/subscribed_apps` after OAuth |\n| `instagram_business_account` is null | Instagram not linked to Facebook Page | User must link in Facebook Page Settings \u2192 Instagram |\n| Webhook verifies but `object` is never `instagram` | Missing Instagram subscriptions | Re-subscribe with `messages` field under Messenger > Webhooks |\n| OAuth callback fails with `invalid redirect_uri` | URI not registered exactly | Add URI to both Facebook Login and Instagram Business Login settings |\n| Works for admins, fails for real users | App still in Development mode | Submit App Review OR add users as Instagram Testers |\n"}], "grading": {"eval_id": 3, "eval_name": "meta-webhook-setup", "configuration": "with_skill", "expectations": [{"text": "includes-get-verification-handler", "passed": true, "evidence": "GET /facebook/webhook handler checks hub.mode === 'subscribe' AND token === process.env.META_VERIFY_TOKEN, responds with res.status(200).send(challenge) (plain text, not JSON)."}, {"text": "includes-signature-verification", "passed": true, "evidence": "verifyMetaSignature() function uses crypto.createHmac('sha256', process.env.META_APP_SECRET).update(rawBody).digest('hex'), compared with timingSafeEqual. Notes the requirement for rawBody captured before express.json()."}, {"text": "immediate-200-ack", "passed": true, "evidence": "POST handler: verify signature \u2192 res.sendStatus(200) \u2192 setImmediate(async () => { processInstagramPayload / processFacebookPayload }). The 200 is sent before any async processing begins."}, {"text": "async-processing-pattern", "passed": true, "evidence": "setImmediate() wraps the entire payload processing block, with its own try/catch to prevent errors from propagating after the 200 is sent."}, {"text": "meta-portal-steps", "passed": true, "evidence": "6-step portal config: create app, add products (Webhooks/Facebook Login/Instagram Business Login/Messenger), configure callback URL + verify token, add subscriptions (messages/messaging_postbacks/messaging_referrals), subscribe pages, manage app mode. Specific field names given."}, {"text": "required-env-vars-listed", "passed": true, "evidence": "META_APP_SECRET and META_VERIFY_TOKEN both explicitly listed in the env vars section with descriptions. Also includes META_APP_ID, INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, redirect URIs."}], "pass_rate": 1.0, "notes": "Perfect score. The skill correctly guided the response to the critical patterns: rawBody capture before express.json(), immediate 200 ACK, setImmediate for async processing, and timingSafeEqual for signature comparison.", "summary": {"pass_rate": 1.0, "passed": 6, "failed": 0, "total": 6}}}, {"id": "eval-meta-webhook-setup-without_skill-run-1", "prompt": "(No prompt found)", "eval_id": null, "outputs": [{"name": "response.md", "type": "text", "content": "# Setting Up Meta Webhooks for Instagram DM and Facebook Messenger on Express/Railway\n\nThis guide covers everything you need to receive Instagram DM and Facebook Messenger messages in your Express backend deployed on Railway.\n\n---\n\n## Overview\n\nMeta uses a single webhook system for both Instagram and Facebook Messenger. You register one HTTPS endpoint, and Meta sends all events (messages, postbacks, etc.) as HTTP POST requests to it. Before Meta will send you any events, it performs a one-time **verification handshake** via GET request.\n\n---\n\n## 1. Webhook Endpoint Code\n\nInstall the required packages first:\n\n```bash\nnpm install express body-parser crypto dotenv\n```\n\n### `src/webhooks/meta.js`\n\n```js\nconst express = require('express');\nconst crypto = require('crypto');\nconst router = express.Router();\n\n// \u2500\u2500\u2500 Verification Handshake (GET) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n// Meta calls this once when you configure the webhook in the Developer Portal.\nrouter.get('/webhook/meta', (req, res) => {\n  const mode      = req.query['hub.mode'];\n  const token     = req.query['hub.verify_token'];\n  const challenge = req.query['hub.challenge'];\n\n  if (mode === 'subscribe' && token === process.env.META_WEBHOOK_VERIFY_TOKEN) {\n    console.log('Meta webhook verified successfully.');\n    return res.status(200).send(challenge); // Must return the raw challenge string\n  }\n\n  console.warn('Meta webhook verification failed. Check VERIFY_TOKEN.');\n  return res.sendStatus(403);\n});\n\n// \u2500\u2500\u2500 Event Receiver (POST) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n// Raw body is required for signature verification \u2014 mount BEFORE json middleware.\nrouter.post(\n  '/webhook/meta',\n  express.raw({ type: 'application/json' }), // keep raw buffer for HMAC check\n  (req, res) => {\n    // 1. Verify signature\n    if (!verifyMetaSignature(req)) {\n      console.warn('Invalid Meta signature \u2014 request rejected.');\n      return res.sendStatus(401);\n    }\n\n    // 2. Parse body now that it is verified\n    const body = JSON.parse(req.body.toString('utf8'));\n\n    // 3. Route by object type\n    if (body.object === 'instagram') {\n      handleInstagramEvents(body.entry);\n    } else if (body.object === 'page') {\n      handleMessengerEvents(body.entry);\n    } else {\n      console.warn('Unknown webhook object type:', body.object);\n    }\n\n    // 4. Always respond 200 quickly; process async if needed\n    res.sendStatus(200);\n  }\n);\n\n// \u2500\u2500\u2500 Signature Verification \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nfunction verifyMetaSignature(req) {\n  const signature = req.headers['x-hub-signature-256'];\n  if (!signature) return false;\n\n  const expected = 'sha256=' + crypto\n    .createHmac('sha256', process.env.META_APP_SECRET)\n    .update(req.body) // raw Buffer \u2014 must not be parsed yet\n    .digest('hex');\n\n  // Use timingSafeEqual to prevent timing attacks\n  try {\n    return crypto.timingSafeEqual(\n      Buffer.from(signature),\n      Buffer.from(expected)\n    );\n  } catch {\n    return false;\n  }\n}\n\n// \u2500\u2500\u2500 Instagram DM Handler \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nfunction handleInstagramEvents(entries) {\n  for (const entry of entries) {\n    // Instagram DMs arrive under entry.messaging\n    const messagingEvents = entry.messaging || [];\n    for (const event of messagingEvents) {\n      if (event.message) {\n        const senderId = event.sender.id;       // Instagram-scoped user ID (IGSID)\n        const text     = event.message.text;\n        const attachments = event.message.attachments; // images, audio, etc.\n\n        console.log(`[Instagram DM] from ${senderId}:`, text || '[attachment]');\n        // TODO: pass to your bot logic\n        // await botHandler({ platform: 'instagram', senderId, text, attachments });\n      }\n\n      if (event.postback) {\n        // User tapped a button / quick reply with a payload\n        const senderId = event.sender.id;\n        const payload  = event.postback.payload;\n        console.log(`[Instagram Postback] from ${senderId}:`, payload);\n      }\n    }\n  }\n}\n\n// \u2500\u2500\u2500 Facebook Messenger Handler \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nfunction handleMessengerEvents(entries) {\n  for (const entry of entries) {\n    const messagingEvents = entry.messaging || [];\n    for (const event of messagingEvents) {\n      if (event.message && !event.message.is_echo) {\n        const senderId = event.sender.id;       // Page-scoped user ID (PSID)\n        const text     = event.message.text;\n        const attachments = event.message.attachments;\n\n        console.log(`[Messenger] from ${senderId}:`, text || '[attachment]');\n        // TODO: pass to your bot logic\n        // await botHandler({ platform: 'messenger', senderId, text, attachments });\n      }\n\n      if (event.postback) {\n        const senderId = event.sender.id;\n        const payload  = event.postback.payload;\n        console.log(`[Messenger Postback] from ${senderId}:`, payload);\n      }\n    }\n  }\n}\n\nmodule.exports = router;\n```\n\n### `src/app.js` (main Express file)\n\n```js\nrequire('dotenv').config();\nconst express = require('express');\nconst metaWebhook = require('./webhooks/meta');\n\nconst app = express();\n\n// Mount the Meta webhook router BEFORE any global body-parser middleware.\n// The POST handler uses express.raw() internally, so it must see the raw body.\napp.use(metaWebhook);\n\n// All other routes can use JSON parsing\napp.use(express.json());\n\n// ... rest of your routes\n\nconst PORT = process.env.PORT || 3000;\napp.listen(PORT, () => console.log(`Server running on port ${PORT}`));\n```\n\n> **Important:** The raw body middleware (`express.raw`) must run on the webhook POST route before any `express.json()` middleware parses the body. If you apply `express.json()` globally before mounting the webhook router, signature verification will fail because the body is no longer a raw Buffer.\n\n---\n\n## 2. How Signature Verification Works\n\nMeta signs every POST request using your **App Secret** and the HMAC-SHA256 algorithm. The signature is sent in the `X-Hub-Signature-256` header with the format `sha256=<hex-digest>`.\n\n### Step-by-step\n\n1. Meta computes: `HMAC-SHA256(rawRequestBody, APP_SECRET)`\n2. Meta sends the result in the header: `X-Hub-Signature-256: sha256=abc123...`\n3. Your server does the same computation using the same App Secret\n4. You compare your computed digest with the one in the header\n5. If they match, the request genuinely came from Meta\n\n### Why `express.raw()` matters\n\n`crypto.createHmac(...).update(req.body)` must receive the exact same bytes Meta signed. If Express parses the JSON first, `req.body` becomes a JavaScript object, and `Buffer.from({...})` will not match the original wire bytes \u2014 verification will always fail.\n\n### Why `timingSafeEqual`\n\nA regular `===` string comparison short-circuits on the first mismatched character, leaking timing information an attacker can use to forge signatures. `crypto.timingSafeEqual` always takes the same amount of time regardless of where the strings differ.\n\n---\n\n## 3. What to Configure in the Meta Developer Portal\n\n### Step 1: Create a Meta App\n\n1. Go to [developers.facebook.com](https://developers.facebook.com) and log in.\n2. Click **My Apps \u2192 Create App**.\n3. Select **Business** as the app type (required for Messenger and Instagram APIs).\n4. Fill in the app name and contact email, then click **Create App**.\n\n### Step 2: Add Products\n\nIn the left sidebar of your app dashboard:\n\n- Click **Add Product** and add **Messenger**.\n- Click **Add Product** and add **Instagram** (look for \"Instagram Graph API\" or \"Instagram Messaging\").\n\n### Step 3: Configure Messenger Webhooks\n\n1. In the left sidebar, go to **Messenger \u2192 Settings**.\n2. Scroll to the **Webhooks** section and click **Add Callback URL**.\n3. Fill in:\n   - **Callback URL:** `https://your-railway-domain.up.railway.app/webhook/meta`\n   - **Verify Token:** the same string you set in `META_WEBHOOK_VERIFY_TOKEN`\n4. Click **Verify and Save**. Meta will immediately call your GET endpoint to verify.\n5. After verification, click **Add Subscriptions** for your Facebook Page and select:\n   - `messages` \u2014 incoming messages\n   - `messaging_postbacks` \u2014 button/quick-reply postbacks\n   - `message_deliveries` *(optional)* \u2014 delivery receipts\n   - `message_reads` *(optional)* \u2014 read receipts\n\n### Step 4: Configure Instagram Webhooks\n\n1. In the left sidebar, go to **Instagram \u2192 Settings** (or **Instagram Graph API**).\n2. Under **Webhooks**, add the same **Callback URL** and **Verify Token**.\n3. Subscribe to:\n   - `messages` \u2014 Instagram DMs\n   - `messaging_postbacks` \u2014 postback events\n   - `messaging_optins` *(optional)* \u2014 opt-in events\n\n### Step 5: Connect Pages / Instagram Accounts\n\n- **Facebook Page:** In Messenger \u2192 Settings, under **Access Tokens**, generate a Page Access Token for the Facebook Page your bot represents. You will need this token to send replies via the Send API.\n- **Instagram:** Connect your Instagram Professional account to your Facebook Page, then link it in the Instagram settings. Generate a token with the `instagram_manage_messages` permission.\n\n### Step 6: Request Permissions (for production)\n\nDuring development, your app is in **Development Mode**, which only sends events from accounts that are app admins/testers. For production:\n\n1. Go to **App Review** in the left sidebar.\n2. Request the following permissions:\n   - `pages_messaging` \u2014 to send/receive Messenger messages\n   - `instagram_manage_messages` \u2014 to send/receive Instagram DMs\n   - `pages_manage_metadata` \u2014 to subscribe to page webhooks\n3. Submit for review with use-case descriptions and a screencast demo.\n\n---\n\n## 4. Environment Variables\n\nAdd these to your Railway service under **Settings \u2192 Variables**:\n\n| Variable | Description | Example |\n|---|---|---|\n| `META_APP_SECRET` | Your Meta app secret. Found in App Dashboard \u2192 App Settings \u2192 Basic. Used to verify webhook signatures. | `a1b2c3d4e5f6...` |\n| `META_WEBHOOK_VERIFY_TOKEN` | A random string **you invent** and set in both your code and the Developer Portal. Used for the one-time verification handshake. | `my_super_secret_verify_token_123` |\n| `META_PAGE_ACCESS_TOKEN` | The Page Access Token for your Facebook Page. Used to send Messenger replies via the Graph API. | `EAABsbCS...` |\n| `META_INSTAGRAM_ACCESS_TOKEN` | The access token with `instagram_manage_messages` scope. Used to send Instagram DM replies. | `EAABsbCS...` |\n| `META_APP_ID` | Your Meta App ID. Found in App Dashboard \u2192 App Settings \u2192 Basic. | `1234567890` |\n| `PORT` | Port for Express to listen on. Railway sets this automatically, but define a fallback. | `3000` |\n\n### `.env` file (local development only \u2014 never commit this)\n\n```env\nMETA_APP_SECRET=your_app_secret_here\nMETA_WEBHOOK_VERIFY_TOKEN=my_super_secret_verify_token_123\nMETA_PAGE_ACCESS_TOKEN=EAABsbCS...long_token...\nMETA_INSTAGRAM_ACCESS_TOKEN=EAABsbCS...long_token...\nMETA_APP_ID=1234567890\nPORT=3000\n```\n\n### Setting variables in Railway\n\n1. Open your Railway project dashboard.\n2. Click your service \u2192 **Variables** tab.\n3. Click **New Variable** and add each key/value pair.\n4. Railway will automatically restart your service after saving.\n\n---\n\n## Sending Replies (Bonus)\n\nOnce you receive a message, you typically want to reply. Here is a minimal helper:\n\n```js\nconst axios = require('axios'); // or use node-fetch\n\nasync function sendMessengerReply(recipientId, text) {\n  await axios.post(\n    `https://graph.facebook.com/v19.0/me/messages`,\n    {\n      recipient: { id: recipientId },\n      message: { text },\n    },\n    {\n      params: { access_token: process.env.META_PAGE_ACCESS_TOKEN },\n    }\n  );\n}\n\nasync function sendInstagramReply(recipientId, text) {\n  // Instagram uses the same endpoint but with a different token\n  await axios.post(\n    `https://graph.facebook.com/v19.0/me/messages`,\n    {\n      recipient: { id: recipientId },\n      message: { text },\n    },\n    {\n      params: { access_token: process.env.META_INSTAGRAM_ACCESS_TOKEN },\n    }\n  );\n}\n```\n\n---\n\n## Checklist Before Going Live\n\n- [ ] Railway service is deployed and HTTPS is active (Railway provides this automatically on `*.up.railway.app` domains).\n- [ ] `GET /webhook/meta` returns the `hub.challenge` value and responds 200.\n- [ ] `POST /webhook/meta` verifies the `X-Hub-Signature-256` header before processing.\n- [ ] `META_APP_SECRET` and `META_WEBHOOK_VERIFY_TOKEN` are set in Railway Variables.\n- [ ] Webhook subscriptions are saved in the Developer Portal for both Messenger and Instagram.\n- [ ] Page Access Token and Instagram Access Token are valid and stored in Railway Variables.\n- [ ] App is submitted for review with the required permissions before launching to real users.\n\n---\n\n## Common Pitfalls\n\n| Problem | Likely Cause | Fix |\n|---|---|---|\n| Verification returns 403 | `hub.verify_token` does not match `META_WEBHOOK_VERIFY_TOKEN` | Check for typos and trailing spaces in both places |\n| Signature verification fails | Body is parsed before HMAC check | Mount `express.raw()` on the POST route before `express.json()` globally |\n| No events received | Webhook subscriptions not saved for the page | Go back to Developer Portal and click **Save** on subscriptions |\n| 401 on Send API calls | Access token is expired or has wrong scope | Regenerate the token; use a System User token for long-lived tokens in production |\n| Events only come from test accounts | App is in Development Mode | Switch to Live Mode or add test users in App Roles |\n"}], "grading": {"eval_id": 3, "eval_name": "meta-webhook-setup", "configuration": "without_skill", "expectations": [{"text": "includes-get-verification-handler", "passed": true, "evidence": "GET /webhook/meta handler checks hub.mode === 'subscribe' and token === process.env.META_WEBHOOK_VERIFY_TOKEN, responds with res.status(200).send(challenge)."}, {"text": "includes-signature-verification", "passed": true, "evidence": "verifyMetaSignature() uses crypto.createHmac('sha256', process.env.META_APP_SECRET).update(req.body).digest('hex') with timingSafeEqual. Uses express.raw() to capture raw body as Buffer."}, {"text": "immediate-200-ack", "passed": false, "evidence": "The POST handler processes events BEFORE sending 200: routes to handleInstagramEvents() or handleMessengerEvents(), THEN calls res.sendStatus(200). If processing is slow, Meta's 20-second timeout fires before the 200 is sent, causing retries."}, {"text": "async-processing-pattern", "passed": false, "evidence": "No setImmediate or async queue used. Processing happens synchronously within the request handler before res.sendStatus(200). Long-running AI or DB operations would delay the response."}, {"text": "meta-portal-steps", "passed": true, "evidence": "Detailed portal steps provided: create app, add Messenger and Instagram products, configure webhook in Messenger Settings, configure Instagram webhook settings, connect pages/accounts. Specific field names and substeps given."}, {"text": "required-env-vars-listed", "passed": true, "evidence": "META_APP_SECRET and META_WEBHOOK_VERIFY_TOKEN both listed in env vars table with descriptions. (Variable name differs: META_WEBHOOK_VERIFY_TOKEN vs META_VERIFY_TOKEN but functionally equivalent.)"}], "pass_rate": 0.667, "notes": "Baseline passes 4/6. The critical failure is the webhook response order: the baseline sends 200 AFTER synchronous processing, which will cause Meta to retry if AI/DB calls exceed 20 seconds. The with-skill version correctly uses setImmediate to fire-and-forget processing after the 200 ACK. The baseline gets signature verification right but misses the fundamental async architecture pattern.", "summary": {"pass_rate": 0.667, "passed": 4, "failed": 2, "total": 6}}}], "previous_feedback": {}, "previous_outputs": {}, "benchmark": {"metadata": {"skill_name": "chatbot-saas-builder", "skill_path": "<path/to/skill>", "executor_model": "<model-name>", "analyzer_model": "<model-name>", "timestamp": "2026-05-01T06:53:58Z", "evals_run": [1, 2, 3], "runs_per_configuration": 3}, "runs": [{"eval_id": 1, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 4, "failed": 0, "total": 4, "time_seconds": 67.8, "tokens": 40382, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "mentions-instagram-business-login-product", "passed": true, "evidence": "Explicitly says 'Instagram Business Login \u2192 Settings \u2192 Valid OAuth Redirect URIs' with clear table comparing Instagram Business Login vs Facebook Login products and their respective settings locations."}, {"text": "mentions-app-mode", "passed": true, "evidence": "Dedicated section 'Check App Mode' explains Development vs Live mode, adds workaround of adding testers under App Roles \u2192 Roles \u2192 Add Instagram Testers."}, {"text": "provides-exact-meta-portal-steps", "passed": true, "evidence": "Step-by-step: 'developers.facebook.com \u2192 your app \u2192 Instagram Business Login \u2192 Settings \u2192 Valid OAuth Redirect URIs \u2192 Add URI \u2192 enter exact URI \u2192 Save Changes' with numbered steps."}, {"text": "no-code-change-required", "passed": true, "evidence": "First paragraph states: 'This is a configuration problem in the developer portal, not a code bug.' Also framed as Meta portal setup throughout."}], "notes": []}, {"eval_id": 2, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5, "time_seconds": 108.1, "tokens": 43779, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "includes-leads-table-schema", "passed": true, "evidence": "Complete SQL CREATE TABLE for leads with: id (uuid pk), organization_id, agent_id, conversation_id, name, email, phone, source_channel, status (with enum check), metadata (jsonb), created_at \u2014 all required fields present."}, {"text": "auto-capture-is-fire-and-forget", "passed": true, "evidence": "autoCaptureLead wraps everything in try/catch, logs errors with console.error but never re-throws. Comment explicitly says 'Never re-throw \u2014 lead capture must not break the message pipeline.'"}, {"text": "called-on-new-conversation", "passed": true, "evidence": "Inside findOrCreateConversation(), after the new conversation insert, calls 'setImmediate(() => autoCaptureLead({...}))' \u2014 fires exactly on new conversation creation, skipped for existing conversations."}, {"text": "unique-constraint-on-conversation", "passed": true, "evidence": "Schema has 'unique(conversation_id)' on the leads table. The upsert uses 'onConflict: conversation_id, ignoreDuplicates: true' making subsequent calls a no-op."}, {"text": "source-channel-tracked", "passed": true, "evidence": "source_channel field present in both conversations and leads tables. Passed as a parameter through findOrCreateConversation and autoCaptureLead. Each channel-specific processor passes 'sourceChannel: instagram/facebook/whatsapp/web_widget'."}], "notes": []}, {"eval_id": 3, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 6, "failed": 0, "total": 6, "time_seconds": 100.7, "tokens": 42782, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "includes-get-verification-handler", "passed": true, "evidence": "GET /facebook/webhook handler checks hub.mode === 'subscribe' AND token === process.env.META_VERIFY_TOKEN, responds with res.status(200).send(challenge) (plain text, not JSON)."}, {"text": "includes-signature-verification", "passed": true, "evidence": "verifyMetaSignature() function uses crypto.createHmac('sha256', process.env.META_APP_SECRET).update(rawBody).digest('hex'), compared with timingSafeEqual. Notes the requirement for rawBody captured before express.json()."}, {"text": "immediate-200-ack", "passed": true, "evidence": "POST handler: verify signature \u2192 res.sendStatus(200) \u2192 setImmediate(async () => { processInstagramPayload / processFacebookPayload }). The 200 is sent before any async processing begins."}, {"text": "async-processing-pattern", "passed": true, "evidence": "setImmediate() wraps the entire payload processing block, with its own try/catch to prevent errors from propagating after the 200 is sent."}, {"text": "meta-portal-steps", "passed": true, "evidence": "6-step portal config: create app, add products (Webhooks/Facebook Login/Instagram Business Login/Messenger), configure callback URL + verify token, add subscriptions (messages/messaging_postbacks/messaging_referrals), subscribe pages, manage app mode. Specific field names given."}, {"text": "required-env-vars-listed", "passed": true, "evidence": "META_APP_SECRET and META_VERIFY_TOKEN both explicitly listed in the env vars section with descriptions. Also includes META_APP_ID, INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, redirect URIs."}], "notes": []}, {"eval_id": 1, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.5, "passed": 2, "failed": 2, "total": 4, "time_seconds": 51.3, "tokens": 31725, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "mentions-instagram-business-login-product", "passed": false, "evidence": "Uses vague product references: 'Instagram > API setup with Instagram login' and 'Instagram Login' \u2014 never uses the exact product name 'Instagram Business Login'. This matters because the Meta portal has both 'Instagram Business Login' and other products; a user could be confused about where to look."}, {"text": "mentions-app-mode", "passed": true, "evidence": "Steps 5 and 6 both address Development mode restrictions, adding testers, and the requirement for Live mode in production."}, {"text": "provides-exact-meta-portal-steps", "passed": true, "evidence": "Provides numbered steps including 'App Dashboard > Instagram > API setup with Instagram login > Valid OAuth Redirect URIs' \u2014 specific enough to follow, though product naming is imprecise."}, {"text": "no-code-change-required", "passed": false, "evidence": "Response never explicitly states this is a configuration issue rather than a code bug. The response includes JavaScript code examples which could confuse users into thinking they need to change their code. The summary checklist has code-related items mixed with portal configuration items."}], "notes": []}, {"eval_id": 2, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.4, "passed": 2, "failed": 3, "total": 5, "time_seconds": 97.7, "tokens": 35437, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "includes-leads-table-schema", "passed": false, "evidence": "The baseline uses a different schema architecture: a separate 'leads' table (channel-agnostic) plus 'lead_channel_identities' and 'lead_conversations' tables. The leads table does NOT have a conversation_id field \u2014 that's on lead_conversations. Missing required fields: agent_id, conversation_id in leads."}, {"text": "auto-capture-is-fire-and-forget", "passed": false, "evidence": "captureLeadFromEvent throws errors in multiple code paths: 'throw new Error(Identity upsert failed: ...)' and 'throw new Error(Lead insert failed: ...)'. These uncaught throws could propagate up and break the webhook response flow."}, {"text": "called-on-new-conversation", "passed": true, "evidence": "captureLeadFromEvent is called in the webhook POST handler via 'Promise.allSettled(events.map(captureLeadFromEvent))' \u2014 fires on every inbound event. On the first message from a sender, the identity row is new so a lead is created. Technically satisfies the assertion though via a different pattern."}, {"text": "unique-constraint-on-conversation", "passed": false, "evidence": "The baseline uses UNIQUE(channel, external_id) on lead_channel_identities, not conversation_id. The leads table has no conversation_id column at all. The idempotency mechanism is at the identity level, not the conversation level \u2014 a different architectural choice that doesn't satisfy the conversation-based uniqueness constraint."}, {"text": "source-channel-tracked", "passed": true, "evidence": "leads.lead_source field tracks the originating channel ('instagram', 'messenger', 'whatsapp', 'web_widget'). Functionally equivalent to source_channel."}], "notes": []}, {"eval_id": 3, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.667, "passed": 4, "failed": 2, "total": 6, "time_seconds": 83.6, "tokens": 33815, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "includes-get-verification-handler", "passed": true, "evidence": "GET /webhook/meta handler checks hub.mode === 'subscribe' and token === process.env.META_WEBHOOK_VERIFY_TOKEN, responds with res.status(200).send(challenge)."}, {"text": "includes-signature-verification", "passed": true, "evidence": "verifyMetaSignature() uses crypto.createHmac('sha256', process.env.META_APP_SECRET).update(req.body).digest('hex') with timingSafeEqual. Uses express.raw() to capture raw body as Buffer."}, {"text": "immediate-200-ack", "passed": false, "evidence": "The POST handler processes events BEFORE sending 200: routes to handleInstagramEvents() or handleMessengerEvents(), THEN calls res.sendStatus(200). If processing is slow, Meta's 20-second timeout fires before the 200 is sent, causing retries."}, {"text": "async-processing-pattern", "passed": false, "evidence": "No setImmediate or async queue used. Processing happens synchronously within the request handler before res.sendStatus(200). Long-running AI or DB operations would delay the response."}, {"text": "meta-portal-steps", "passed": true, "evidence": "Detailed portal steps provided: create app, add Messenger and Instagram products, configure webhook in Messenger Settings, configure Instagram webhook settings, connect pages/accounts. Specific field names and substeps given."}, {"text": "required-env-vars-listed", "passed": true, "evidence": "META_APP_SECRET and META_WEBHOOK_VERIFY_TOKEN both listed in env vars table with descriptions. (Variable name differs: META_WEBHOOK_VERIFY_TOKEN vs META_VERIFY_TOKEN but functionally equivalent.)"}], "notes": []}], "run_summary": {"with_skill": {"pass_rate": {"mean": 1.0, "stddev": 0.0, "min": 1.0, "max": 1.0}, "time_seconds": {"mean": 92.2, "stddev": 21.4525, "min": 67.8, "max": 108.1}, "tokens": {"mean": 42314.3333, "stddev": 1746.1204, "min": 40382, "max": 43779}}, "without_skill": {"pass_rate": {"mean": 0.5223, "stddev": 0.1349, "min": 0.4, "max": 0.667}, "time_seconds": {"mean": 77.5333, "stddev": 23.7875, "min": 51.3, "max": 97.7}, "tokens": {"mean": 33659.0, "stddev": 1860.9105, "min": 31725, "max": 35437}}, "delta": {"pass_rate": "+0.48", "time_seconds": "+14.7", "tokens": "+8655"}}, "notes": []}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, RotateCcw, ChevronDown, ChevronUp, Zap, TrendingUp, MessageSquare, Users } from "lucide-react";
+import { Loader2, Send, RotateCcw, ChevronDown, ChevronUp, Clock, AlertCircle, MessageSquare, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_STEPS = [
@@ -20,7 +20,7 @@ const DEFAULT_STEPS = [
   { step: 4, label: "Última oportunidad — 2 semanas", delayField: "step_4_delay_hours",   delayLabel: "horas",   delayDefault: 336, defaultMsg: "Hola {nombre}, este es nuestro último mensaje de seguimiento. Si alguna vez necesitas ayuda, aquí estaremos en {empresa} 💙" },
 ];
 
-const VARS = ["{nombre}", "{empresa}", "{bot_name}"];
+const VARS = ["{nombre}", "{empresa}", "{bot_name}", "{canal}"];
 
 export default function RetargetingPage() {
   const { id } = useParams<{ id: string }>();
@@ -32,9 +32,10 @@ export default function RetargetingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
   const [saved, setSaved]     = useState(false);
-  const [testing, setTesting] = useState<number | null>(null);
+  const [history, setHistory]   = useState<any[]>([]);
+  const [testing, setTesting]   = useState<number | null>(null);
   const [testPhone, setTestPhone] = useState("");
-  const [expanded, setExpanded] = useState<number | null>(0);
+  const [expanded, setExpanded]  = useState<number | null>(0);
 
   useEffect(() => {
     async function load() {
@@ -45,14 +46,14 @@ export default function RetargetingPage() {
       if (!m) return;
       setOrgId(m.organization_id);
 
-      const [agentData, configData, statsData] = await Promise.all([
+      const [agentData, configData, statsData, historyData] = await Promise.all([
         api.get(`/api/agents/${id}`, m.organization_id).catch(() => null),
         api.get(`/api/retargeting/config/${id}`, m.organization_id).catch(() => ({})),
         api.get(`/api/retargeting/stats/${id}`, m.organization_id).catch(() => null),
+        api.get(`/api/retargeting/history/${id}`, m.organization_id).catch(() => []),
       ]);
 
       setAgent(agentData);
-      // Initialize config with defaults for empty fields
       const cfg = configData || {};
       DEFAULT_STEPS.forEach(s => {
         if (cfg[`step_${s.step}_message`] === undefined) cfg[`step_${s.step}_message`] = s.defaultMsg;
@@ -61,6 +62,7 @@ export default function RetargetingPage() {
       });
       setConfig(cfg);
       setStats(statsData);
+      setHistory(Array.isArray(historyData) ? historyData : []);
       setLoading(false);
     }
     load();
@@ -147,20 +149,32 @@ export default function RetargetingPage() {
 
         {/* ── Stats ── */}
         {stats && (
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: "Mensajes enviados", value: stats.mensajes_enviados ?? 0, icon: Send, color: "text-neon-cyan" },
-              { label: "Pendientes",        value: stats.pendientes ?? 0,        icon: RotateCcw, color: "text-neon-yellow" },
-              { label: "Leads totales",     value: stats.leads_total ?? 0,       icon: Users, color: "text-neon-purple" },
-            ].map(s => (
-              <div key={s.label} className="rounded-xl border border-neon-cyan/[0.08] bg-space-card p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <s.icon className={cn("h-3.5 w-3.5", s.color)} />
-                  <p className="text-[10px] text-[#4A5568] uppercase tracking-wide">{s.label}</p>
+          <div className="space-y-3">
+            <div className="grid grid-cols-4 gap-3">
+              {[
+                { label: "Enviados este mes", value: stats.mensajes_enviados ?? 0, icon: Send,         color: "text-neon-cyan" },
+                { label: "Pendientes",        value: stats.pendientes ?? 0,        icon: RotateCcw,    color: "text-yellow-400" },
+                { label: "Fallidos",          value: stats.fallidos ?? 0,          icon: AlertCircle,  color: "text-red-400" },
+                { label: "Leads totales",     value: stats.leads_total ?? 0,       icon: Users,        color: "text-neon-purple" },
+              ].map(s => (
+                <div key={s.label} className="rounded-xl border border-neon-cyan/[0.08] bg-space-card p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <s.icon className={cn("h-3.5 w-3.5", s.color)} />
+                    <p className="text-[10px] text-[#4A5568] uppercase tracking-wide">{s.label}</p>
+                  </div>
+                  <p className={cn("text-2xl font-bold font-display", s.color)}>{s.value}</p>
                 </div>
-                <p className={cn("text-2xl font-bold font-display", s.color)}>{s.value}</p>
+              ))}
+            </div>
+            {stats.proximo_envio && (
+              <div className="flex items-center gap-2 rounded-lg border border-neon-cyan/[0.08] bg-space-card px-4 py-2.5">
+                <Clock className="h-3.5 w-3.5 text-neon-cyan/60" />
+                <span className="text-xs text-[#4A5568]">Próximo envío:</span>
+                <span className="text-xs text-neon-cyan font-medium">
+                  {new Date(stats.proximo_envio).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}
+                </span>
               </div>
-            ))}
+            )}
           </div>
         )}
 
@@ -296,7 +310,7 @@ export default function RetargetingPage() {
         </div>
 
         {/* ── Save button ── */}
-        <div className="flex justify-end pt-2 pb-8">
+        <div className="flex justify-end pt-2">
           <Button
             onClick={saveConfig}
             disabled={saving}
@@ -311,6 +325,45 @@ export default function RetargetingPage() {
             {saved ? "✓ Guardado" : "Guardar configuración"}
           </Button>
         </div>
+
+        {/* ── History table ── */}
+        {history.length > 0 && (
+          <div className="space-y-3 pb-8">
+            <h3 className="text-sm font-semibold text-white/80">Historial de envíos</h3>
+            <div className="rounded-xl border border-neon-cyan/[0.08] overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-neon-cyan/[0.06] bg-space-el">
+                    <th className="text-left px-4 py-2.5 text-[#4A5568] font-medium uppercase tracking-wide">Lead</th>
+                    <th className="text-left px-4 py-2.5 text-[#4A5568] font-medium uppercase tracking-wide">Paso</th>
+                    <th className="text-left px-4 py-2.5 text-[#4A5568] font-medium uppercase tracking-wide">Mensaje</th>
+                    <th className="text-left px-4 py-2.5 text-[#4A5568] font-medium uppercase tracking-wide">Fecha</th>
+                    <th className="text-left px-4 py-2.5 text-[#4A5568] font-medium uppercase tracking-wide">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((row: any) => {
+                    const lead = row.leads || {};
+                    const leadName = lead.name || lead.canal_username || `Lead ${row.lead_id?.slice(-4)}`;
+                    const date = row.sent_at || row.scheduled_at;
+                    const statusColor = row.status === 'sent' ? 'text-neon-cyan' : row.status === 'failed' ? 'text-red-400' : 'text-[#4A5568]';
+                    return (
+                      <tr key={row.id} className="border-b border-neon-cyan/[0.04] hover:bg-neon-cyan/[0.02] transition-colors">
+                        <td className="px-4 py-3 text-white/80 font-medium">{leadName}</td>
+                        <td className="px-4 py-3 text-[#4A5568]">Paso {row.step + 1}</td>
+                        <td className="px-4 py-3 text-[#4A5568] max-w-[200px] truncate">{row.message_sent || '—'}</td>
+                        <td className="px-4 py-3 text-[#4A5568] whitespace-nowrap">
+                          {date ? new Date(date).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                        </td>
+                        <td className={cn("px-4 py-3 font-medium capitalize", statusColor)}>{row.status}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

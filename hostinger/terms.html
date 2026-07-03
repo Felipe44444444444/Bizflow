@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Términos de Servicio de Conectachat — Condiciones de uso de la plataforma de chatbot IA multicanal.">
+<title>Términos de Servicio — Conectachat</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050510;--bg2:#08081a;--bg3:#0d0d25;
+  --cyan:#00F5FF;--purple:#7B2FFF;--pink:#FF2F7B;--green:#00E676;
+  --white:#ffffff;--muted:#94A3B8;--border:rgba(255,255,255,0.07);
+  --card:rgba(255,255,255,0.03);
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--white);line-height:1.6;overflow-x:hidden}
+h1,h2,h3,h4{font-family:'Clash Display',sans-serif;line-height:1.2}
+a{color:var(--cyan);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:1000;padding:0 5%;height:70px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(20px);border-bottom:1px solid var(--border);background:rgba(5,5,16,0.9)}
+.nav-logo{font-family:'Clash Display',sans-serif;font-weight:800;font-size:22px;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-links a{font-size:14px;font-weight:500;color:var(--muted);transition:color .2s;text-decoration:none}
+.nav-links a:hover{color:var(--white);text-decoration:none}
+.nav-cta{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#050510!important;padding:10px 22px;border-radius:10px;font-weight:700!important;-webkit-text-fill-color:#050510!important}
+@media(max-width:640px){.nav-links a:not(.nav-cta){display:none}}
+
+/* PAGE HEADER */
+.page-header{padding:80px 5% 56px;text-align:center;position:relative;overflow:hidden}
+.page-header::before{content:'';position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:700px;height:700px;background:radial-gradient(circle,rgba(123,47,255,0.07) 0%,transparent 65%);pointer-events:none}
+.pill{display:inline-block;font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--purple);background:rgba(123,47,255,0.08);border:1px solid rgba(123,47,255,0.2);padding:6px 14px;border-radius:999px;margin-bottom:20px}
+.page-header h1{font-size:clamp(32px,5vw,56px);font-weight:800;letter-spacing:-0.03em;margin-bottom:12px}
+.page-header p{color:var(--muted);font-size:15px}
+
+/* CONTENT */
+.content{max-width:800px;margin:0 auto;padding:40px 5% 100px}
+.warning-box{background:rgba(255,47,123,0.06);border:1px solid rgba(255,47,123,0.2);border-radius:14px;padding:20px 24px;margin:28px 0}
+.warning-box p{color:rgba(255,255,255,0.85);margin:0;font-size:14px;line-height:1.7}
+.warning-box strong{color:var(--pink)}
+.info-box{background:rgba(0,245,255,0.05);border:1px solid rgba(0,245,255,0.15);border-radius:14px;padding:20px 24px;margin:28px 0}
+.info-box p{color:rgba(255,255,255,0.85);margin:0;font-size:14px;line-height:1.7}
+.info-box strong{color:var(--cyan)}
+h2{font-size:22px;font-weight:700;margin:48px 0 14px;color:var(--white);letter-spacing:-0.01em}
+h2:first-of-type{margin-top:0}
+h3{font-size:16px;font-weight:600;margin:28px 0 10px;color:rgba(255,255,255,0.85)}
+p{font-size:15px;color:var(--muted);line-height:1.8;margin-bottom:14px}
+ul{padding-left:20px;margin-bottom:14px}
+ul li{font-size:15px;color:var(--muted);line-height:1.8;margin-bottom:8px}
+ul li strong{color:rgba(255,255,255,0.85)}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;margin:20px 0;font-size:14px}
+th{background:rgba(255,255,255,0.04);padding:12px 16px;text-align:left;font-weight:700;border:1px solid var(--border);color:var(--white);font-family:'Clash Display',sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
+td{padding:12px 16px;border:1px solid var(--border);color:var(--muted);vertical-align:top}
+td strong{color:rgba(255,255,255,0.85)}
+tr:hover td{background:rgba(255,255,255,0.02)}
+
+/* FOOTER */
+footer{background:#030308;border-top:1px solid var(--border);padding:72px 5% 40px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:56px}
+@media(max-width:900px){.footer-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.footer-grid{grid-template-columns:1fr}}
+.footer-brand .logo{font-family:'Clash Display',sans-serif;font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:14px}
+.footer-brand p{font-size:14px;color:rgba(255,255,255,0.35);line-height:1.7;max-width:260px}
+.footer-col h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.4);margin-bottom:16px}
+.footer-col a{display:block;font-size:14px;color:rgba(255,255,255,0.4);margin-bottom:10px;transition:color .2s;text-decoration:none}
+.footer-col a:hover{color:var(--white)}
+.footer-bottom{border-top:1px solid var(--border);padding-top:28px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:12px;color:rgba(255,255,255,0.25)}
+.footer-bottom a{color:rgba(255,255,255,0.35);transition:color .2s}.footer-bottom a:hover{color:var(--white)}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">Conectachat</a>
+  <div class="nav-links">
+    <a href="index.html#features">Funciones</a>
+    <a href="index.html#pricing">Precios</a>
+    <a href="https://app.conectaachat.com/login">Iniciar sesión</a>
+    <a href="https://app.conectaachat.com/register" class="nav-cta">Empezar gratis</a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="pill">Legal</div>
+  <h1>Términos de Servicio</h1>
+  <p>Última actualización: 7 de mayo de 2026</p>
+</div>
+
+<div class="content">
+
+  <p>Bienvenido a Conectachat. Al registrarte y usar la plataforma aceptas los presentes Términos de Servicio ("Términos"). Si no estás de acuerdo con alguno de ellos, no utilices el servicio.</p>
+
+  <h2>1. Descripción del servicio</h2>
+  <p>Conectachat es una plataforma de Software como Servicio (SaaS) que permite a empresas y profesionales crear, configurar y desplegar <strong>agentes de inteligencia artificial</strong> para la atención automatizada a clientes en múltiples canales de mensajería: Web Widget, Instagram Direct, Facebook Messenger, WhatsApp Business, Slack y API REST. Los agentes se entrenan con el contenido propio de cada negocio (documentos, PDFs, URLs) y responden en nombre de la empresa de forma autónoma, 24/7.</p>
+
+  <h2>2. Cuenta y registro</h2>
+  <ul>
+    <li>Debes ser mayor de 18 años y tener capacidad legal para contratar en México o tu país de residencia.</li>
+    <li>Eres responsable de mantener la confidencialidad de tus credenciales de acceso.</li>
+    <li>Notifícanos inmediatamente a <a href="mailto:legal@conectaachat.com">legal@conectaachat.com</a> si sospechas acceso no autorizado a tu cuenta.</li>
+    <li>Una cuenta puede pertenecer a una organización con múltiples miembros y agentes según el plan.</li>
+    <li>Nos reservamos el derecho de suspender o eliminar cuentas que violen estos Términos, sin reembolso.</li>
+  </ul>
+
+  <h2>3. Planes y precios</h2>
+  <p>Los precios se expresan en <strong>pesos mexicanos (MXN)</strong> salvo indicación contraria, y pueden estar sujetos al IVA aplicable.</p>
+
+  <table>
+    <tr>
+      <th>Plan</th>
+      <th>Precio mensual</th>
+      <th>Créditos incluidos</th>
+      <th>Agentes</th>
+    </tr>
+    <tr>
+      <td><strong>Starter</strong></td>
+      <td>$299 MXN/mes</td>
+      <td>1,000 créditos</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td><strong>Pro</strong></td>
+      <td>$799 MXN/mes</td>
+      <td>5,000 créditos</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td><strong>Business</strong></td>
+      <td>$1,999 MXN/mes</td>
+      <td>20,000 créditos</td>
+      <td>Ilimitados</td>
+    </tr>
+  </table>
+
+  <h3>3.1 Sistema de créditos</h3>
+  <p>El uso del agente de IA consume créditos. Cada mensaje procesado descuenta créditos según el modelo de IA y la longitud de la respuesta. Los créditos incluidos en el plan se renuevan mensualmente al inicio de cada período. Los créditos no utilizados en el período no se acumulan para el siguiente, excepto los créditos de packs adicionales.</p>
+
+  <h3>3.2 Packs de créditos adicionales</h3>
+  <table>
+    <tr><th>Pack</th><th>Créditos</th><th>Precio</th></tr>
+    <tr><td><strong>Pack 1,000</strong></td><td>1,000 créditos</td><td>$99 MXN</td></tr>
+    <tr><td><strong>Pack 5,000</strong></td><td>5,000 créditos</td><td>$399 MXN</td></tr>
+    <tr><td><strong>Pack 20,000</strong></td><td>20,000 créditos</td><td>$1,399 MXN</td></tr>
+  </table>
+  <p>Los créditos de packs adicionales no expiran durante 12 meses desde la fecha de compra.</p>
+
+  <h2>4. Facturación y pagos</h2>
+  <ul>
+    <li>Los pagos se procesan mediante <strong>Stripe</strong>, nuestro proveedor de pagos certificado PCI DSS.</li>
+    <li>Las suscripciones se cobran de forma <strong>anticipada</strong> al inicio de cada período de facturación mensual.</li>
+    <li>En caso de fallo en el cobro, el sistema reintentará y te notificará por correo. Tras 3 intentos fallidos, la cuenta pasará a estado suspendido.</li>
+    <li>No almacenamos datos de tarjetas de crédito. Toda la información de pago es gestionada exclusivamente por Stripe.</li>
+    <li>Puedes solicitar factura fiscal (CFDI) enviando tu RFC y datos fiscales a <a href="mailto:legal@conectaachat.com">legal@conectaachat.com</a>.</li>
+  </ul>
+
+  <h2>5. Período de prueba y cancelación</h2>
+  <h3>5.1 Período de prueba gratuita</h3>
+  <p>Las cuentas nuevas tienen acceso a la plataforma con créditos de prueba por <strong>14 días sin costo</strong>. No se requiere tarjeta de crédito durante el período de prueba.</p>
+
+  <h3>5.2 Cancelación de suscripción</h3>
+  <p>Puedes cancelar tu suscripción en cualquier momento desde <strong>Dashboard → Configuración → Facturación → Gestionar suscripción</strong>. La cancelación es efectiva al final del período de facturación en curso. No se realizan reembolsos proporcionales por períodos no utilizados.</p>
+
+  <h3>5.3 Eliminación de cuenta</h3>
+  <p>Para eliminar completamente tu cuenta y todos tus datos, envía una solicitud a <a href="mailto:legal@conectaachat.com">legal@conectaachat.com</a>. Tus datos serán eliminados en un plazo de 90 días conforme a nuestra <a href="privacy.html">Política de Privacidad</a>.</p>
+
+  <h2>6. Uso aceptable</h2>
+  <p>Al usar Conectachat te comprometes a <strong>no</strong> utilizar la plataforma para:</p>
+  <ul>
+    <li>Enviar spam, mensajes masivos no solicitados o comunicaciones engañosas a usuarios finales.</li>
+    <li>Distribuir malware, phishing u otro contenido malicioso.</li>
+    <li>Violar derechos de propiedad intelectual, marcas registradas o secretos industriales de terceros.</li>
+    <li>Recopilar o procesar datos personales de usuarios finales sin su consentimiento informado.</li>
+    <li>Suplantar la identidad de personas, marcas o entidades de forma fraudulenta.</li>
+    <li>Actividades ilegales conforme a la legislación mexicana o internacional aplicable.</li>
+    <li>Intentar comprometer la seguridad, integridad o disponibilidad de la plataforma.</li>
+    <li>Generar o difundir contenido que incite al odio, la violencia, la discriminación o el acoso.</li>
+    <li>Eludir los límites de crédito o las restricciones técnicas del servicio.</li>
+  </ul>
+  <p>El incumplimiento puede resultar en la suspensión o cancelación inmediata de tu cuenta sin reembolso y, en casos graves, en acciones legales.</p>
+
+  <h2>7. Limitación de responsabilidad sobre respuestas de IA</h2>
+  <div class="warning-box">
+    <p><strong>Aviso importante:</strong> Los agentes de IA pueden generar respuestas incorrectas, incompletas o inapropiadas. Eres el único responsable de revisar y validar el comportamiento de tu agente antes de ponerlo en producción y de supervisar sus respuestas de forma continua.</p>
+  </div>
+  <ul>
+    <li>Las respuestas generadas automáticamente pueden contener errores, imprecisiones o información desactualizada.</li>
+    <li>Conectachat <strong>no garantiza</strong> la exactitud, completitud o idoneidad de las respuestas generadas por el modelo de IA para ningún propósito específico.</li>
+    <li>Eres responsable de todas las comunicaciones enviadas a tus clientes a través de la plataforma, incluso si fueron generadas automáticamente.</li>
+    <li>Conectachat no será responsable de daños directos, indirectos, incidentales o consecuenciales derivados del uso o imposibilidad de uso de las respuestas de IA.</li>
+    <li>En los casos en que no pueda excluirse legalmente la responsabilidad, esta se limitará al monto pagado en los <strong>3 meses previos</strong> al evento que generó el daño.</li>
+  </ul>
+
+  <h2>8. Disponibilidad del servicio</h2>
+  <p>Nos esforzamos por mantener una disponibilidad del <strong>99.5% mensual</strong>. Sin embargo:</p>
+  <ul>
+    <li>Pueden existir interrupciones por mantenimiento programado, notificado con al menos 48 horas de anticipación.</li>
+    <li>La disponibilidad depende parcialmente de terceros (Meta APIs, Anthropic, OpenAI, Stripe, Supabase, Slack). Las interrupciones en estos servicios están fuera de nuestro control.</li>
+    <li>No somos responsables de daños causados por interrupciones del servicio fuera de nuestro control directo.</li>
+  </ul>
+
+  <h2>9. Propiedad intelectual</h2>
+  <h3>9.1 Contenido de Conectachat</h3>
+  <p>La plataforma Conectachat, su marca, diseño, interfaz, código fuente y documentación son propiedad exclusiva de la Empresa o sus licenciantes. Se otorga una licencia limitada, no exclusiva, intransferible y revocable para usar la plataforma conforme a estos Términos.</p>
+  <h3>9.2 Tu contenido</h3>
+  <p>Conservas todos los derechos sobre el contenido que subes (documentos, textos, configuraciones de agentes). Nos otorgas una licencia limitada para procesar dicho contenido exclusivamente para prestar el servicio contratado. <strong>No utilizamos tu contenido para entrenar modelos de IA propios ni de terceros.</strong></p>
+
+  <h2>10. Confidencialidad</h2>
+  <p>Nos comprometemos a mantener la confidencialidad de tu información, configuraciones y datos de negocio. No compartiremos información confidencial con terceros salvo con los proveedores operacionales listados en nuestra <a href="privacy.html">Política de Privacidad</a> o cuando sea requerido por ley o autoridad competente.</p>
+
+  <h2>11. Integraciones con plataformas de terceros</h2>
+  <p>El uso de integraciones (Meta/Facebook/Instagram/WhatsApp, Slack) está sujeto adicionalmente a los términos de servicio de dichas plataformas. Eres responsable de cumplir con las políticas de uso de cada plataforma al conectarla a Conectachat, incluyendo las <a href="https://developers.facebook.com/terms/" target="_blank" rel="noopener">Políticas de la Plataforma de Meta</a> y las políticas de uso para la API de WhatsApp Business. Conectachat no es responsable de la suspensión de tu cuenta en plataformas de terceros por incumplimiento de sus políticas.</p>
+
+  <h2>12. Modificaciones al servicio y a los Términos</h2>
+  <ul>
+    <li>Podemos modificar, suspender o discontinuar funcionalidades con al menos <strong>30 días de aviso previo</strong> para cambios materiales.</li>
+    <li>Los precios pueden ajustarse con <strong>30 días de anticipación</strong>. Si no aceptas el nuevo precio, puedes cancelar antes de la fecha de vigencia.</li>
+    <li>Publicaremos los Términos actualizados en esta página. El uso continuado del servicio implica la aceptación de los cambios.</li>
+  </ul>
+
+  <h2>13. Ley aplicable y jurisdicción</h2>
+  <p>Estos Términos se rigen e interpretan conforme a las leyes de los <strong>Estados Unidos Mexicanos</strong>, con sede en <strong>Chihuahua, Chihuahua, México</strong>. Para cualquier controversia derivada de estos Términos, las partes se someten a la jurisdicción de los tribunales competentes de Chihuahua, Chihuahua, renunciando expresamente a cualquier otro fuero que pudiera corresponderles por razón de sus domicilios presentes o futuros.</p>
+
+  <h2>14. Contacto legal</h2>
+  <p>Para cualquier consulta o notificación relacionada con estos Términos:</p>
+  <ul>
+    <li><strong>Correo:</strong> <a href="mailto:legal@conectaachat.com">legal@conectaachat.com</a></li>
+    <li><strong>Domicilio:</strong> Chihuahua, Chihuahua, México</li>
+  </ul>
+
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="logo">Conectachat</div>
+      <p>La plataforma de atención al cliente con IA más fácil de configurar. Responde 24/7 en WhatsApp, Instagram, Facebook y tu web.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Producto</h4>
+      <a href="index.html#solution">Cómo funciona</a>
+      <a href="index.html#features">Funcionalidades</a>
+      <a href="index.html#pricing">Precios</a>
+    </div>
+    <div class="footer-col">
+      <h4>Recursos</h4>
+      <a href="https://app.conectaachat.com/register">Crear cuenta</a>
+      <a href="https://app.conectaachat.com/login">Dashboard</a>
+      <a href="mailto:hola@conectaachat.com">Soporte</a>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <a href="privacy.html">Privacidad</a>
+      <a href="terms.html">Términos de uso</a>
+      <a href="data-deletion.html">Eliminación de datos</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Conectachat. Todos los derechos reservados. · Chihuahua, México</span>
+    <span><a href="mailto:legal@conectaachat.com">legal@conectaachat.com</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

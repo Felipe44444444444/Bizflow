@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Política de Privacidad de Conectachat — Cómo recopilamos, usamos y protegemos tus datos personales.">
+<title>Política de Privacidad — Conectachat</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050510;--bg2:#08081a;--bg3:#0d0d25;
+  --cyan:#00F5FF;--purple:#7B2FFF;--pink:#FF2F7B;--green:#00E676;
+  --white:#ffffff;--muted:#94A3B8;--border:rgba(255,255,255,0.07);
+  --card:rgba(255,255,255,0.03);
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--white);line-height:1.6;overflow-x:hidden}
+h1,h2,h3,h4{font-family:'Clash Display',sans-serif;line-height:1.2}
+a{color:var(--cyan);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:1000;padding:0 5%;height:70px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(20px);border-bottom:1px solid var(--border);background:rgba(5,5,16,0.9)}
+.nav-logo{font-family:'Clash Display',sans-serif;font-weight:800;font-size:22px;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-links a{font-size:14px;font-weight:500;color:var(--muted);transition:color .2s;text-decoration:none}
+.nav-links a:hover{color:var(--white);text-decoration:none}
+.nav-cta{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#050510!important;padding:10px 22px;border-radius:10px;font-weight:700!important;-webkit-text-fill-color:#050510!important}
+@media(max-width:640px){.nav-links a:not(.nav-cta){display:none}}
+
+/* PAGE HEADER */
+.page-header{padding:80px 5% 56px;text-align:center;position:relative;overflow:hidden}
+.page-header::before{content:'';position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:700px;height:700px;background:radial-gradient(circle,rgba(0,245,255,0.06) 0%,transparent 65%);pointer-events:none}
+.pill{display:inline-block;font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--cyan);background:rgba(0,245,255,0.08);border:1px solid rgba(0,245,255,0.15);padding:6px 14px;border-radius:999px;margin-bottom:20px}
+.page-header h1{font-size:clamp(32px,5vw,56px);font-weight:800;letter-spacing:-0.03em;margin-bottom:12px}
+.page-header p{color:var(--muted);font-size:15px}
+
+/* CONTENT */
+.content{max-width:800px;margin:0 auto;padding:40px 5% 100px}
+.info-box{background:rgba(0,245,255,0.05);border:1px solid rgba(0,245,255,0.15);border-radius:14px;padding:20px 24px;margin:28px 0}
+.info-box p{color:rgba(255,255,255,0.85);margin:0;font-size:14px;line-height:1.7}
+.info-box strong{color:var(--cyan)}
+.section-divider{height:1px;background:var(--border);margin:48px 0}
+h2{font-size:22px;font-weight:700;margin:48px 0 14px;color:var(--white);letter-spacing:-0.01em}
+h2:first-of-type{margin-top:0}
+h3{font-size:16px;font-weight:600;margin:28px 0 10px;color:rgba(255,255,255,0.85)}
+p{font-size:15px;color:var(--muted);line-height:1.8;margin-bottom:14px}
+ul{padding-left:20px;margin-bottom:14px}
+ul li{font-size:15px;color:var(--muted);line-height:1.8;margin-bottom:8px}
+ul li strong{color:rgba(255,255,255,0.85)}
+code{font-family:'JetBrains Mono',monospace;font-size:13px;background:rgba(0,245,255,0.08);border:1px solid rgba(0,245,255,0.15);padding:2px 8px;border-radius:6px;color:var(--cyan)}
+
+/* FOOTER */
+footer{background:#030308;border-top:1px solid var(--border);padding:72px 5% 40px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:56px}
+@media(max-width:900px){.footer-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.footer-grid{grid-template-columns:1fr}}
+.footer-brand .logo{font-family:'Clash Display',sans-serif;font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:14px}
+.footer-brand p{font-size:14px;color:rgba(255,255,255,0.35);line-height:1.7;max-width:260px}
+.footer-col h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.4);margin-bottom:16px}
+.footer-col a{display:block;font-size:14px;color:rgba(255,255,255,0.4);margin-bottom:10px;transition:color .2s;text-decoration:none}
+.footer-col a:hover{color:var(--white)}
+.footer-bottom{border-top:1px solid var(--border);padding-top:28px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:12px;color:rgba(255,255,255,0.25)}
+.footer-bottom a{color:rgba(255,255,255,0.35);transition:color .2s}.footer-bottom a:hover{color:var(--white)}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">Conectachat</a>
+  <div class="nav-links">
+    <a href="index.html#features">Funciones</a>
+    <a href="index.html#pricing">Precios</a>
+    <a href="https://app.conectaachat.com/login">Iniciar sesión</a>
+    <a href="https://app.conectaachat.com/register" class="nav-cta">Empezar gratis</a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="pill">Legal</div>
+  <h1>Política de Privacidad</h1>
+  <p>Última actualización: 7 de mayo de 2026</p>
+</div>
+
+<div class="content">
+
+  <div class="info-box">
+    <p>Conectachat opera conforme a la <strong>Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP)</strong> de los Estados Unidos Mexicanos y su Reglamento. Al usar nuestros servicios, aceptas los términos de esta política.</p>
+  </div>
+
+  <h2>1. Responsable del tratamiento</h2>
+  <p>Conectachat (en adelante "la Empresa" o "nosotros") con domicilio en Chihuahua, Chihuahua, México, es responsable del tratamiento de tus datos personales. Para consultas relacionadas con esta política:</p>
+  <ul>
+    <li><strong>Correo de privacidad:</strong> <a href="mailto:privacidad@conectaachat.com">privacidad@conectaachat.com</a></li>
+    <li><strong>Sitio web:</strong> <a href="https://conectaachat.com">conectaachat.com</a></li>
+  </ul>
+
+  <h2>2. Datos personales que recopilamos</h2>
+  <h3>2.1 Datos que tú nos proporcionas directamente</h3>
+  <ul>
+    <li><strong>Datos de registro:</strong> nombre, correo electrónico, contraseña (cifrada), nombre de tu empresa.</li>
+    <li><strong>Datos de pago:</strong> procesados directamente por <strong>Stripe</strong>. Conectachat nunca almacena números de tarjeta. Solo guardamos el identificador del cliente Stripe y el estado de la suscripción.</li>
+    <li><strong>Contenido de entrenamiento:</strong> documentos, URLs y texto que subes para entrenar a tu agente de IA.</li>
+    <li><strong>Configuración de integraciones:</strong> tokens de acceso de Meta (Facebook/Instagram), Slack y WhatsApp Business que vinculas a tu cuenta.</li>
+  </ul>
+  <h3>2.2 Datos generados automáticamente</h3>
+  <ul>
+    <li><strong>Datos de uso:</strong> conversaciones atendidas, mensajes enviados, créditos consumidos, fecha y hora de actividades.</li>
+    <li><strong>Datos técnicos:</strong> dirección IP, tipo de navegador, sistema operativo, páginas visitadas dentro del dashboard.</li>
+    <li><strong>Datos de visitantes del widget:</strong> identificadores anónimos (<code>visitorId</code>), mensajes enviados por los usuarios finales de tus clientes a través del chat.</li>
+  </ul>
+  <h3>2.3 Datos de los usuarios finales de tu negocio</h3>
+  <p>Cuando integras Conectachat con tus plataformas, los mensajes de tus clientes (nombre de usuario, contenido del mensaje, canal de origen, identificador de plataforma) pasan por nuestros sistemas para ser procesados por el modelo de IA. Tú eres responsable de informar a tus propios clientes sobre este tratamiento.</p>
+
+  <h2>3. Cómo usamos tus datos</h2>
+  <h3>3.1 Finalidades necesarias para la prestación del servicio</h3>
+  <ul>
+    <li>Crear y gestionar tu cuenta de usuario y organización.</li>
+    <li>Procesar pagos, suscripciones y créditos.</li>
+    <li>Operar los agentes de IA y responder mensajes en tu nombre en los canales conectados.</li>
+    <li>Almacenar y consultar tu base de conocimiento (documentos, PDFs, URLs).</li>
+    <li>Enviar notificaciones transaccionales: confirmaciones de pago, alertas de crédito.</li>
+    <li>Mejorar la calidad y relevancia de las respuestas del chatbot basado en el historial de conversaciones de tu organización.</li>
+    <li>Prevenir fraude, abuso y actividades no autorizadas.</li>
+  </ul>
+  <h3>3.2 Finalidades secundarias (puedes oponerte)</h3>
+  <ul>
+    <li>Enviarte actualizaciones sobre nuevas funcionalidades y mejoras del producto.</li>
+    <li>Análisis estadísticos agregados y anonimizados para mejorar la calidad del servicio.</li>
+  </ul>
+  <p>Para oponerte a las finalidades secundarias, escríbenos a <a href="mailto:privacidad@conectaachat.com">privacidad@conectaachat.com</a>.</p>
+
+  <h2>4. Con quién compartimos tus datos</h2>
+  <p>Compartimos datos únicamente con los proveedores necesarios para operar el servicio:</p>
+  <ul>
+    <li><strong>Meta (Facebook / Instagram / WhatsApp):</strong> los mensajes de tus canales de Meta pasan por las APIs de Meta para enviarse y recibirse. Los tokens de acceso se almacenan cifrados y se usan exclusivamente para gestionar tus conversaciones. Consulta la <a href="https://www.facebook.com/policy.php" target="_blank" rel="noopener">Política de Meta</a>.</li>
+    <li><strong>Anthropic (Claude API):</strong> los mensajes de las conversaciones se envían a la API de Anthropic para generar respuestas con IA. Anthropic, conforme a su contrato de uso de API, no utiliza datos enviados vía API para entrenar sus modelos. Consulta la <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener">Política de Anthropic</a>.</li>
+    <li><strong>OpenAI:</strong> en ciertos flujos de procesamiento de documentos y generación de embeddings utilizamos la API de OpenAI. Los datos se envían de forma cifrada y OpenAI no utiliza datos de API para entrenar modelos. Consulta la <a href="https://openai.com/policies/privacy-policy" target="_blank" rel="noopener">Política de OpenAI</a>.</li>
+    <li><strong>Stripe:</strong> procesamos pagos a través de Stripe. No almacenamos datos de tarjeta. Consulta la <a href="https://stripe.com/es-mx/privacy" target="_blank" rel="noopener">Política de Stripe</a>.</li>
+    <li><strong>Slack:</strong> el bot token se usa para responder mensajes en tu workspace. Consulta la <a href="https://slack.com/trust/privacy/privacy-policy" target="_blank" rel="noopener">Política de Slack</a>.</li>
+    <li><strong>Supabase:</strong> base de datos y autenticación. Los datos se almacenan en servidores AWS región us-east-1.</li>
+    <li><strong>Railway / Vercel:</strong> infraestructura de servidores en la nube (EE.UU.).</li>
+  </ul>
+  <p>No vendemos, alquilamos ni compartimos tus datos personales con terceros para fines publicitarios.</p>
+
+  <h2>5. Transferencias internacionales de datos</h2>
+  <p>Tus datos pueden ser procesados en servidores fuera de México (principalmente Estados Unidos) a través de los proveedores listados anteriormente. Dichas transferencias se realizan bajo contratos que garantizan niveles adecuados de protección conforme al artículo 37 de la LFPDPPP.</p>
+
+  <h2>6. Conservación de datos</h2>
+  <ul>
+    <li><strong>Cuenta activa:</strong> mientras mantengas tu cuenta activa.</li>
+    <li><strong>Tras cancelación:</strong> 90 días para posible recuperación, luego eliminación definitiva.</li>
+    <li><strong>Datos fiscales y de pago:</strong> 5 años por obligaciones legales.</li>
+    <li><strong>Conversaciones:</strong> según tu plan; puedes eliminarlas desde el dashboard en cualquier momento.</li>
+  </ul>
+
+  <h2>7. Derechos ARCO</h2>
+  <p>Conforme a la LFPDPPP tienes derecho a:</p>
+  <ul>
+    <li><strong>Acceso:</strong> conocer qué datos personales tenemos de ti.</li>
+    <li><strong>Rectificación:</strong> corregir datos inexactos o incompletos.</li>
+    <li><strong>Cancelación:</strong> solicitar la eliminación de tus datos.</li>
+    <li><strong>Oposición:</strong> oponerte al tratamiento de tus datos para finalidades específicas.</li>
+    <li><strong>Portabilidad:</strong> recibir tus datos en formato estructurado.</li>
+  </ul>
+  <p>Para ejercer cualquiera de estos derechos envía un correo a <a href="mailto:privacidad@conectaachat.com">privacidad@conectaachat.com</a> con asunto <strong>"Derechos ARCO"</strong> incluyendo tu nombre completo, correo de registro y la solicitud específica. Responderemos en un plazo máximo de 20 días hábiles.</p>
+
+  <h2>8. Seguridad de los datos</h2>
+  <p>Implementamos medidas técnicas y organizativas para proteger tu información:</p>
+  <ul>
+    <li>Cifrado TLS en todas las comunicaciones (HTTPS).</li>
+    <li>Contraseñas almacenadas con hash seguro mediante Supabase Auth.</li>
+    <li>API keys almacenadas como hash SHA-256; el valor original nunca se guarda.</li>
+    <li>Row Level Security (RLS) en la base de datos — cada organización accede solo a sus datos.</li>
+    <li>Tokens de integración cifrados en reposo.</li>
+    <li>Verificación HMAC en todos los webhooks entrantes.</li>
+  </ul>
+
+  <h2>9. Cookies y tecnologías similares</h2>
+  <p>El sitio web principal (<code>conectaachat.com</code>) utiliza cookies estrictamente necesarias para la navegación. El dashboard (<code>app.conectaachat.com</code>) utiliza cookies de sesión de Supabase para mantener tu autenticación. No utilizamos cookies de seguimiento publicitario de terceros.</p>
+
+  <h2>10. Menores de edad</h2>
+  <p>Conectachat es un servicio B2B dirigido a empresas y profesionales mayores de 18 años. No recopilamos intencionalmente datos de menores de edad.</p>
+
+  <h2>11. Cambios a esta política</h2>
+  <p>Podemos actualizar esta política periódicamente. Cuando realicemos cambios materiales te notificaremos por correo electrónico al menos 15 días antes de que entren en vigor. El uso continuado del servicio implica la aceptación de los cambios.</p>
+
+  <h2>12. Contacto y autoridad supervisora</h2>
+  <p>Para consultas sobre privacidad o para ejercer tus derechos: <a href="mailto:privacidad@conectaachat.com">privacidad@conectaachat.com</a></p>
+  <p>También puedes presentar una queja ante el <strong>Instituto Nacional de Transparencia, Acceso a la Información y Protección de Datos Personales (INAI)</strong> en <a href="https://home.inai.org.mx" target="_blank" rel="noopener">home.inai.org.mx</a>.</p>
+
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="logo">Conectachat</div>
+      <p>La plataforma de atención al cliente con IA más fácil de configurar. Responde 24/7 en WhatsApp, Instagram, Facebook y tu web.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Producto</h4>
+      <a href="index.html#solution">Cómo funciona</a>
+      <a href="index.html#features">Funcionalidades</a>
+      <a href="index.html#pricing">Precios</a>
+    </div>
+    <div class="footer-col">
+      <h4>Recursos</h4>
+      <a href="https://app.conectaachat.com/register">Crear cuenta</a>
+      <a href="https://app.conectaachat.com/login">Dashboard</a>
+      <a href="mailto:hola@conectaachat.com">Soporte</a>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <a href="privacy.html">Privacidad</a>
+      <a href="terms.html">Términos de uso</a>
+      <a href="data-deletion.html">Eliminación de datos</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Conectachat. Todos los derechos reservados. · Chihuahua, México</span>
+    <span><a href="mailto:privacidad@conectaachat.com">privacidad@conectaachat.com</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

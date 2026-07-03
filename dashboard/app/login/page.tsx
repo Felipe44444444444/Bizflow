@@ -28,22 +28,20 @@ export default function LoginPage() {
     try {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) { setError(error.message); return; }
+        if (error) { setError(error.message); setLoading(false); return; }
         router.push("/dashboard");
-        router.refresh();
       } else {
         const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) { setError(error.message); return; }
+        if (error) { setError(error.message); setLoading(false); return; }
         if (data.session) {
           router.push("/dashboard");
-          router.refresh();
         } else {
           setSuccess("¡Cuenta creada! Revisa tu email para confirmar y luego inicia sesión.");
+          setLoading(false);
         }
       }
     } catch {
       setError("Error inesperado. Intenta de nuevo.");
-    } finally {
       setLoading(false);
     }
   }
@@ -76,7 +74,7 @@ export default function LoginPage() {
         }}
       />
 
-      <div className="relative w-full max-w-sm px-4 animate-scale-in">
+      <div className="relative w-full max-w-sm px-4">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-neon-cyan/10 border border-neon-cyan/20">

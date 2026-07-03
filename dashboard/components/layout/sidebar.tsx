@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Bot, MessageSquare, Users, Key, Settings,
   Zap, LogOut, ChevronRight, Activity, PhoneCall,
-  Briefcase, UserCheck, Megaphone, Palette, BarChart3, TrendingUp, FileText,
+  Briefcase, UserCheck, Megaphone, Palette, BarChart3, TrendingUp, FileText, BookOpen, Clapperboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -24,13 +24,16 @@ const NAV_CONFIG = [
 ];
 
 const NAV_AGENCY = [
-  { href: "/agency/dashboard",  label: "Dashboard",   icon: BarChart3     },
-  { href: "/agency/clients",    label: "Clientes",    icon: Briefcase     },
-  { href: "/agency/docs",       label: "Documentos",  icon: FileText      },
-  { href: "/agency/onboarding", label: "Onboarding",  icon: UserCheck     },
-  { href: "/agency/ads",        label: "Anuncios",    icon: Megaphone     },
-  { href: "/agency/design",     label: "Diseño",      icon: Palette       },
-  { href: "/agency/strategy",   label: "Estrategia",  icon: TrendingUp    },
+  { href: "/agency/dashboard",    label: "Dashboard",      icon: BarChart3  },
+  { href: "/agency/clients",      label: "Clientes",       icon: Briefcase  },
+  { href: "/agency/docs",         label: "Documentos",     icon: FileText   },
+  { href: "/agency/onboarding",   label: "Onboarding",     icon: UserCheck  },
+  { href: "/agency/ads",          label: "Anuncios",       icon: Megaphone  },
+  { href: "/agency/design",       label: "Diseño",         icon: Palette    },
+  { href: "/agency/brand-manual", label: "Manual de Marca", icon: BookOpen  },
+  { href: "/agency/strategy",     label: "Estrategia",     icon: TrendingUp    },
+  { href: "/agency/clips",        label: "Clips",          icon: Clapperboard  },
+  { href: "/agency/agents",       label: "Agentes",        icon: Bot            },
 ];
 
 const PLAN_COLORS: Record<string, string> = {

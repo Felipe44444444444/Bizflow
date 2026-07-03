@@ -3,6 +3,7 @@ const { z } = require('zod');
 const multer = require('multer');
 const { supabaseAdmin } = require('../config/supabase');
 const { authMiddleware, requireRole } = require('../middleware/auth');
+const { uploadLimiter } = require('../middleware/rateLimit');
 const ragService = require('../services/ragService');
 
 const router = Router();
@@ -44,7 +45,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Upload a file (PDF or TXT)
-router.post('/upload', requireRole('owner', 'admin', 'member'), upload.single('file'), async (req, res) => {
+router.post('/upload', uploadLimiter, requireRole('owner', 'admin', 'member'), upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded or invalid type' });
 
   const schema = z.object({ agent_id: z.string().uuid(), name: z.string().min(1).optional() });
@@ -96,7 +97,7 @@ router.post('/upload', requireRole('owner', 'admin', 'member'), upload.single('f
 });
 
 // Add a URL document
-router.post('/url', requireRole('owner', 'admin', 'member'), async (req, res) => {
+router.post('/url', uploadLimiter, requireRole('owner', 'admin', 'member'), async (req, res) => {
   const schema = z.object({
     agent_id: z.string().uuid(),
     url: z.string().url(),
@@ -140,7 +141,7 @@ router.post('/url', requireRole('owner', 'admin', 'member'), async (req, res) =>
 });
 
 // Add FAQ / manual text content
-router.post('/text', requireRole('owner', 'admin', 'member'), async (req, res) => {
+router.post('/text', uploadLimiter, requireRole('owner', 'admin', 'member'), async (req, res) => {
   const schema = z.object({
     agent_id: z.string().uuid(),
     name: z.string().min(1),
@@ -184,7 +185,7 @@ router.post('/text', requireRole('owner', 'admin', 'member'), async (req, res) =
   res.status(202).json({ ...doc, message: 'Processing started' });
 });
 
-router.post('/:id/reprocess', requireRole('owner', 'admin'), async (req, res) => {
+router.post('/:id/reprocess', uploadLimiter, requireRole('owner', 'admin'), async (req, res) => {
   const { data: doc } = await supabaseAdmin
     .from('documents')
     .select('id')

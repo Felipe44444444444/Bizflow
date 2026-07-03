@@ -61,6 +61,18 @@ export default function ChannelsPage() {
   const [waForm,    setWaForm]    = useState({ phoneNumberId: "", accessToken: "", businessAccountId: "" });
   const [slackForm, setSlackForm] = useState({ botToken: "", signingSecret: "" });
 
+  // IG manual setup
+  const [igManualOpen,   setIgManualOpen]   = useState(false);
+  const [igManualForm,   setIgManualForm]   = useState({ igAccountId: "", igUsername: "" });
+  const [igManualSaving, setIgManualSaving] = useState(false);
+  const [igManualResult, setIgManualResult] = useState<{ ok: boolean; detail: string } | null>(null);
+
+  // IG integration status (source of truth for connected state)
+  const [igIntegration, setIgIntegration]   = useState<{ connected: boolean; ig_username: string | null; page_name: string | null } | null>(null);
+  // Ref so stale-closure handlers (useEffect with []) always see the latest value
+  const igIntegrationRef = useRef<typeof igIntegration>(null);
+  useEffect(() => { igIntegrationRef.current = igIntegration; }, [igIntegration]);
+
   // ── Load ─────────────────────────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
@@ -72,14 +84,16 @@ export default function ChannelsPage() {
           .eq("user_id", session.user.id).limit(1).single();
         if (!m) return;
         setOrgId(m.organization_id);
-        const [a, ch, keys] = await Promise.all([
+        const [a, ch, keys, igInt] = await Promise.all([
           api.get(`/api/agents/${agentId}`, m.organization_id),
           api.get(`/api/channels?agent_id=${agentId}`, m.organization_id),
           api.get("/api/api-keys", m.organization_id),
+          api.get(`/api/integrations/instagram/status?agent_id=${agentId}`, m.organization_id).catch(() => null),
         ]);
         setAgent(a);
         setChannels(ch || []);
         setApiKeys(keys || []);
+        setIgIntegration(igInt);
       } finally {
         setLoading(false);
       }
@@ -180,6 +194,8 @@ export default function ChannelsPage() {
 
   // Open Instagram Business Login popup (direct OAuth — no Facebook Page required)
   async function startInstagramOAuth() {
+    // If already connected via instagram_integrations, don't re-trigger OAuth
+    if (igIntegrationRef.current?.connected) return;
     setMetaConnecting(true); setVerifyResult(null);
     try {
       const result = await api.get(`/api/integrations/instagram/connect?agent_id=${agentId}`, orgId);
@@ -204,7 +220,10 @@ export default function ChannelsPage() {
         setVerifyResult({ verified: true, detail: `@${e.data.ig_username || e.data.ig_account_id} conectado exitosamente` });
         setTimeout(() => setActiveType(null), 1800);
       } else if (e.data?.type === "instagram_error") {
-        setVerifyResult({ verified: false, detail: e.data.error || "Error en OAuth de Instagram" });
+        // Don't show the error if Instagram is already connected via a manual/existing integration
+        if (!igIntegrationRef.current?.connected) {
+          setVerifyResult({ verified: false, detail: e.data.error || "Error en OAuth de Instagram" });
+        }
         setMetaConnecting(false);
       } else if (e.data?.type === "meta_connected") {
         const { savedChannels, noInstagram } = e.data;
@@ -218,17 +237,20 @@ export default function ChannelsPage() {
               if (idx >= 0) updated[idx] = saved.channel;
               else updated.push(saved.channel);
             }
+
+            // Determine success message with up-to-date channel list + integration ref
+            const hasActiveIG = updated.some((c: any) => c.type === "instagram" && c.is_active)
+              || !!igIntegrationRef.current?.connected;
+            const types = savedChannels
+              .map((c: any) => c.type === "facebook" ? "Facebook" : "Instagram")
+              .join(" y ");
+            const detail = (noInstagram && !hasActiveIG)
+              ? `Facebook conectado. Instagram no está vinculado a esta página — ve a Configuración de Instagram → Cuenta → Cambiar a cuenta profesional → Empresa.`
+              : `${types} conectado exitosamente`;
+            setTimeout(() => setVerifyResult({ verified: true, detail }), 0);
+
             return updated;
           });
-
-          const types = savedChannels
-            .map((c: any) => c.type === "facebook" ? "Facebook" : "Instagram")
-            .join(" y ");
-          setVerifyResult({ verified: true, detail: `${types} conectado exitosamente` });
-
-          if (noInstagram) {
-            setVerifyResult({ verified: true, detail: `Facebook conectado. Instagram no está vinculado a esta página — ve a Configuración de Instagram → Cuenta → Cambiar a cuenta profesional → Empresa.` });
-          }
 
           // Close modal after short delay so the user sees the success banner
           setTimeout(() => setActiveType(null), 1800);
@@ -279,6 +301,44 @@ export default function ChannelsPage() {
     if (!ch) return;
     await api.post(`/api/channels/${ch.id}/disconnect`, {}, orgId);
     setChannels((p) => p.map((c) => c.id === ch.id ? { ...c, is_active: false } : c));
+  }
+
+  async function disconnectInstagramCard() {
+    try {
+      await api.del(`/api/integrations/instagram?agent_id=${agentId}`, orgId);
+      setIgIntegration({ connected: false, ig_username: null, page_name: null });
+      setChannels((p) => p.map((c) => c.type === "instagram" ? { ...c, is_active: false } : c));
+    } catch (e: any) {
+      console.error("[Instagram disconnect]", e.message);
+    }
+  }
+
+  async function saveIgManual() {
+    setIgManualSaving(true); setIgManualResult(null);
+    try {
+      const res = await api.post("/api/integrations/instagram/manual-setup", {
+        agent_id:          agentId,
+        organization_id:   orgId,
+        ig_account_id:     igManualForm.igAccountId,
+        ig_username:       igManualForm.igUsername || undefined,
+        use_facebook_token: true,
+      }, orgId);
+      const detail = res.warning
+        ? `Guardado con advertencia: ${res.warning}`
+        : `@${res.integration?.ig_username || igManualForm.igAccountId} conectado exitosamente`;
+      setIgManualResult({ ok: true, detail });
+      const [refreshed, igInt] = await Promise.all([
+        api.get(`/api/channels?agent_id=${agentId}`, orgId),
+        api.get(`/api/integrations/instagram/status?agent_id=${agentId}`, orgId).catch(() => null),
+      ]);
+      if (refreshed) setChannels(Array.isArray(refreshed) ? refreshed : refreshed.channels ?? refreshed);
+      setIgIntegration(igInt);
+      setTimeout(() => { setIgManualOpen(false); setIgManualResult(null); }, 2200);
+    } catch (e: any) {
+      setIgManualResult({ ok: false, detail: e.message });
+    } finally {
+      setIgManualSaving(false);
+    }
   }
 
   // ── Display values ────────────────────────────────────────────────────────────
@@ -729,42 +789,63 @@ export default function ChannelsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {ORDER.map((type) => {
-              const meta    = CHANNEL_META[type];
-              const channel = channels.find((c) => c.type === type && c.is_active);
+              const meta      = CHANNEL_META[type];
+              const channel   = channels.find((c) => c.type === type && c.is_active);
+              const fbChannel = channels.find((c) => c.type === "facebook" && c.is_active);
+              // Instagram: also consider instagram_integrations as source of truth
+              const isConnected = type === "instagram"
+                ? (!!channel || !!igIntegration?.connected)
+                : !!channel;
+              const igUsername = type === "instagram" && igIntegration?.ig_username
+                ? igIntegration.ig_username : null;
               return (
-                <Card key={type} className={`transition-all ${channel ? "border-primary/40 bg-primary/5" : ""}`}>
+                <Card key={type} className={`transition-all ${isConnected ? "border-primary/40 bg-primary/5" : ""}`}>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center justify-between">
                       <span className="flex items-center gap-2">
                         <span className="text-xl">{meta.emoji}</span>
                         {meta.label}
                       </span>
-                      <Badge variant={channel ? "success" : "secondary"} className="text-[10px]">
-                        {channel ? "Conectado" : "No conectado"}
+                      <Badge variant={isConnected ? "success" : "secondary"} className="text-[10px]">
+                        {isConnected ? "Conectado" : "No conectado"}
                       </Badge>
                     </CardTitle>
-                    <CardDescription className="text-xs">{meta.desc}</CardDescription>
+                    <CardDescription className="text-xs">
+                      {type === "instagram" && isConnected && igUsername
+                        ? `@${igUsername}`
+                        : meta.desc}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="flex gap-2">
                       <Button
                         size="sm" className="flex-1"
-                        variant={channel ? "outline" : "default"}
-                        disabled={metaConnecting && type === "instagram" && !channel}
-                        onClick={() => type === "instagram" && !channel ? startInstagramOAuth() : openModal(type)}
+                        variant={isConnected ? "outline" : "default"}
+                        disabled={metaConnecting && type === "instagram" && !isConnected}
+                        onClick={() => type === "instagram" && !isConnected ? startInstagramOAuth() : openModal(type)}
                       >
-                        {metaConnecting && type === "instagram" && !channel
+                        {metaConnecting && type === "instagram" && !isConnected
                           ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Conectando...</>
-                          : channel ? "Ver configuración" : "Conectar"
+                          : isConnected ? "Ver configuración" : "Conectar"
                         }
                       </Button>
-                      {channel && (
+                      {isConnected && (
                         <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"
-                          onClick={() => disconnectChannel(type)} title="Desconectar">
+                          onClick={() => type === "instagram" ? disconnectInstagramCard() : disconnectChannel(type)}
+                          title="Desconectar">
                           <Unplug className="h-3.5 w-3.5" />
                         </Button>
                       )}
                     </div>
+                    {type === "instagram" && fbChannel && !isConnected && (
+                      <button
+                        type="button"
+                        onClick={() => { setIgManualForm({ igAccountId: "", igUsername: "" }); setIgManualResult(null); setIgManualOpen(true); }}
+                        className="mt-2 w-full text-[11px] text-muted-foreground hover:text-foreground transition-colors text-center underline underline-offset-2"
+                      >
+                        Setup manual (admin)
+                      </button>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -782,6 +863,66 @@ export default function ChannelsPage() {
             </DialogTitle>
           </DialogHeader>
           <ModalContent />
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Instagram manual setup dialog ────────────────────────────────────── */}
+      <Dialog open={igManualOpen} onOpenChange={(open) => { setIgManualOpen(open); if (!open) setIgManualResult(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <span className="text-lg">📸</span>
+              Setup manual de Instagram DM
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Usa el token de la Facebook Page ya conectada. Necesitas el ID numérico de la cuenta de Instagram Business (encuéntralo en Meta Business Suite → Configuración → Cuentas de Instagram).
+            </p>
+            <div className="space-y-2">
+              <Label className="text-xs">IG Account ID <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="17841234567890"
+                value={igManualForm.igAccountId}
+                onChange={(e) => setIgManualForm((p) => ({ ...p, igAccountId: e.target.value.trim() }))}
+              />
+              <p className="text-[11px] text-muted-foreground">ID numérico de la cuenta de Instagram Business</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Username <span className="text-muted-foreground">(opcional — se detecta automáticamente)</span></Label>
+              <Input
+                placeholder="mi_empresa"
+                value={igManualForm.igUsername}
+                onChange={(e) => setIgManualForm((p) => ({ ...p, igUsername: e.target.value.replace(/^@/, "") }))}
+              />
+            </div>
+            {igManualResult && (
+              <div className={`flex items-start gap-2 rounded-lg p-3 text-xs border ${
+                igManualResult.ok
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                  : "bg-destructive/10 text-destructive border-destructive/20"
+              }`}>
+                {igManualResult.ok
+                  ? <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+                  : <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                }
+                {igManualResult.detail}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setIgManualOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={saveIgManual}
+                disabled={igManualSaving || !igManualForm.igAccountId}
+              >
+                {igManualSaving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Guardar
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

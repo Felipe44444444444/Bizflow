@@ -5,10 +5,12 @@ const { authMiddleware } = require('../middleware/auth');
 const billingService = require('../services/billingService');
 const { COSTS, estimateCostUsd } = require('../config/costs');
 
+const { webhookLimiter } = require('../middleware/rateLimit');
+
 const router = Router();
 
 // Stripe webhook — raw body is already set by the global body-parser middleware in index.js
-router.post('/webhook', async (req, res) => {
+router.post('/webhook', webhookLimiter, async (req, res) => {
   const signature = req.headers['stripe-signature'];
   try {
     const result = await billingService.handleWebhook(req.rawBody, signature);

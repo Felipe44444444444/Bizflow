@@ -1,23 +1,25 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { api } from "@/lib/api";
+import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
-import { TrendingUp, Plus, Pencil, Trash2, Loader2, Sparkles, ChevronDown, ChevronRight } from "lucide-react";
+  TrendingUp, Plus, Pencil, Trash2, Loader2, Sparkles,
+  ChevronDown, ChevronRight, AlertCircle, RefreshCw, Download,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Client { id: string; name: string; company: string | null; industry: string | null; }
 interface Strategy {
   id: string; client_id: string; title: string; content: string | null;
   foda: any; kpis: any; calendar: any; status: string; created_at: string;
-  clients?: { name: string; company: string | null };
+  pdf_url?: string | null; clients?: { name: string; company: string | null };
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -27,28 +29,51 @@ const STATUS_COLOR: Record<string, string> = {
   archived: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
 };
 
+const supabase = createClient();
+
 export default function StrategyPage() {
-  const [clients, setClients]     = useState<Client[]>([]);
+  const [clients, setClients]       = useState<Client[]>([]);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [open, setOpen]           = useState(false);
-  const [editing, setEditing]     = useState<Strategy | null>(null);
-  const [form, setForm]           = useState({ client_id: "", title: "", content: "", status: "draft" });
-  const [saving, setSaving]       = useState(false);
+  const [loading, setLoading]       = useState(true);
+  const [open, setOpen]             = useState(false);
+  const [editing, setEditing]       = useState<Strategy | null>(null);
+  const [form, setForm]             = useState({ client_id: "", title: "", content: "", status: "draft" });
+  const [saving, setSaving]         = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [expanded, setExpanded]   = useState<Record<string, boolean>>({});
-  const [deleting, setDeleting]   = useState<string | null>(null);
-  const [genPrompt, setGenPrompt] = useState("");
+  const [expanded, setExpanded]     = useState<Record<string, boolean>>({});
+  const [deleting, setDeleting]     = useState<string | null>(null);
+  const [genPrompt, setGenPrompt]   = useState("");
+  const [error, setError]           = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    setError(null);
+    let fromCache = false;
     try {
-      const [c, s] = await Promise.all([
-        api.get("/api/agency/clients"),
-        api.get("/api/agency/strategies"),
+      const raw = sessionStorage.getItem('xenttech_strategy_data');
+      if (raw) {
+        const { d, ts } = JSON.parse(raw);
+        if (Date.now() - ts < 5 * 60_000) {
+          setClients(d.clients); setStrategies(d.strategies);
+          setLoading(false); fromCache = true;
+        }
+      }
+    } catch {}
+    if (!fromCache) setLoading(true);
+    try {
+      const [clientsRes, strategiesRes] = await Promise.all([
+        supabase.from("clients").select("id,name,company,industry").order("name"),
+        supabase.from("strategies")
+          .select("*, clients(name,company)")
+          .not("title", "ilike", "Manual de Marca%")
+          .order("created_at", { ascending: false }),
       ]);
-      setClients(c ?? []);
-      setStrategies(s ?? []);
+      if (clientsRes.error) throw clientsRes.error;
+      if (strategiesRes.error) throw strategiesRes.error;
+      setClients(clientsRes.data ?? []);
+      setStrategies(strategiesRes.data ?? []);
+      try { sessionStorage.setItem('xenttech_strategy_data', JSON.stringify({ d: { clients: clientsRes.data ?? [], strategies: strategiesRes.data ?? [] }, ts: Date.now() })); } catch {}
+    } catch {
+      setError("Error de conexión. Verifica tu red y reintenta.");
     } finally { setLoading(false); }
   }, []);
 
@@ -69,19 +94,52 @@ export default function StrategyPage() {
 
   async function save() {
     setSaving(true);
+    setError(null);
     try {
-      if (editing) await api.put(`/api/agency/strategies/${editing.id}`, form);
-      else await api.post("/api/agency/strategies", form);
+      let savedId = editing?.id ?? null;
+      if (editing) {
+        const { error: err } = await supabase.from("strategies").update(form).eq("id", editing.id);
+        if (err) throw err;
+      } else {
+        const { data: inserted, error: err } = await supabase.from("strategies").insert(form).select("id").single();
+        if (err) throw err;
+        savedId = inserted?.id ?? null;
+      }
+      await supabase.from("activity_log").insert({
+        client_id: form.client_id,
+        action: `Estrategia "${form.title}" ${editing ? "actualizada" : "creada"}`,
+        details: form.status,
+      });
+      // Generate PDF if content exists (best-effort)
+      if (savedId && form.content) {
+        const client = clients.find(c => c.id === form.client_id);
+        try {
+          await fetch("/api/generate-pdf", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              content: form.content, title: form.title,
+              client_name: client?.name ?? "", company: client?.company ?? "",
+              step_name: form.title, client_id: form.client_id,
+              document_type: "strategy", document_id: savedId,
+            }),
+          });
+        } catch {}
+      }
       setOpen(false);
       load();
+    } catch (e: any) {
+      setError(e.message ?? "Error al guardar");
     } finally { setSaving(false); }
   }
 
   async function remove(id: string) {
     setDeleting(id);
     try {
-      await api.del(`/api/agency/strategies/${id}`);
+      const { error: err } = await supabase.from("strategies").delete().eq("id", id);
+      if (err) throw err;
       setStrategies(prev => prev.filter(s => s.id !== id));
+    } catch (e: any) {
+      setError(e.message ?? "Error al eliminar");
     } finally { setDeleting(null); }
   }
 
@@ -91,8 +149,7 @@ export default function StrategyPage() {
     setGenerating(true);
     try {
       const context = `Cliente: ${client.name}${client.company ? ` (${client.company})` : ""}. Industria: ${client.industry ?? "no especificada"}.`;
-      const { result } = await api.post("/api/agency/generate", {
-        prompt: `Crea una estrategia de marketing digital completa y detallada para:
+      const prompt = `Crea una estrategia de marketing digital completa y detallada para:
 ${context}
 ${genPrompt ? `\nRequisitos adicionales: ${genPrompt}` : ""}
 
@@ -105,10 +162,18 @@ La estrategia debe incluir:
 6. Calendario editorial mes 1 (por semana)
 7. Acciones prioritarias semana 1
 
-Sé específico, con números y ejemplos concretos.`,
-        context,
+Sé específico, con números y ejemplos concretos.`;
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, context }),
       });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `Error ${res.status}`);
+      const { result } = await res.json();
       setForm(f => ({ ...f, content: result }));
+    } catch (e: any) {
+      setError(e.message ?? "Error al generar");
     } finally { setGenerating(false); }
   }
 
@@ -123,10 +188,20 @@ Sé específico, con números y ejemplos concretos.`,
           </Button>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="h-6 w-6 animate-spin text-[#00FF88]" />
+        {error && (
+          <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-red-400">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span className="text-sm">{error}</span>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => load()} className="gap-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 shrink-0">
+              <RefreshCw className="h-3.5 w-3.5" /> Reintentar
+            </Button>
           </div>
+        )}
+
+        {loading ? (
+          <PageSkeleton rows={3} cols={1} cardHeight={180} />
         ) : strategies.length === 0 ? (
           <div className="text-center py-20 space-y-3">
             <TrendingUp className="h-10 w-10 text-[#4A5568] mx-auto" />
@@ -140,10 +215,8 @@ Sé específico, con números y ejemplos concretos.`,
               return (
                 <div key={s.id} className="rounded-xl border border-white/[0.06] overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-4 bg-space-card">
-                    <button
-                      onClick={() => setExpanded(e => ({ ...e, [s.id]: !isOpen }))}
-                      className="flex items-center gap-3 flex-1 text-left"
-                    >
+                    <button onClick={() => setExpanded(e => ({ ...e, [s.id]: !isOpen }))}
+                      className="flex items-center gap-3 flex-1 text-left">
                       {isOpen ? <ChevronDown className="h-4 w-4 text-[#4A5568]" /> : <ChevronRight className="h-4 w-4 text-[#4A5568]" />}
                       <div>
                         <p className="font-semibold text-white">{s.title}</p>
@@ -156,19 +229,24 @@ Sé específico, con números y ejemplos concretos.`,
                       <Badge className={cn("text-[10px] border", STATUS_COLOR[s.status] ?? STATUS_COLOR.draft)}>
                         {s.status}
                       </Badge>
+                      {s.pdf_url && (
+                        <a href={s.pdf_url} target="_blank" rel="noopener noreferrer"
+                          className="p-1.5 rounded-lg hover:bg-blue-500/10 text-[#4A5568] hover:text-blue-400 transition-colors" title="Descargar PDF">
+                          <Download className="h-3.5 w-3.5" />
+                        </a>
+                      )}
                       <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[#4A5568] hover:text-white transition-colors">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => remove(s.id)} disabled={deleting === s.id} className="p-1.5 rounded-lg hover:bg-red-500/10 text-[#4A5568] hover:text-red-400 transition-colors">
+                      <button onClick={() => remove(s.id)} disabled={deleting === s.id}
+                        className="p-1.5 rounded-lg hover:bg-red-500/10 text-[#4A5568] hover:text-red-400 transition-colors">
                         {deleting === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                       </button>
                     </div>
                   </div>
                   {isOpen && s.content && (
                     <div className="px-5 py-4 bg-black/10 border-t border-white/[0.04]">
-                      <div className="prose prose-invert prose-sm max-w-none">
-                        <pre className="whitespace-pre-wrap text-xs text-[#A0AEC0] font-sans leading-relaxed">{s.content}</pre>
-                      </div>
+                      <pre className="whitespace-pre-wrap text-xs text-[#A0AEC0] font-sans leading-relaxed">{s.content}</pre>
                     </div>
                   )}
                 </div>
@@ -203,9 +281,7 @@ Sé específico, con números y ejemplos concretos.`,
               <div>
                 <label className="text-xs text-[#4A5568] mb-1 block">Estado</label>
                 <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
-                  <SelectTrigger className="bg-white/[0.04] border-white/[0.08] text-white">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="bg-white/[0.04] border-white/[0.08] text-white"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-space-card border-white/[0.08]">
                     {["draft","active","approved","archived"].map(s => (
                       <SelectItem key={s} value={s} className="text-white hover:bg-white/[0.06]">{s}</SelectItem>
@@ -215,54 +291,39 @@ Sé específico, con números y ejemplos concretos.`,
               </div>
               <div className="col-span-2">
                 <label className="text-xs text-[#4A5568] mb-1 block">Título</label>
-                <Input
-                  value={form.title}
-                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="Ej: Estrategia Q2 2025 — Meta + Google"
-                  className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-[#4A5568]"
-                />
+                  className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-[#4A5568]" />
               </div>
             </div>
 
-            {/* AI Generator */}
             <div className="border border-[#00FF88]/20 rounded-xl p-4 space-y-3">
               <p className="text-xs font-semibold text-[#00FF88] flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5" /> Generador de estrategia IA
               </p>
-              <Input
-                value={genPrompt}
-                onChange={e => setGenPrompt(e.target.value)}
+              <Input value={genPrompt} onChange={e => setGenPrompt(e.target.value)}
                 placeholder="Contexto adicional (opcional): presupuesto, canales preferidos, metas..."
-                className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-[#4A5568] text-sm"
-              />
-              <Button
-                onClick={generateStrategy}
-                disabled={generating || !form.client_id || !form.title}
+                className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-[#4A5568] text-sm" />
+              <Button onClick={generateStrategy} disabled={generating || !form.client_id || !form.title}
                 className="w-full bg-[#00FF88]/10 text-[#00FF88] border border-[#00FF88]/20 hover:bg-[#00FF88]/20 font-semibold gap-2"
-                variant="outline"
-              >
-                {generating ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Generando estrategia completa...</>
-                ) : (
-                  <><Sparkles className="h-4 w-4" /> Generar estrategia con XENTTECH AI</>
-                )}
+                variant="outline">
+                {generating
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Generando estrategia completa...</>
+                  : <><Sparkles className="h-4 w-4" /> Generar estrategia con XENTTECH AI</>}
               </Button>
             </div>
 
             <div>
               <label className="text-xs text-[#4A5568] mb-1 block">Contenido de la estrategia</label>
-              <Textarea
-                value={form.content}
-                onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
-                rows={12}
-                className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-[#4A5568] resize-none text-xs font-mono"
-                placeholder="La estrategia aparecerá aquí después de generar con IA, o escribe manualmente..."
-              />
+              <Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+                rows={12} className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-[#4A5568] resize-none text-xs font-mono"
+                placeholder="La estrategia aparecerá aquí después de generar con IA, o escribe manualmente..." />
             </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)} className="text-[#4A5568]">Cancelar</Button>
-            <Button onClick={save} disabled={saving || !form.client_id || !form.title} className="bg-[#00FF88] text-black hover:bg-[#00FF88]/90 font-semibold">
+            <Button onClick={save} disabled={saving || !form.client_id || !form.title}
+              className="bg-[#00FF88] text-black hover:bg-[#00FF88]/90 font-semibold">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}
             </Button>
           </DialogFooter>

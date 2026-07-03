@@ -19,7 +19,7 @@ router.post('/generate', async (req, res) => {
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
+      max_tokens: 2000,
       system: 'Eres XENTTECH AI — estratega experto en marketing digital high-ticket. Responde en español con insights accionables, concisos y orientados a resultados.',
       messages: [{ role: 'user', content: userMessage }],
     });
@@ -49,11 +49,20 @@ router.post('/clients', async (req, res) => {
 
   const { data, error } = await supabaseAdmin
     .from('clients')
-    .insert({ name, email, phone, company, industry, plan, status: status || 'active', monthly_revenue, notes })
+    .insert({ name, email, phone, company, industry, plan, status: status || 'prospect', monthly_revenue, notes })
     .select()
     .single();
   if (error) return res.status(500).json({ error: error.message });
-  res.status(201).json(data);
+
+  // Auto-generate portal token "XT-XXXXXXXX"
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let token = 'XT-';
+  for (let i = 0; i < 8; i++) token += chars[Math.floor(Math.random() * chars.length)];
+
+  await supabaseAdmin.from('portal_tokens').insert({ client_id: data.id, token, is_active: true, label: 'Portal Access' });
+  await supabaseAdmin.from('activity_log').insert({ client_id: data.id, action: 'Cliente creado', details: `Token: ${token}` });
+
+  res.status(201).json({ ...data, portal_token: token });
 });
 
 router.put('/clients/:id', async (req, res) => {
@@ -96,7 +105,10 @@ router.post('/onboarding', async (req, res) => {
 
   const { data, error } = await supabaseAdmin
     .from('onboarding_documents')
-    .insert({ client_id, step_number: step_number ?? 1, step_name, content, status: status || 'pending' })
+    .upsert(
+      { client_id, step_number: step_number ?? 1, step_name, content, status: status || 'pending', updated_at: new Date().toISOString() },
+      { onConflict: 'client_id,step_number', ignoreDuplicates: false }
+    )
     .select()
     .single();
   if (error) return res.status(500).json({ error: error.message });

@@ -14,31 +14,78 @@ import numpy as np
 
 # ── Descarga (pytubefix — maneja SABR de YouTube) ─────────────────────────────
 
-def descargar_audio(youtube_id: str, output_dir: str) -> str:
+def buscar_id_youtube(titulo: str, artista: str) -> str:
+    """Busca un ID válido en YouTube usando yt-dlp como librería."""
+    try:
+        import yt_dlp as ytdlp
+    except ImportError:
+        raise ImportError("Instala yt-dlp: pip3 install yt-dlp --break-system-packages")
+
+    query = f"{titulo} {artista}"
+    ids_encontrados = []
+
+    class IdCollector:
+        def debug(self, msg): pass
+        def warning(self, msg): pass
+        def error(self, msg): pass
+
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "extract_flat": True,
+        "logger": IdCollector(),
+    }
+    with ytdlp.YoutubeDL(opts) as ydl:
+        info = ydl.extract_info(f"ytsearch1:{query}", download=False)
+        entries = info.get("entries", []) if info else []
+        for e in entries:
+            vid_id = e.get("id") or e.get("url", "").split("v=")[-1]
+            if vid_id and len(vid_id) == 11:
+                ids_encontrados.append(vid_id)
+
+    if not ids_encontrados:
+        raise RuntimeError(f"No se encontró video para: {query!r}")
+    return ids_encontrados[0]
+
+
+def descargar_audio(youtube_id: str, output_dir: str,
+                    titulo: str = "", artista: str = "") -> tuple[str, str]:
+    """Descarga audio. Si el ID falla, busca uno fresco. Devuelve (wav_path, id_usado)."""
     import subprocess
     try:
         from pytubefix import YouTube
     except ImportError:
         raise ImportError("Instala pytubefix: pip3 install pytubefix --break-system-packages")
 
-    url = f"https://www.youtube.com/watch?v={youtube_id}"
-    yt = YouTube(url)
-    stream = yt.streams.filter(only_audio=True).order_by("abr").last()
-    if not stream:
-        raise RuntimeError(f"No hay streams de audio para {youtube_id}")
+    def intentar(yt_id: str) -> str:
+        url = f"https://www.youtube.com/watch?v={yt_id}"
+        yt = YouTube(url)
+        stream = yt.streams.filter(only_audio=True).order_by("abr").last()
+        if not stream:
+            raise RuntimeError("Sin streams de audio")
+        raw = stream.download(output_path=output_dir, filename=f"{yt_id}.audio")
+        wav = os.path.join(output_dir, f"{yt_id}.wav")
+        r = subprocess.run(
+            ["ffmpeg", "-y", "-i", raw, "-ac", "1", "-ar", "22050", "-f", "wav", wav],
+            capture_output=True, text=True
+        )
+        if r.returncode != 0:
+            raise RuntimeError(f"ffmpeg: {r.stderr[-150:]}")
+        return wav
 
-    raw_path = stream.download(output_path=output_dir, filename=f"{youtube_id}.audio")
-    wav_path = os.path.join(output_dir, f"{youtube_id}.wav")
+    # 1. Intentar con el ID almacenado
+    try:
+        return intentar(youtube_id), youtube_id
+    except Exception as e:
+        print(f"    ⚠ ID {youtube_id} no disponible ({e.__class__.__name__}), buscando alternativo...")
 
-    # Convertir a WAV mono 22050Hz con ffmpeg
-    result = subprocess.run(
-        ["ffmpeg", "-y", "-i", raw_path, "-ac", "1", "-ar", "22050",
-         "-f", "wav", wav_path],
-        capture_output=True, text=True
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"ffmpeg falló: {result.stderr[-200:]}")
-    return wav_path
+    # 2. Buscar ID fresco con yt-dlp
+    if titulo:
+        fresh_id = buscar_id_youtube(titulo, artista)
+        print(f"    → ID fresco: {fresh_id}")
+        return intentar(fresh_id), fresh_id
+
+    raise RuntimeError(f"No se pudo obtener audio para {youtube_id}")
 
 
 # ── Análisis ──────────────────────────────────────────────────────────────────
@@ -100,26 +147,25 @@ def detectar_acordes(audio_path: str, bpm: float, tiempos_por_compas: int = 4) -
 # ── Pipeline completo ─────────────────────────────────────────────────────────
 
 def sincronizar(cancion_id: int, youtube_id: str, bpm: float,
-                tiempos_por_compas: int = 4, guardar: bool = True) -> dict:
+                tiempos_por_compas: int = 4, guardar: bool = True,
+                titulo: str = "", artista: str = "") -> dict:
     print(f"\n→ Canción {cancion_id} | YT={youtube_id} | {bpm} BPM | {tiempos_por_compas}/4")
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        audio_path = os.path.join(tmpdir, youtube_id)
-
         print("  [1/3] Descargando audio de YouTube...")
-        audio_real = descargar_audio(youtube_id, audio_path)
+        wav_path, id_usado = descargar_audio(youtube_id, tmpdir, titulo, artista)
 
         print("  [2/3] Analizando con chromagrama CQT...")
-        acordes = detectar_acordes(audio_real, bpm, tiempos_por_compas)
+        acordes = detectar_acordes(wav_path, bpm, tiempos_por_compas)
 
         print(f"  [3/3] {len(acordes)} acordes detectados")
 
     resultado = {
-        "cancion_id":  cancion_id,
-        "youtube_id":  youtube_id,
-        "bpm":         bpm,
+        "cancion_id":   cancion_id,
+        "youtube_id":   id_usado,
+        "bpm":          bpm,
         "sync_calidad": "auto-detectado",
-        "acordes":     acordes,
+        "acordes":      acordes,
     }
 
     if guardar:
@@ -136,11 +182,13 @@ def sincronizar(cancion_id: int, youtube_id: str, bpm: float,
 
 def main():
     parser = argparse.ArgumentParser(description="Auto-sincronizador de acordes ConnectaChat")
-    parser.add_argument("--id",     type=int,   required=True, help="ID de la canción en BD")
-    parser.add_argument("--yt",     type=str,   required=True, help="YouTube video ID")
-    parser.add_argument("--bpm",    type=float, required=True, help="BPM de la canción")
-    parser.add_argument("--compas", type=int,   default=4,     help="Tiempos por compás (3 o 4)")
-    parser.add_argument("--no-guardar", action="store_true",   help="No guardar JSON")
+    parser.add_argument("--id",      type=int,   required=True, help="ID de la canción en BD")
+    parser.add_argument("--yt",      type=str,   required=True, help="YouTube video ID")
+    parser.add_argument("--bpm",     type=float, required=True, help="BPM de la canción")
+    parser.add_argument("--compas",  type=int,   default=4,     help="Tiempos por compás (3 o 4)")
+    parser.add_argument("--titulo",  type=str,   default="",    help="Título (para búsqueda fallback)")
+    parser.add_argument("--artista", type=str,   default="",    help="Artista (para búsqueda fallback)")
+    parser.add_argument("--no-guardar", action="store_true",    help="No guardar JSON")
     args = parser.parse_args()
 
     resultado = sincronizar(
@@ -149,6 +197,8 @@ def main():
         bpm=args.bpm,
         tiempos_por_compas=args.compas,
         guardar=not args.no_guardar,
+        titulo=args.titulo,
+        artista=args.artista,
     )
 
     print("\nPrimeros 10 acordes:")

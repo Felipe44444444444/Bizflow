@@ -1,6 +1,7 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import Home from './pages/Home.jsx';
 import Cancion from './pages/Cancion.jsx';
+import Precios from './pages/Precios.jsx';
 
 function Header() {
   const loc = useLocation();
@@ -30,6 +31,20 @@ function Header() {
           <Link to="/" className="btn btn-ghost" style={{ fontSize: 13 }}>
             Catálogo
           </Link>
+          <Link
+            to="/precios"
+            className="btn"
+            style={{
+              fontSize: 13,
+              background: loc.pathname === '/precios' ? '#8B0000' : 'transparent',
+              border: '1px solid #8B0000',
+              color: '#fff',
+              padding: '6px 14px',
+              borderRadius: 8,
+            }}
+          >
+            Pro $9.99
+          </Link>
         </nav>
       </div>
     </header>
@@ -43,6 +58,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/cancion/:id" element={<Cancion />} />
+        <Route path="/precios" element={<Precios />} />
+        <Route path="/pro" element={<Precios />} />
       </Routes>
     </>
   );

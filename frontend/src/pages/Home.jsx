@@ -1,146 +1,253 @@
 import { useState, useEffect, useCallback } from 'react';
-import Buscador from '../components/Buscador.jsx';
-import ListaCanciones from '../components/ListaCanciones.jsx';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 
-const LIMIT = 20;
+const GENERO_EMOJI = {
+  corrido: '🤠',
+  ranchera: '🌹',
+  banda: '🎺',
+  'norteña': '🪗',
+  grupero: '🎹',
+  'corrido tumbado': '🔥',
+};
 
-export default function Home() {
-  const [canciones, setCanciones] = useState([]);
-  const [total, setTotal]         = useState(0);
-  const [page, setPage]           = useState(1);
-  const [cargando, setCargando]   = useState(true);
-  const [query, setQuery]         = useState('');
-  const [genero, setGenero]       = useState('');
+const GRADIENTES = [
+  'linear-gradient(135deg, #8B0000 0%, #1a0000 100%)',
+  'linear-gradient(135deg, #1a3a1a 0%, #0a1a0a 100%)',
+  'linear-gradient(135deg, #1a1a3a 0%, #0a0a1a 100%)',
+  'linear-gradient(135deg, #3a2000 0%, #1a0a00 100%)',
+  'linear-gradient(135deg, #2a0a2a 0%, #1a001a 100%)',
+  'linear-gradient(135deg, #003a3a 0%, #001a1a 100%)',
+];
 
-  const cargar = useCallback(async (q, g, p) => {
-    setCargando(true);
+function useFavoritos() {
+  const [favs, setFavs] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('cc-favs') || '[]')); }
+    catch { return new Set(); }
+  });
+  const toggle = useCallback((id) => {
+    setFavs(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      localStorage.setItem('cc-favs', JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+  return [favs, toggle];
+}
+
+function HeartIcon({ filled }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24"
+      fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+    </svg>
+  );
+}
+
+function SongCard({ cancion, index, onPlay, favs, onFav }) {
+  const isFav = favs.has(cancion.id);
+  return (
+    <div className="song-card" onClick={() => onPlay(cancion)}>
+      <div className="song-cover" style={{ background: GRADIENTES[index % GRADIENTES.length] }}>
+        <span>{GENERO_EMOJI[cancion.genero] || '🎵'}</span>
+        <div className="play-btn-overlay">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+      </div>
+      <div className="song-card-title">{cancion.titulo}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+        <div className="song-card-artist">{cancion.artista}</div>
+        <button className={`fav-btn ${isFav ? 'active' : ''}`}
+          onClick={e => { e.stopPropagation(); onFav(cancion.id); }}>
+          <HeartIcon filled={isFav} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SongListItem({ cancion, index, onPlay, favs, onFav }) {
+  const isFav = favs.has(cancion.id);
+  const dur = cancion.duracion_segundos || 180;
+  const mins = Math.floor(dur / 60);
+  const secs = (dur % 60).toString().padStart(2, '0');
+  const badgeClass = `genre-badge badge-${(cancion.genero || '').replace(/\s+/g, '-')}`;
+
+  return (
+    <div className="song-list-item" onClick={() => onPlay(cancion)}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span className="song-num">{index + 1}</span>
+        <span className="play-inline" style={{ display: 'none' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </span>
+      </div>
+      <div className="song-list-info">
+        <div className="song-list-title">{cancion.titulo}</div>
+        <div className="song-list-artist">{cancion.artista}</div>
+      </div>
+      <div className="song-list-genre"><span className={badgeClass}>{cancion.genero}</span></div>
+      <div className="song-duration">{mins}:{secs}</div>
+      <button className={`fav-btn ${isFav ? 'active' : ''}`}
+        onClick={e => { e.stopPropagation(); onFav(cancion.id); }}>
+        <HeartIcon filled={isFav} />
+      </button>
+    </div>
+  );
+}
+
+export default function Home({ favoritos: mostrarFavs }) {
+  const [canciones, setCanciones]     = useState([]);
+  const [generos, setGeneros]         = useState([]);
+  const [generoActivo, setGeneroActivo] = useState('todos');
+  const [query, setQuery]             = useState('');
+  const [vista, setVista]             = useState('grid');
+  const [loading, setLoading]         = useState(true);
+  const [favs, toggleFav]             = useFavoritos();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    api.generos().then(data => {
+      const lista = (data.generos || data)
+        .map(x => (typeof x === 'string' ? x : x.genero))
+        .filter(Boolean);
+      setGeneros(['todos', ...lista]);
+    }).catch(() => {});
+  }, []);
+
+  const cargar = useCallback(async (genero, q) => {
+    setLoading(true);
     try {
       let data;
-      if (q) {
-        data = await api.buscar(q, { genero: g || undefined, page: p, limit: LIMIT });
+      if (q?.trim()) {
+        data = await api.buscar(q.trim(), { genero: genero !== 'todos' ? genero : undefined });
       } else {
-        data = await api.listar({ genero: g || undefined, page: p, limit: LIMIT });
+        data = await api.listar({ genero: genero !== 'todos' ? genero : undefined, limit: 85 });
       }
-      setCanciones(data.canciones ?? []);
-      setTotal(data.total ?? 0);
+      setCanciones(data.canciones ?? data.data ?? []);
     } catch (e) {
       console.error(e);
     } finally {
-      setCargando(false);
+      setLoading(false);
     }
   }, []);
 
-  useEffect(() => { cargar(query, genero, page); }, [query, genero, page]);
+  useEffect(() => {
+    const t = setTimeout(() => cargar(generoActivo, query), query ? 300 : 0);
+    return () => clearTimeout(t);
+  }, [query, generoActivo, cargar]);
 
-  function handleSearch(q) {
-    setQuery(q);
-    setPage(1);
-  }
-
-  function handleGenero(g) {
-    setGenero(g);
-    setPage(1);
-  }
+  const handlePlay = (c) => navigate(`/cancion/${c.id}`);
+  const lista = mostrarFavs ? canciones.filter(c => favs.has(c.id)) : canciones;
+  const destacadas = (!query && generoActivo === 'todos' && !mostrarFavs) ? lista.slice(0, 6) : [];
+  const resto = destacadas.length ? lista.slice(6) : lista;
 
   return (
-    <main className="page" style={{ paddingTop: 48 }}>
-
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section style={{ textAlign: 'center', marginBottom: 56 }}>
-        <div style={{
-          display: 'inline-block',
-          fontSize: 11,
-          fontWeight: 600,
-          letterSpacing: '0.25em',
-          textTransform: 'uppercase',
-          color: 'var(--gold)',
-          background: 'rgba(201,168,76,0.08)',
-          border: '1px solid rgba(201,168,76,0.2)',
-          borderRadius: 20,
-          padding: '4px 14px',
-          marginBottom: 20,
-        }}>
-          Regional Mexicano
-        </div>
-
-        <h1 style={{
-          fontFamily: 'Playfair Display, serif',
-          fontSize: 'clamp(36px, 6vw, 72px)',
-          fontWeight: 900,
-          lineHeight: 1.1,
-          letterSpacing: '-0.02em',
-          marginBottom: 16,
-        }}>
-          Tu{' '}
-          <span style={{
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundImage: 'linear-gradient(135deg, var(--wine-light), var(--gold))',
-            backgroundClip: 'text',
-          }}>
-            acordes
-          </span>{' '}
-          en el momento exacto
-        </h1>
-
-        <p style={{ fontSize: 18, color: 'var(--text-dim)', maxWidth: 520, margin: '0 auto 36px' }}>
-          Aprende corridos, rancheras y bandas. Acordes sincronizados con el video.
-        </p>
-
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <Buscador
-            onSearch={handleSearch}
-            onGeneroChange={handleGenero}
-            generoActivo={genero}
+    <>
+      <div className="topbar">
+        <div className="search-bar">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+          </svg>
+          <input
+            placeholder="Buscar canciones, artistas..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
           />
         </div>
-      </section>
-
-      {/* ── Decorative divider ────────────────────────────────────────────── */}
-      <div style={{
-        height: 1,
-        background: 'linear-gradient(90deg, transparent, var(--wine), var(--gold), var(--wine), transparent)',
-        marginBottom: 36,
-        opacity: 0.4,
-      }} />
-
-      {/* ── Catalog ───────────────────────────────────────────────────────── */}
-      <section>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 24 }}>
-          <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: 28, fontWeight: 700 }}>
-            {query ? `"${query}"` : genero ? genero.charAt(0).toUpperCase() + genero.slice(1) : 'Catálogo'}
-          </h2>
-          {!cargando && (
-            <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>
-              {total} canciones
-            </span>
-          )}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className={`speed-btn ${vista === 'grid' ? 'active' : ''}`} onClick={() => setVista('grid')}>⊞ Grid</button>
+          <button className={`speed-btn ${vista === 'list' ? 'active' : ''}`} onClick={() => setVista('list')}>☰ Lista</button>
         </div>
+      </div>
 
-        <ListaCanciones
-          canciones={canciones}
-          cargando={cargando}
-          total={total}
-          page={page}
-          onPage={setPage}
-        />
-      </section>
+      {!query && generoActivo === 'todos' && !mostrarFavs && (
+        <div className="hero-section">
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', letterSpacing: '0.08em' }}>🎸 Regional Mexicano</div>
+          <h1 className="hero-title">Toca como los grandes</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '0.25rem' }}>{canciones.length} canciones con acordes sincronizados</p>
+        </div>
+      )}
 
-      {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <footer style={{
-        marginTop: 80,
-        paddingTop: 32,
-        borderTop: '1px solid var(--border)',
-        textAlign: 'center',
-        color: 'var(--text-dim)',
-        fontSize: 13,
-      }}>
-        <p style={{ fontFamily: 'Playfair Display, serif', fontSize: 18, color: 'var(--gold)', marginBottom: 8 }}>
-          ConnectaChat
-        </p>
-        <p>Música Regional Mexicana · Aprende con acordes en tiempo real</p>
-      </footer>
-    </main>
+      {mostrarFavs && (
+        <div className="hero-section">
+          <h1 className="hero-title">❤️ Favoritos</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '0.25rem' }}>{lista.length} canciones guardadas</p>
+        </div>
+      )}
+
+      {!mostrarFavs && (
+        <div className="genre-pills">
+          {generos.map(g => (
+            <button key={g} className={`genre-pill ${generoActivo === g ? 'active' : ''}`}
+              onClick={() => setGeneroActivo(g)}>
+              {GENERO_EMOJI[g] || ''} {g.charAt(0).toUpperCase() + g.slice(1)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ padding: '1.25rem 2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: '1.25rem' }}>
+          {[...Array(12)].map((_, i) => (
+            <div key={i}>
+              <div className="skeleton" style={{ aspectRatio: '1', borderRadius: 'var(--radius-sm)', marginBottom: '0.875rem' }}/>
+              <div className="skeleton" style={{ height: 14, marginBottom: 6, width: '80%' }}/>
+              <div className="skeleton" style={{ height: 12, width: '60%' }}/>
+            </div>
+          ))}
+        </div>
+      ) : vista === 'grid' ? (
+        <>
+          {destacadas.length > 0 && (
+            <div className="section">
+              <div className="section-header"><h2 className="section-title">🔥 Más populares</h2></div>
+              <div className="song-grid">
+                {destacadas.map((c, i) => <SongCard key={c.id} cancion={c} index={i} onPlay={handlePlay} favs={favs} onFav={toggleFav}/>)}
+              </div>
+            </div>
+          )}
+          <div className="section">
+            <div className="section-header">
+              <h2 className="section-title">
+                {mostrarFavs ? 'Mis favoritos'
+                  : query ? `Resultados para "${query}"`
+                  : generoActivo !== 'todos' ? generoActivo.charAt(0).toUpperCase() + generoActivo.slice(1)
+                  : 'Todo el catálogo'}
+              </h2>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{lista.length} canciones</span>
+            </div>
+            <div className="song-grid">
+              {resto.map((c, i) => <SongCard key={c.id} cancion={c} index={i} onPlay={handlePlay} favs={favs} onFav={toggleFav}/>)}
+            </div>
+            {lista.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                {mostrarFavs ? 'Aún no tienes favoritos. Haz clic en ❤️ en cualquier canción.' : 'No se encontraron canciones.'}
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="section">
+          <div className="section-header">
+            <h2 className="section-title">
+              {mostrarFavs ? 'Mis favoritos' : query ? `"${query}"` : generoActivo !== 'todos' ? generoActivo : 'Todas las canciones'}
+            </h2>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{lista.length} canciones</span>
+          </div>
+          <div className="song-list">
+            <div className="song-list-header">
+              <span>#</span><span>TÍTULO</span><span>GÉNERO</span><span>DURACIÓN</span><span></span>
+            </div>
+            {lista.map((c, i) => <SongListItem key={c.id} cancion={c} index={i} onPlay={handlePlay} favs={favs} onFav={toggleFav}/>)}
+            {lista.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                {mostrarFavs ? 'Aún no tienes favoritos.' : 'No se encontraron canciones.'}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

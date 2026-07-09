@@ -22,23 +22,26 @@ app.get('/health', (req, res) =>
 // ── Security ──────────────────────────────────────────────────────────────────
 app.use(helmet());
 app.set('trust proxy', 1);
-const ALLOWED_ORIGINS = (process.env.FRONTEND_URL || 'https://app.conectaachat.com')
-  .split(',')
-  .map((o) => o.trim())
-  .concat([
-    'https://conectachat-dashboard.vercel.app',
-    'https://conectaachat.com',
-    'https://www.conectaachat.com',
-    'http://localhost:5173',
-    'http://localhost:3001',
-    'http://localhost:3000',
-  ]);
+const ALLOWED_ORIGINS = new Set([
+  // Hardcoded — siempre permitidos
+  'https://app.conectaachat.com',
+  'https://conectaachat.com',
+  'https://www.conectaachat.com',
+  'https://conectachat-dashboard.vercel.app',
+  // Dev
+  'http://localhost:5173',
+  'http://localhost:3001',
+  'http://localhost:3000',
+  // Adicionales vía env var (separados por coma)
+  ...((process.env.FRONTEND_URL || '').split(',').map((o) => o.trim()).filter(Boolean)),
+]);
 
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-      cb(new Error('Not allowed by CORS'));
+      if (!origin || ALLOWED_ORIGINS.has(origin)) return cb(null, true);
+      // No lanzar Error — devolver false para que cors responda 403 limpiamente
+      cb(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

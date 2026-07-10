@@ -306,6 +306,8 @@ export function ShortsTab({ readyClips, agents, agentId }: Props) {
   const [publishingTikTok,   setPublishingTikTok]   = useState<string | null>(null)
   const [voiceProvider,      setVoiceProvider]      = useState<'elevenlabs' | 'google' | 'none' | null>(null)
   const [error,              setError]              = useState<string | null>(null)
+  const [shortScript,      setShortScript]      = useState('')
+  const [generatingScript, setGeneratingScript] = useState(false)
 
   async function loadNiches() {
     const res  = await fetch(`/api/niches?agent_id=${agentId}`)
@@ -354,6 +356,13 @@ export function ShortsTab({ readyClips, agents, agentId }: Props) {
     return () => clearInterval(interval)
   }, [shorts])
 
+  // Clear script when selection or niche changes so user regenerates with new context
+  const selectedClipsKey = [...selectedClips].sort().join(',')
+  useEffect(() => {
+    if (shortScript) setShortScript('')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClipsKey, nicheId])
+
   function toggleClip(id: string) {
     setSelectedClips(prev => {
       const next = new Set(prev)
@@ -361,6 +370,37 @@ export function ShortsTab({ readyClips, agents, agentId }: Props) {
       else if (next.size < 5) next.add(id)
       return next
     })
+  }
+
+  async function handleGenerateScript() {
+    setGeneratingScript(true)
+    try {
+      const clipIds     = [...selectedClips]
+      const clipsContext = readyClips
+        .filter(c => clipIds.includes(c.id))
+        .map(c => c.topic ?? c.hook ?? c.script?.slice(0, 100))
+        .filter(Boolean)
+        .join(', ')
+
+      const res = await fetch('/api/shorts/generate-script', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent_id:      agentId,
+          niche_id:      nicheId,
+          clip_ids:      clipIds,
+          duration,
+          clips_context: clipsContext,
+        }),
+      })
+      const data = await res.json() as { script?: string; error?: string }
+      if (data.script) setShortScript(data.script)
+      if (data.error)  setError(data.error)
+    } catch (err) {
+      console.error('Error generando script:', err)
+    } finally {
+      setGeneratingScript(false)
+    }
   }
 
   async function generate() {
@@ -380,6 +420,7 @@ export function ShortsTab({ readyClips, agents, agentId }: Props) {
           niche_id:        nicheId,
           source_clip_ids: [...selectedClips],
           duration,
+          ...(shortScript.trim() ? { custom_script: shortScript.trim() } : {}),
         }),
       })
       const data = await res.json() as { short_id?: string; error?: string }
@@ -406,6 +447,7 @@ export function ShortsTab({ readyClips, agents, agentId }: Props) {
       }, ...prev])
 
       setSelectedClips(new Set())
+      setShortScript('')
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -574,6 +616,44 @@ export function ShortsTab({ readyClips, agents, agentId }: Props) {
               </div>
             )
           })()}
+        </div>
+
+        {/* Script / Voz en off */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-[10px] text-[#64748B] uppercase tracking-wider">Script / Voz en off</label>
+            <button
+              onClick={handleGenerateScript}
+              disabled={generatingScript || selectedClips.size === 0}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-purple-600/80 hover:bg-purple-500 disabled:opacity-40 rounded-lg text-[10px] font-medium text-white transition-colors"
+            >
+              {generatingScript ? (
+                <><Loader2 className="h-3 w-3 animate-spin" /> Generando…</>
+              ) : (
+                <><Sparkles className="h-3 w-3" /> ✨ Generar con IA</>
+              )}
+            </button>
+          </div>
+          <textarea
+            value={shortScript}
+            onChange={e => setShortScript(e.target.value)}
+            placeholder="El script se generará automáticamente según el nicho y los clips seleccionados. También puedes escribirlo tú."
+            rows={5}
+            className="w-full bg-[#080812] border border-[#1A1A35] rounded-xl px-3 py-2.5 text-white text-xs resize-none focus:outline-none focus:border-[#00D4AA]/40 placeholder:text-[#3A3A5C] leading-relaxed"
+          />
+          {shortScript && (
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-[9px] text-[#3A3A5C]">
+                {shortScript.length} chars · ~{Math.ceil(shortScript.split(' ').filter(Boolean).length / 2.5)}s de lectura
+              </p>
+              <button
+                onClick={() => setShortScript('')}
+                className="text-[9px] text-[#3A3A5C] hover:text-[#64748B] transition-colors"
+              >
+                Limpiar
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Duración */}

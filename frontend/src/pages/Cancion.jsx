@@ -133,7 +133,14 @@ export default function Cancion() {
   const letraRef                        = useRef(null);
 
   useEffect(() => {
-    api.detalle(id).then(setCancion).catch(console.error).finally(() => setLoading(false));
+    api.detalle(id).then(c => {
+      setCancion(c);
+      try {
+        const prev = JSON.parse(localStorage.getItem('cc-recientes') || '[]');
+        const next = [id, ...prev.filter(x => x !== id)].slice(0, 20);
+        localStorage.setItem('cc-recientes', JSON.stringify(next));
+      } catch {}
+    }).catch(console.error).finally(() => setLoading(false));
   }, [id]);
 
   // YouTube IFrame API

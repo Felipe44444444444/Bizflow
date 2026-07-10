@@ -49,6 +49,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    // Subscribe page to app webhook so Facebook delivers events to our handler
+    try {
+      const subscribeRes = await fetch(
+        `https://graph.facebook.com/v22.0/${pageId}/subscribed_apps`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscribed_fields: 'messages,messaging_postbacks,messaging_optins,message_deliveries,message_reads,feed',
+            access_token: pageAccessToken,
+          }),
+        }
+      )
+      const subscribeData = await subscribeRes.json()
+      console.log('WEBHOOK_SUBSCRIBE:', pageId, subscribeData)
+    } catch (err) {
+      console.error('WEBHOOK_SUBSCRIBE_ERROR:', err)
+      // Non-fatal — channel is saved, subscription can be retried
+    }
+
     return NextResponse.json({ success: true, pageName })
   } catch (err) {
     console.error('select-page error:', err)

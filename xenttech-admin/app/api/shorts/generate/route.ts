@@ -45,8 +45,9 @@ export async function POST(req: NextRequest) {
     niche_id:        string
     source_clip_ids: string[]
     duration?:       number
+    custom_script?:  string
   }
-  const { agent_id, niche_id, source_clip_ids, duration = 30 } = body
+  const { agent_id, niche_id, source_clip_ids, duration = 30, custom_script } = body
 
   if (!agent_id || !niche_id || !source_clip_ids?.length) {
     return NextResponse.json({ error: 'agent_id, niche_id y source_clip_ids son requeridos' }, { status: 400 })
@@ -85,8 +86,28 @@ export async function POST(req: NextRequest) {
   if (insertErr || !short) return NextResponse.json({ error: insertErr?.message ?? 'Insert failed' }, { status: 500 })
 
   try {
-    // PASO A — Claude genera guión con segmentos sincronizados
-    const scriptData = await generateShortScript(niche, sourceContext, duration)
+    // PASO A — Script: usa custom_script del usuario o genera con Claude
+    let scriptData: Awaited<ReturnType<typeof generateShortScript>>
+
+    if (custom_script?.trim()) {
+      // Build a single-segment script from the user-provided text
+      const words = custom_script.trim().split(/\s+/).length
+      const estDuration = Math.max(duration, Math.ceil(words / 2.5))
+      scriptData = {
+        full_script: custom_script.trim(),
+        hook:        custom_script.trim().split(/[.!?]/)[0]?.trim() ?? custom_script.trim(),
+        cta:         '',
+        segments:    [{
+          start:       0,
+          end:         estDuration,
+          text:        custom_script.trim(),
+          subtitle:    custom_script.trim().slice(0, 60),
+          visual_note: '',
+        }],
+      }
+    } else {
+      scriptData = await generateShortScript(niche, sourceContext, duration)
+    }
 
     await supabase.from('xenttech_shorts').update({
       script: scriptData.full_script,

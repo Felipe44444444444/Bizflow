@@ -304,6 +304,25 @@ export default function AdsPage() {
   const [analysis, setAnalysis]   = useState("");
   const [analyzing, setAnalyzing] = useState(false);
 
+  // Reporte IA descargable (legacy last_30d)
+  const [generatingReport, setGeneratingReport] = useState(false);
+
+  // Reporte IA ejecutivo
+  const [showReportModal, setShowReportModal]   = useState(false);
+  const [reportClientId, setReportClientId]     = useState('');
+  const [reportPeriodMode, setReportPeriodMode] = useState<'preset' | 'month' | 'range'>('preset');
+  const [reportPreset, setReportPreset]         = useState('last_30d');
+  const [reportMonth, setReportMonth]           = useState(() => new Date().getMonth() + 1);
+  const [reportYear, setReportYear]             = useState(() => new Date().getFullYear());
+  // Range defaults: últimos 30 días
+  const [reportSince, setReportSince]           = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().split('T')[0];
+  });
+  const [reportUntil, setReportUntil]           = useState(() => new Date().toISOString().split('T')[0]);
+  const [reportLoading, setReportLoading]       = useState(false);
+  const [reportStep, setReportStep]             = useState('');
+  const [reportError, setReportError]           = useState('');
+
   // account picker
   const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [availableAccounts, setAvailableAccounts] = useState<MetaAdAccount[]>([]);
@@ -1305,6 +1324,522 @@ SEGMENTACIÓN SUGERIDA: [segmentos de audiencia recomendados en Meta Ads]`;
     }
   }
 
+  // ── Reporte IA descargable (campañas con gasto real) ────────────────────────
+
+  async function handleDownloadReport() {
+    if (!selectedClientId) { alert('Selecciona un cliente primero.'); return; }
+    setGeneratingReport(true);
+    try {
+      const res = await fetch('/api/meta-ads/active-report', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ client_id: selectedClientId, period: 'last_30d' }),
+      });
+      const data = await res.json() as {
+        error?: string;
+        analysis?: string;
+        campaigns?: Record<string, unknown>[];
+        client?: { name: string };
+        period?: string;
+        totalSpend?: string;
+        totalReach?: number;
+        avgCTR?: string;
+        activeSinceGasto?: number;
+        activeSinGasto?: number;
+      };
+      if (data.error && !data.analysis) { alert('Error: ' + data.error); return; }
+      downloadReportPDF(data);
+    } catch (e: unknown) {
+      alert('Error al generar el reporte: ' + ((e as Error).message ?? ''));
+    } finally {
+      setGeneratingReport(false);
+    }
+  }
+
+  function downloadReportPDF(reportData: {
+    analysis?: string;
+    campaigns?: Record<string, unknown>[];
+    client?: { name: string };
+    period?: string;
+    totalSpend?: string;
+    totalReach?: number;
+    avgCTR?: string;
+    activeSinceGasto?: number;
+  }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const jsPDFLib = (window as any).jspdf?.jsPDF || (window as any).jsPDF;
+    if (!jsPDFLib) { alert('Recarga la página e intenta de nuevo'); return; }
+
+    const doc      = new jsPDFLib('p', 'mm', 'letter');
+    const pw       = doc.internal.pageSize.getWidth() as number;
+    const ph       = doc.internal.pageSize.getHeight() as number;
+    const mg       = 18;
+    let y          = 0;
+
+    // ── Header ──
+    doc.setFillColor(13, 13, 31);
+    doc.rect(0, 0, pw, 38, 'F');
+    doc.setFontSize(22); doc.setTextColor(0, 212, 170);
+    doc.text('XENTTECH', mg, 18);
+    doc.setFontSize(11); doc.setTextColor(200, 200, 200);
+    doc.text('Reporte de Meta Ads — Campañas con Gasto Real', mg, 27);
+    doc.setFontSize(9); doc.setTextColor(100, 180, 160);
+    doc.text(new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }), pw - mg, 18, { align: 'right' });
+    doc.text(reportData.client?.name ?? '', pw - mg, 27, { align: 'right' });
+    y = 46;
+
+    // ── KPI cards ──
+    doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+    doc.text('Resumen del período (últimos 30 días)', mg, y); y += 6;
+    doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.3); doc.line(mg, y, pw - mg, y); y += 6;
+
+    const kpis = [
+      { label: 'Gasto total',        value: `$${reportData.totalSpend ?? '0'} MXN` },
+      { label: 'Alcance total',       value: (reportData.totalReach ?? 0).toLocaleString('es-MX') + ' personas' },
+      { label: 'Campañas con gasto',  value: String(reportData.activeSinceGasto ?? reportData.campaigns?.length ?? 0) },
+      { label: 'CTR promedio',        value: `${reportData.avgCTR ?? '0'}%` },
+    ];
+    kpis.forEach((kpi, i) => {
+      const x = mg + (i % 2) * 90;
+      if (i % 2 === 0 && i > 0) y += 14;
+      doc.setFontSize(8); doc.setTextColor(100, 100, 100);
+      doc.text(kpi.label, x, y);
+      doc.setFontSize(14); doc.setTextColor(0, 0, 0);
+      doc.text(kpi.value, x, y + 7);
+    });
+    y += 20;
+
+    // ── Tabla de campañas ──
+    if (reportData.campaigns?.length) {
+      doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+      doc.text('Campañas activas con gasto real', mg, y); y += 6;
+      doc.line(mg, y, pw - mg, y); y += 5;
+
+      const headers = ['Campaña', 'Gasto', 'Alcance', 'CTR', 'CPC'];
+      const colX    = [mg, mg + 72, mg + 102, mg + 128, mg + 152];
+      doc.setFontSize(8); doc.setTextColor(80, 80, 80);
+      headers.forEach((h, i) => doc.text(h, colX[i], y));
+      y += 4; doc.line(mg, y, pw - mg, y); y += 4;
+
+      doc.setFontSize(8.5); doc.setTextColor(30, 30, 30);
+      (reportData.campaigns as Array<Record<string, unknown>>).forEach(c => {
+        if (y > ph - 40) { doc.addPage(); y = mg; }
+        const ins = (c.insights as Record<string, unknown> | undefined)?.data as Array<Record<string, string>> | undefined;
+        const d   = ins?.[0];
+        const spend = d ? `$${parseFloat(d.spend).toFixed(2)}` : '$0';
+        const reach = d ? parseInt(d.reach, 10).toLocaleString('es-MX') : '0';
+        const ctr   = d ? `${parseFloat(d.ctr).toFixed(2)}%` : '0%';
+        const cpc   = d ? `$${parseFloat(d.cpc ?? '0').toFixed(2)}` : '$0';
+
+        const nameLines = doc.splitTextToSize(String(c.name ?? ''), 68) as string[];
+        doc.text(nameLines[0], colX[0], y);
+        doc.text(spend, colX[1], y);
+        doc.text(reach, colX[2], y);
+
+        // Colorear CTR
+        const ctrVal = d ? parseFloat(d.ctr) : 0;
+        doc.setTextColor(ctrVal >= 3 ? 0 : ctrVal >= 1 ? 180 : 200, ctrVal >= 3 ? 160 : ctrVal >= 1 ? 130 : 50, ctrVal >= 3 ? 100 : 0);
+        doc.text(ctr, colX[3], y);
+        doc.setTextColor(30, 30, 30);
+        doc.text(cpc, colX[4], y);
+        y += 6;
+      });
+      y += 4;
+    }
+
+    // ── Análisis de Claude ──
+    if (reportData.analysis) {
+      if (y > ph - 60) { doc.addPage(); y = mg; }
+      doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+      doc.text('Análisis IA — Diagnóstico y Recomendaciones', mg, y); y += 6;
+      doc.line(mg, y, pw - mg, y); y += 5;
+      doc.setFontSize(9); doc.setTextColor(40, 40, 40);
+      const lines = doc.splitTextToSize(reportData.analysis, pw - mg * 2) as string[];
+      lines.forEach((line: string) => {
+        if (y > ph - 20) { doc.addPage(); y = mg; }
+        doc.text(line, mg, y); y += 4.5;
+      });
+    }
+
+    // ── Footer ──
+    const pageCount = (doc.internal as { getNumberOfPages: () => number }).getNumberOfPages();
+    for (let p = 1; p <= pageCount; p++) {
+      doc.setPage(p);
+      doc.setFontSize(7); doc.setTextColor(160, 160, 160);
+      doc.text(`XENTTECH — Reporte Confidencial — ${new Date().toLocaleDateString('es-MX')} — Página ${p} de ${pageCount}`, pw / 2, ph - 8, { align: 'center' });
+    }
+
+    const clientSlug = (reportData.client?.name ?? 'cliente').replace(/\s+/g, '-').toLowerCase();
+    doc.save(`XENTTECH-reporte-meta-ads-${clientSlug}-${new Date().toISOString().split('T')[0]}.pdf`);
+  }
+
+  // ── Reporte ejecutivo con mes/año (nuevo endpoint) ─────────────────────────
+
+  async function handleGenerateReport() {
+    if (!reportClientId) { setReportError('Selecciona un cliente antes de generar el reporte.'); return; }
+    setReportLoading(true);
+    setReportError('');
+    setReportStep('🔍 Obteniendo campañas de Meta...');
+    try {
+      const body: Record<string, unknown> = { client_id: reportClientId };
+      if (reportPeriodMode === 'preset') {
+        body.date_preset = reportPreset;
+      } else if (reportPeriodMode === 'range') {
+        if (!reportSince || !reportUntil) { setReportError('Ingresa fecha de inicio y fin.'); setReportLoading(false); setReportStep(''); return; }
+        body.since = reportSince;
+        body.until = reportUntil;
+      } else {
+        body.month = reportMonth;
+        body.year  = reportYear;
+      }
+
+      const res = await fetch('/api/meta-ads/report', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+      });
+      const data = await res.json() as {
+        error?:     string;
+        client?:    { id: string; name: string };
+        period?:    { month: number; year: number; monthName: string; since: string; until: string };
+        campaigns?: Record<string, unknown>[];
+        totals?:    {
+          spend: number; impressions: number; reach: number; clicks: number;
+          avgCTR: number; avgCPC: number; avgCPM: number; conversions: number; campaigns: number;
+        };
+        analysis?:  {
+          resumen: string;
+          rendimiento_general: string;
+          campanas: Array<{ nombre: string; decision: string; razon: string; accion: string; score: number }>;
+          observaciones: string[];
+          oportunidades: string[];
+          proximos_pasos: string[];
+          advertencias: string[];
+        };
+      };
+
+      if (data.error && !data.campaigns?.length) {
+        setReportError(data.error);
+        setReportLoading(false);
+        setReportStep('');
+        return;
+      }
+
+      setReportStep('🤖 Claude analizando rendimiento...');
+      // Claude ya corrió en el servidor — pequeña pausa visual
+      await new Promise(r => setTimeout(r, 400));
+
+      setReportStep('📄 Generando PDF visual...');
+      await generateReportPDF(data);
+
+      setReportStep('✅ Listo — descargando');
+      await new Promise(r => setTimeout(r, 800));
+      setShowReportModal(false);
+      setReportStep('');
+    } catch (e: unknown) {
+      setReportError('Error inesperado: ' + ((e as Error).message ?? 'desconocido'));
+      setReportStep('');
+    } finally {
+      setReportLoading(false);
+    }
+  }
+
+  async function generateReportPDF(reportData: {
+    client?:   { id: string; name: string };
+    period?:   { month: number; year: number; monthName: string; since: string; until: string };
+    campaigns?: Record<string, unknown>[];
+    totals?:   {
+      spend: number; impressions: number; reach: number; clicks: number;
+      avgCTR: number; avgCPC: number; avgCPM: number; conversions: number; campaigns: number;
+    };
+    analysis?: {
+      resumen: string;
+      rendimiento_general: string;
+      campanas: Array<{ nombre: string; decision: string; razon: string; accion: string; score: number }>;
+      observaciones: string[];
+      oportunidades: string[];
+      proximos_pasos: string[];
+      advertencias: string[];
+    };
+  }) {
+    const { default: jsPDF } = await import('jspdf');
+    const doc = new jsPDF('p', 'mm', 'letter');
+    const pw  = doc.internal.pageSize.getWidth();
+    const ph  = doc.internal.pageSize.getHeight();
+    const mg  = 18;
+    let y     = 0;
+
+    const t  = reportData.totals;
+    const a  = reportData.analysis;
+    const p  = reportData.period;
+    const cl = reportData.client;
+
+    const TEAL   = [0,  212, 170] as [number, number, number];
+    const DARK   = [13,  13,  31] as [number, number, number];
+    const GRAY   = [100, 116, 139] as [number, number, number];
+
+    const DECISION_COLOR: Record<string, [number, number, number]> = {
+      escalar:   [0, 200, 100],
+      mantener:  [59, 130, 246],
+      optimizar: [251, 191, 36],
+      pausar:    [239, 68, 68],
+    };
+
+    const PERF_LABEL: Record<string, string> = {
+      excellent: 'Excelente', good: 'Bueno', average: 'Regular', poor: 'Bajo',
+    };
+    const PERF_COLOR: Record<string, [number, number, number]> = {
+      excellent: [0, 200, 100], good: [59, 130, 246], average: [251, 191, 36], poor: [239, 68, 68],
+    };
+
+    function addPage() { doc.addPage(); y = mg; }
+    function checkPage(needed = 20) { if (y > ph - needed) addPage(); }
+
+    // ── Header ──────────────────────────────────────────────────────────────────
+    doc.setFillColor(...DARK);
+    doc.rect(0, 0, pw, 42, 'F');
+    doc.setFontSize(24); doc.setTextColor(...TEAL);
+    doc.text('XENTTECH', mg, 18);
+    doc.setFontSize(10); doc.setTextColor(200, 200, 200);
+    doc.text('Reporte Ejecutivo Meta Ads', mg, 27);
+    doc.setFontSize(9); doc.setTextColor(...GRAY);
+    // monthName ya puede incluir el año (ej "Julio 2026" o "Últimos 30 días")
+    const periodLabel = p
+      ? (p.since && p.until ? `${p.monthName} · ${p.since} al ${p.until}` : p.monthName ?? '')
+      : '';
+    doc.text(periodLabel, mg, 35);
+    doc.setFontSize(10); doc.setTextColor(...TEAL);
+    doc.text(cl?.name ?? '', pw - mg, 22, { align: 'right' });
+    doc.setFontSize(8); doc.setTextColor(...GRAY);
+    doc.text(new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }), pw - mg, 31, { align: 'right' });
+    y = 52;
+
+    // ── Rendimiento general badge ────────────────────────────────────────────────
+    if (a?.rendimiento_general) {
+      const perfColor = PERF_COLOR[a.rendimiento_general] ?? PERF_COLOR.average;
+      const perfLabel = PERF_LABEL[a.rendimiento_general] ?? a.rendimiento_general;
+      doc.setFillColor(...perfColor);
+      doc.roundedRect(mg, y - 5, 44, 8, 2, 2, 'F');
+      doc.setFontSize(8.5); doc.setTextColor(255, 255, 255);
+      doc.text(`Rendimiento: ${perfLabel}`, mg + 3, y + 0.5);
+      y += 12;
+    }
+
+    // ── Resumen ──────────────────────────────────────────────────────────────────
+    if (a?.resumen) {
+      doc.setFontSize(9); doc.setTextColor(60, 60, 60);
+      const lines = doc.splitTextToSize(a.resumen, pw - mg * 2) as string[];
+      lines.forEach(l => { checkPage(8); doc.text(l, mg, y); y += 5; });
+      y += 3;
+    }
+
+    // ── KPI grid (8 metrics) ──────────────────────────────────────────────────────
+    doc.setFontSize(11); doc.setTextColor(0, 0, 0);
+    doc.text('Métricas del período', mg, y); y += 5;
+    doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.3); doc.line(mg, y, pw - mg, y); y += 5;
+
+    if (t) {
+      const kpis = [
+        { label: 'Gasto total',     value: `$${t.spend.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`,  color: [239, 68,  68]  as [number,number,number] },
+        { label: 'Alcance',         value: t.reach.toLocaleString('es-MX') + ' personas',                            color: [59,  130, 246] as [number,number,number] },
+        { label: 'Impresiones',     value: t.impressions.toLocaleString('es-MX'),                                     color: [0,   212, 170] as [number,number,number] },
+        { label: 'Clicks',          value: t.clicks.toLocaleString('es-MX'),                                          color: [168, 85,  247] as [number,number,number] },
+        { label: 'CTR promedio',    value: `${t.avgCTR.toFixed(2)}%`,                                                 color: [34,  197, 94]  as [number,number,number] },
+        { label: 'CPC promedio',    value: `$${t.avgCPC.toFixed(2)}`,                                                 color: [234, 179, 8]   as [number,number,number] },
+        { label: 'CPM promedio',    value: `$${t.avgCPM.toFixed(2)}`,                                                 color: [249, 115, 22]  as [number,number,number] },
+        { label: 'Resultados',       value: String(t.conversions),                                                      color: [20,  184, 166] as [number,number,number] },
+      ];
+      const cols = 4;
+      const cellW = (pw - mg * 2) / cols;
+      kpis.forEach((k, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        if (col === 0 && row > 0) y += 18;
+        const x = mg + col * cellW;
+        doc.setFillColor(248, 248, 252);
+        doc.roundedRect(x, y - 4, cellW - 2, 16, 2, 2, 'F');
+        doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+        doc.text(k.label, x + 3, y + 1);
+        doc.setFontSize(13); doc.setTextColor(...k.color);
+        doc.text(k.value, x + 3, y + 10);
+      });
+      y += 24;
+    }
+
+    // ── Campaigns table ───────────────────────────────────────────────────────────
+    if (reportData.campaigns?.length) {
+      checkPage(30);
+      doc.setFontSize(11); doc.setTextColor(0, 0, 0);
+      doc.text('Campañas con gasto real', mg, y); y += 5;
+      doc.line(mg, y, pw - mg, y); y += 5;
+
+      const headers = ['Campaña', 'Gasto', 'Alcance', 'CTR', 'CPC', 'Decisión'];
+      const colX    = [mg, mg + 68, mg + 97, mg + 121, mg + 142, mg + 163];
+      doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+      headers.forEach((h, i) => doc.text(h, colX[i], y));
+      y += 3; doc.line(mg, y, pw - mg, y); y += 5;
+
+      for (const camp of (reportData.campaigns as Record<string, unknown>[])) {
+        checkPage(10);
+        const ins     = (camp.insights as Record<string,unknown> | undefined)?.data as Array<Record<string,string>> | undefined;
+        const d       = ins?.[0];
+        const spend   = d ? `$${parseFloat(d.spend).toFixed(2)}`    : '$0';
+        const reach   = d ? parseInt(d.reach, 10).toLocaleString('es-MX') : '0';
+        const ctr     = d ? `${parseFloat(d.ctr ?? '0').toFixed(2)}%` : '0%';
+        const cpc     = d ? `$${parseFloat(d.cpc ?? '0').toFixed(2)}` : '$0';
+
+        // Match with Claude analysis decision
+        const campAnalysis = a?.campanas?.find(ca =>
+          String(camp.name).toLowerCase().includes(ca.nombre.toLowerCase().slice(0, 20)) ||
+          ca.nombre.toLowerCase().includes(String(camp.name).toLowerCase().slice(0, 20))
+        );
+        const decision = campAnalysis?.decision ?? 'mantener';
+        const decColor = DECISION_COLOR[decision] ?? DECISION_COLOR.mantener;
+
+        doc.setFontSize(8); doc.setTextColor(30, 30, 30);
+        const nameLines = doc.splitTextToSize(String(camp.name ?? ''), 64) as string[];
+        doc.text(nameLines[0], colX[0], y);
+        doc.text(spend, colX[1], y);
+        doc.text(reach, colX[2], y);
+
+        const ctrVal = d ? parseFloat(d.ctr ?? '0') : 0;
+        doc.setTextColor(ctrVal >= 3 ? 0 : ctrVal >= 1 ? 180 : 200, ctrVal >= 3 ? 160 : ctrVal >= 1 ? 130 : 50, ctrVal >= 3 ? 100 : 0);
+        doc.text(ctr, colX[3], y);
+        doc.setTextColor(30, 30, 30);
+        doc.text(cpc, colX[4], y);
+
+        // Decision badge
+        doc.setFillColor(...decColor);
+        doc.roundedRect(colX[5], y - 4, 30, 6, 1.5, 1.5, 'F');
+        doc.setFontSize(7); doc.setTextColor(255, 255, 255);
+        doc.text(decision.toUpperCase(), colX[5] + 3, y + 0.2);
+        doc.setFontSize(8); doc.setTextColor(30, 30, 30);
+        y += 7;
+      }
+      y += 4;
+    }
+
+    // ── Campaign analysis details ─────────────────────────────────────────────────
+    if (a?.campanas?.length) {
+      checkPage(20);
+      doc.setFontSize(11); doc.setTextColor(0, 0, 0);
+      doc.text('Diagnóstico por campaña', mg, y); y += 5;
+      doc.line(mg, y, pw - mg, y); y += 5;
+
+      for (const ca of a.campanas) {
+        checkPage(24);
+        const decColor = DECISION_COLOR[ca.decision] ?? DECISION_COLOR.mantener;
+        doc.setFillColor(...decColor);
+        doc.roundedRect(mg, y - 3, 28, 5.5, 1.5, 1.5, 'F');
+        doc.setFontSize(7); doc.setTextColor(255, 255, 255);
+        doc.text(ca.decision.toUpperCase(), mg + 2, y + 0.8);
+
+        doc.setFontSize(8.5); doc.setTextColor(20, 20, 20);
+        const nameStr = doc.splitTextToSize(ca.nombre, pw - mg * 2 - 34) as string[];
+        doc.text(nameStr[0], mg + 32, y);
+        y += 7;
+
+        doc.setFontSize(7.5); doc.setTextColor(60, 60, 60);
+        const razonLines = doc.splitTextToSize(`Razón: ${ca.razon}`, pw - mg * 2) as string[];
+        razonLines.forEach(l => { checkPage(6); doc.text(l, mg, y); y += 4.5; });
+
+        const accionLines = doc.splitTextToSize(`Acción: ${ca.accion}`, pw - mg * 2) as string[];
+        accionLines.forEach(l => { checkPage(6); doc.text(l, mg, y); y += 4.5; });
+        y += 3;
+      }
+      y += 2;
+    }
+
+    // ── Observaciones + Oportunidades (2-col) ─────────────────────────────────────
+    if ((a?.observaciones?.length ?? 0) > 0 || (a?.oportunidades?.length ?? 0) > 0) {
+      checkPage(30);
+      const halfW = (pw - mg * 2 - 6) / 2;
+      const obsX  = mg;
+      const oppX  = mg + halfW + 6;
+
+      doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+      if (a?.observaciones?.length) doc.text('Observaciones', obsX, y);
+      if (a?.oportunidades?.length) doc.text('Oportunidades', oppX, y);
+      y += 4;
+      doc.setDrawColor(220, 220, 220);
+      if (a?.observaciones?.length) doc.line(obsX, y, obsX + halfW, y);
+      if (a?.oportunidades?.length) doc.line(oppX, y, oppX + halfW, y);
+      y += 5;
+
+      doc.setFontSize(8); doc.setTextColor(50, 50, 50);
+      const maxLen = Math.max(a?.observaciones?.length ?? 0, a?.oportunidades?.length ?? 0);
+      for (let i = 0; i < maxLen; i++) {
+        const obs = a?.observaciones?.[i];
+        const opp = a?.oportunidades?.[i];
+        let rowHeight = 0;
+        if (obs) {
+          const obsLines = doc.splitTextToSize(`• ${obs}`, halfW) as string[];
+          obsLines.forEach((l, li) => doc.text(l, obsX, y + li * 4));
+          rowHeight = Math.max(rowHeight, obsLines.length * 4 + 3);
+        }
+        if (opp) {
+          const oppLines = doc.splitTextToSize(`• ${opp}`, halfW) as string[];
+          oppLines.forEach((l, li) => doc.text(l, oppX, y + li * 4));
+          rowHeight = Math.max(rowHeight, oppLines.length * 4 + 3);
+        }
+        y += rowHeight;
+        checkPage(16);
+      }
+      y += 4;
+    }
+
+    // ── Próximos pasos ────────────────────────────────────────────────────────────
+    if (a?.proximos_pasos?.length) {
+      checkPage(20);
+      doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+      doc.text('Próximos pasos', mg, y); y += 4;
+      doc.setDrawColor(220, 220, 220); doc.line(mg, y, pw - mg, y); y += 5;
+      doc.setFontSize(8); doc.setTextColor(50, 50, 50);
+      a.proximos_pasos.forEach((ps, i) => {
+        checkPage(10);
+        const lines = doc.splitTextToSize(`${i + 1}. ${ps}`, pw - mg * 2 - 6) as string[];
+        doc.setFillColor(0, 212, 170);
+        doc.circle(mg + 2.5, y - 0.5, 2, 'F');
+        doc.setFontSize(7.5); doc.setTextColor(255, 255, 255);
+        doc.text(String(i + 1), mg + 1.7, y + 0.2);
+        doc.setFontSize(8); doc.setTextColor(50, 50, 50);
+        lines.forEach((l, li) => doc.text(l, mg + 7, y + li * 4));
+        y += lines.length * 4 + 3;
+      });
+    }
+
+    // ── Advertencias ─────────────────────────────────────────────────────────────
+    if (a?.advertencias?.length) {
+      checkPage(16);
+      y += 3;
+      doc.setFillColor(254, 242, 242);
+      doc.roundedRect(mg, y - 3, pw - mg * 2, a.advertencias.length * 8 + 6, 3, 3, 'F');
+      doc.setFontSize(8); doc.setTextColor(239, 68, 68);
+      a.advertencias.forEach(w => {
+        const lines = doc.splitTextToSize(`⚠ ${w}`, pw - mg * 2 - 6) as string[];
+        lines.forEach(l => { doc.text(l, mg + 3, y); y += 5; });
+      });
+      y += 4;
+    }
+
+    // ── Footer ────────────────────────────────────────────────────────────────────
+    const pageCount = (doc as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
+    for (let pg = 1; pg <= pageCount; pg++) {
+      doc.setPage(pg);
+      doc.setFontSize(7); doc.setTextColor(160, 160, 160);
+      doc.text(
+        `XENTTECH — Reporte Confidencial — ${cl?.name ?? ''} — ${periodLabel} — Pág. ${pg} de ${pageCount}`,
+        pw / 2, ph - 8, { align: 'center' },
+      );
+    }
+
+    const slug = (cl?.name ?? 'cliente').replace(/\s+/g, '-').toLowerCase();
+    const mStr = p
+      ? (p.month ? `${p.year}-${String(p.month).padStart(2, '0')}` : `${p.since ?? new Date().toISOString().split('T')[0]}`)
+      : new Date().toISOString().split('T')[0];
+    doc.save(`XENTTECH-reporte-${slug}-${mStr}.pdf`);
+  }
+
   // ── Copy to clipboard ───────────────────────────────────────────────────────
 
   function copyAdCopies() {
@@ -1539,6 +2074,18 @@ SEGMENTACIÓN SUGERIDA: [segmentos de audiencia recomendados en Meta Ads]`;
                 ? <><Loader2 className="h-3 w-3 animate-spin" /> Sincronizando...</>
                 : <><Database className="h-3 w-3" /> Sincronizar con DB</>
               }
+            </button>
+
+            <button
+              onClick={() => {
+                setReportClientId(selectedClientId || '');
+                setReportError('');
+                setReportStep('');
+                setShowReportModal(true);
+              }}
+              className="flex items-center gap-1.5 text-xs px-3 h-8 rounded-lg border border-blue-500/40 text-blue-300 bg-blue-500/[0.10] hover:bg-blue-500/20 transition-colors font-medium"
+            >
+              <Sparkles className="h-3 w-3" /> 📊 Reporte IA
             </button>
           </div>
 
@@ -2248,6 +2795,203 @@ SEGMENTACIÓN SUGERIDA: [segmentos de audiencia recomendados en Meta Ads]`;
                 </Button>
               </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Reporte IA ejecutivo ─────────────────────────────────────── */}
+      <Dialog open={showReportModal} onOpenChange={v => { if (!reportLoading) setShowReportModal(v); }}>
+        <DialogContent className="bg-[#0D0D1F] border border-[#1A1A35] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-[#00D4AA]" />
+              Generar Reporte de Meta Ads
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-1">
+
+            {/* Cliente — obligatorio */}
+            <div className="space-y-1.5">
+              <label className="text-xs text-[#64748B] uppercase tracking-wide">
+                Cliente <span className="text-red-400">*</span>
+              </label>
+              <select
+                value={reportClientId}
+                onChange={e => setReportClientId(e.target.value)}
+                disabled={reportLoading}
+                className="w-full h-9 rounded-lg bg-[#0D0D1F] border border-white/[0.08] text-white text-sm px-2 focus:outline-none focus:border-[#00D4AA]/40 disabled:opacity-50"
+              >
+                <option value="" className="bg-[#0f1117]">— Selecciona un cliente —</option>
+                {clients
+                  .filter(c => c.meta_connected)
+                  .map(c => (
+                    <option key={c.id} value={c.id} className="bg-[#0f1117]">{c.name}</option>
+                  ))}
+                {clients.filter(c => !c.meta_connected).length > 0 && (
+                  <>
+                    <option disabled className="bg-[#0f1117] text-[#64748B]">── Sin Meta conectado ──</option>
+                    {clients.filter(c => !c.meta_connected).map(c => (
+                      <option key={c.id} value={c.id} disabled className="bg-[#0f1117] text-[#64748B]">{c.name}</option>
+                    ))}
+                  </>
+                )}
+              </select>
+              {!clients.some(c => c.meta_connected) && (
+                <p className="text-[11px] text-yellow-400">Ningún cliente tiene Meta Ads conectado.</p>
+              )}
+            </div>
+
+            {/* Período */}
+            <div className="space-y-2.5">
+              <label className="text-xs text-[#64748B] uppercase tracking-wide">Período</label>
+
+              {/* Tabs */}
+              <div className="flex gap-1.5">
+                {([['preset','Rápido'],['month','Por mes'],['range','Rango']] as const).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    onClick={() => setReportPeriodMode(mode)}
+                    disabled={reportLoading}
+                    className={cn(
+                      'flex-1 py-1.5 rounded-lg text-xs border transition-colors',
+                      reportPeriodMode === mode
+                        ? 'border-[#00D4AA]/50 bg-[#00D4AA]/10 text-[#00D4AA] font-semibold'
+                        : 'border-white/[0.08] text-[#64748B] hover:text-white',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Preset rápido */}
+              {reportPeriodMode === 'preset' && (
+                <select
+                  value={reportPreset}
+                  onChange={e => setReportPreset(e.target.value)}
+                  disabled={reportLoading}
+                  className="w-full h-9 rounded-lg bg-[#0D0D1F] border border-white/[0.08] text-white text-sm px-2 focus:outline-none focus:border-[#00D4AA]/40 disabled:opacity-50"
+                >
+                  <option value="last_30d"  className="bg-[#0f1117]">Últimos 30 días (recomendado)</option>
+                  <option value="last_month" className="bg-[#0f1117]">Mes anterior completo</option>
+                  <option value="this_month" className="bg-[#0f1117]">Este mes (hasta hoy)</option>
+                  <option value="last_7d"   className="bg-[#0f1117]">Últimos 7 días</option>
+                  <option value="last_90d"  className="bg-[#0f1117]">Últimos 90 días</option>
+                </select>
+              )}
+
+              {/* Por mes */}
+              {reportPeriodMode === 'month' && (
+                <div className="space-y-1">
+                  <div className="flex gap-3">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[11px] text-[#64748B]">Mes</label>
+                      <select
+                        value={reportMonth}
+                        onChange={e => setReportMonth(Number(e.target.value))}
+                        disabled={reportLoading}
+                        className="w-full h-9 rounded-lg bg-[#0D0D1F] border border-white/[0.08] text-white text-sm px-2 focus:outline-none focus:border-[#00D4AA]/40 disabled:opacity-50"
+                      >
+                        {([
+                          [1,'Enero'],[2,'Febrero'],[3,'Marzo'],[4,'Abril'],
+                          [5,'Mayo'],[6,'Junio'],[7,'Julio'],[8,'Agosto'],
+                          [9,'Septiembre'],[10,'Octubre'],[11,'Noviembre'],[12,'Diciembre'],
+                        ] as [number, string][]).map(([v, l]) => (
+                          <option key={v} value={v} className="bg-[#0f1117]">{l}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[11px] text-[#64748B]">Año</label>
+                      <select
+                        value={reportYear}
+                        onChange={e => setReportYear(Number(e.target.value))}
+                        disabled={reportLoading}
+                        className="w-full h-9 rounded-lg bg-[#0D0D1F] border border-white/[0.08] text-white text-sm px-2 focus:outline-none focus:border-[#00D4AA]/40 disabled:opacity-50"
+                      >
+                        {[2024, 2025, 2026].map(yr => (
+                          <option key={yr} value={yr} className="bg-[#0f1117]">{yr}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {reportMonth === new Date().getMonth() + 1 && reportYear === new Date().getFullYear() && (
+                    <p className="text-[11px] text-yellow-400">
+                      ⚠ El mes actual está en curso — solo verás datos hasta hoy.
+                      Usa "Mes anterior completo" para datos definitivos.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Rango personalizado */}
+              {reportPeriodMode === 'range' && (
+                <div className="flex gap-3">
+                  <div className="flex-1 space-y-1">
+                    <label className="text-[11px] text-[#64748B]">Desde</label>
+                    <input
+                      type="date"
+                      value={reportSince}
+                      onChange={e => setReportSince(e.target.value)}
+                      disabled={reportLoading}
+                      className="w-full h-9 rounded-lg bg-[#0D0D1F] border border-white/[0.08] text-white text-sm px-2 focus:outline-none focus:border-[#00D4AA]/40 disabled:opacity-50 [color-scheme:dark]"
+                    />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <label className="text-[11px] text-[#64748B]">Hasta</label>
+                    <input
+                      type="date"
+                      value={reportUntil}
+                      onChange={e => setReportUntil(e.target.value)}
+                      disabled={reportLoading}
+                      className="w-full h-9 rounded-lg bg-[#0D0D1F] border border-white/[0.08] text-white text-sm px-2 focus:outline-none focus:border-[#00D4AA]/40 disabled:opacity-50 [color-scheme:dark]"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Steps / Loading */}
+            {reportLoading && reportStep && (
+              <div className="rounded-lg border border-[#00D4AA]/20 bg-[#00D4AA]/[0.05] px-4 py-3 flex items-center gap-3">
+                <Loader2 className="h-4 w-4 text-[#00D4AA] animate-spin shrink-0" />
+                <p className="text-sm text-[#00D4AA]">{reportStep}</p>
+              </div>
+            )}
+
+            {/* Error */}
+            {reportError && !reportLoading && (
+              <div className="rounded-lg border border-red-500/20 bg-red-500/[0.06] px-4 py-3 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                <p className="text-sm text-red-300">{reportError}</p>
+              </div>
+            )}
+
+            <p className="text-[11px] text-[#64748B] leading-relaxed">
+              Solo incluye campañas con gasto real en el período seleccionado. Claude analiza el rendimiento y genera un PDF ejecutivo descargable.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setShowReportModal(false)}
+              disabled={reportLoading}
+              className="text-[#64748B]"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => void handleGenerateReport()}
+              disabled={reportLoading || !reportClientId}
+              className="bg-[#00D4AA] text-black hover:bg-[#00D4AA]/90 font-semibold gap-2 disabled:opacity-50"
+            >
+              {reportLoading
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Procesando...</>
+                : <><Sparkles className="h-4 w-4" /> 📊 Generar PDF</>
+              }
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

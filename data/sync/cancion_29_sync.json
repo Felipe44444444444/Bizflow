@@ -1,0 +1,526 @@
+{
+  "cancion_id": 29,
+  "youtube_id": "ETLoTxVVvjM",
+  "bpm": 88.0,
+  "sync_calidad": "auto-detectado",
+  "acordes": [
+    {
+      "compas": 1,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 0.0,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 2,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 2.727,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 3,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 5.455,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 4,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 8.182,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 5,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 10.909,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 6,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 13.636,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 7,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 16.364,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 8,
+      "acorde": "G",
+      "tipo": "mayor",
+      "tiempo_segundos": 19.091,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 9,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 21.818,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 10,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 24.545,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 11,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 27.273,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 12,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 30.0,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 13,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 32.727,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 14,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 35.455,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 15,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 38.182,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 16,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 40.909,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 17,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 43.636,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 18,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 46.364,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 19,
+      "acorde": "E",
+      "tipo": "mayor",
+      "tiempo_segundos": 49.091,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 20,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 51.818,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 21,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 54.545,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 22,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 57.273,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 23,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 60.0,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 24,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 62.727,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 25,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 65.455,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 26,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 68.182,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 27,
+      "acorde": "G",
+      "tipo": "menor",
+      "tiempo_segundos": 70.909,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 28,
+      "acorde": "G",
+      "tipo": "menor",
+      "tiempo_segundos": 73.636,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 29,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 76.364,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 30,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 79.091,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 31,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 81.818,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 32,
+      "acorde": "G",
+      "tipo": "mayor",
+      "tiempo_segundos": 84.545,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 33,
+      "acorde": "G",
+      "tipo": "menor",
+      "tiempo_segundos": 87.273,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 34,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 90.0,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 35,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 92.727,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 36,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 95.455,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 37,
+      "acorde": "G",
+      "tipo": "mayor",
+      "tiempo_segundos": 98.182,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 38,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 100.909,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 39,
+      "acorde": "G",
+      "tipo": "mayor",
+      "tiempo_segundos": 103.636,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 40,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 106.364,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 41,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 109.091,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 42,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 111.818,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 43,
+      "acorde": "B",
+      "tipo": "mayor",
+      "tiempo_segundos": 114.545,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 44,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 117.273,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 45,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 120.0,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 46,
+      "acorde": "G",
+      "tipo": "mayor",
+      "tiempo_segundos": 122.727,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 47,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 125.455,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 48,
+      "acorde": "E",
+      "tipo": "mayor",
+      "tiempo_segundos": 128.182,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 49,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 130.909,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 50,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 133.636,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 51,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 136.364,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 52,
+      "acorde": "B",
+      "tipo": "mayor",
+      "tiempo_segundos": 139.091,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 53,
+      "acorde": "E",
+      "tipo": "menor",
+      "tiempo_segundos": 141.818,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 54,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 144.545,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 55,
+      "acorde": "G",
+      "tipo": "mayor",
+      "tiempo_segundos": 147.273,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 56,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 150.0,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 57,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 152.727,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 58,
+      "acorde": "G",
+      "tipo": "mayor",
+      "tiempo_segundos": 155.455,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 59,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 158.182,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 60,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 160.909,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 61,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 163.636,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 62,
+      "acorde": "G",
+      "tipo": "mayor",
+      "tiempo_segundos": 166.364,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 63,
+      "acorde": "G",
+      "tipo": "menor",
+      "tiempo_segundos": 169.091,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 64,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 171.818,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 65,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 174.545,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 66,
+      "acorde": "A",
+      "tipo": "mayor",
+      "tiempo_segundos": 177.273,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 67,
+      "acorde": "G",
+      "tipo": "mayor",
+      "tiempo_segundos": 180.0,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 68,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 182.727,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 69,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 185.455,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 70,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 188.182,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 71,
+      "acorde": "G",
+      "tipo": "menor",
+      "tiempo_segundos": 190.909,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 72,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 193.636,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 73,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 196.364,
+      "duracion_estimada": 2.727
+    },
+    {
+      "compas": 74,
+      "acorde": "D",
+      "tipo": "mayor",
+      "tiempo_segundos": 199.091,
+      "duracion_estimada": 2.727
+    }
+  ]
+}

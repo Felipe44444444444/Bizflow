@@ -7,9 +7,15 @@ import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Loader2, Sparkles, Download, AlertCircle, RefreshCw, Film, Trash2,
+  Loader2, Sparkles, Download, AlertCircle, RefreshCw, Film,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ClipCard, type AiClip } from "@/components/clips/ClipCard";
+import { GenerateModal } from "@/components/clips/GenerateModal";
+import { PlayerModal } from "@/components/clips/PlayerModal";
+import { ClipFilters, type StatusFilter } from "@/components/clips/ClipFilters";
+import { ShortsTab } from "@/components/clips/ShortsTab"
+import { UploadTab } from "@/components/clips/UploadTab";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,23 +48,6 @@ interface FormatPreset { label: string; width: number; height: number; crop: str
 
 type Step = 'idle' | 'uploading' | 'uploaded' | 'extracting_audio' | 'transcribing' | 'transcribed' | 'analyzing' | 'done';
 
-interface AiClip {
-  id: string
-  agent_id: string | null
-  agent_name?: string | null
-  topic: string
-  script: string | null
-  video_prompt: string | null
-  generation_task_id: string | null
-  video_url: string | null
-  status: 'generating' | 'ready' | 'published' | 'failed' | 'pending'
-  tone: string
-  duration_seconds: number
-  auto_publish: boolean
-  error_message: string | null
-  created_at: string
-}
-
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const STEPS = [
@@ -89,17 +78,6 @@ const DEFAULT_STYLE: SubtitleStyle = {
   allCaps:      false,
   wordsPerLine: 7,
 };
-
-const TONES = [
-  { value: 'professional',  label: 'Profesional'   },
-  { value: 'inspirational', label: 'Inspiracional' },
-  { value: 'educational',   label: 'Educativo'     },
-  { value: 'sales',         label: 'Ventas'        },
-]
-
-const DURATIONS = [6, 10, 15]
-
-const supabase = createClient();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -176,107 +154,6 @@ function getVideoDuration(file: File): Promise<number> {
   });
 }
 
-// ── AI Clip Card ──────────────────────────────────────────────────────────────
-
-function AiClipCard({ clip, onDelete, onPublish, onRetry }: {
-  clip: AiClip
-  onDelete: () => void
-  onPublish: () => void
-  onRetry: () => void
-}) {
-  const statusConfig = {
-    generating: { label: 'Generando',  color: 'text-yellow-400 border-yellow-500/20 bg-yellow-500/[0.06]', dot: '🔄' },
-    ready:      { label: 'Listo',      color: 'text-[#00D4AA] border-[#00D4AA]/20 bg-[#00D4AA]/[0.06]',   dot: '✅' },
-    published:  { label: 'Publicado',  color: 'text-blue-400 border-blue-500/20 bg-blue-500/[0.06]',       dot: '📤' },
-    failed:     { label: 'Error',      color: 'text-red-400 border-red-500/20 bg-red-500/[0.06]',          dot: '❌' },
-    pending:    { label: 'Pendiente',  color: 'text-[#64748B] border-white/[0.06] bg-white/[0.02]',        dot: '⏳' },
-  }
-  const cfg = statusConfig[clip.status] ?? statusConfig.pending
-
-  return (
-    <div className="rounded-xl border border-[#1A1A35] bg-[#0D0D1F] overflow-hidden">
-      {/* Thumbnail / video */}
-      {clip.video_url ? (
-        <video
-          src={clip.video_url}
-          controls
-          className="w-full aspect-[9/16] object-cover bg-black max-h-48"
-        />
-      ) : (
-        <div className={cn(
-          'w-full aspect-[9/16] max-h-48 flex items-center justify-center bg-[#080812]',
-          clip.status === 'generating' && 'animate-pulse'
-        )}>
-          {clip.status === 'generating'
-            ? <Loader2 className="h-8 w-8 text-[#3A3A5C] animate-spin" />
-            : <Film className="h-8 w-8 text-[#1A1A35]" />
-          }
-        </div>
-      )}
-
-      <div className="p-3 space-y-2">
-        {/* Status + tone */}
-        <div className="flex items-center gap-2">
-          <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full border', cfg.color)}>
-            {cfg.dot} {cfg.label}
-          </span>
-          <span className="text-[10px] text-[#3A3A5C] capitalize">{clip.tone}</span>
-          <span className="text-[10px] text-[#3A3A5C] ml-auto">{clip.duration_seconds}s</span>
-        </div>
-
-        {/* Topic */}
-        <p className="text-xs font-medium text-white line-clamp-2">{clip.topic}</p>
-
-        {/* Agent */}
-        {clip.agent_name && (
-          <p className="text-[10px] text-[#64748B]">Agente: {clip.agent_name}</p>
-        )}
-
-        {/* Error */}
-        {clip.error_message && (
-          <p className="text-[10px] text-red-400">{clip.error_message}</p>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-1.5 pt-1">
-          {clip.status === 'ready' && !clip.auto_publish && (
-            <button
-              onClick={onPublish}
-              className="flex-1 h-7 text-[10px] font-semibold rounded-lg bg-[#00D4AA] text-black hover:bg-[#00D4AA]/90 transition-colors"
-            >
-              📤 Publicar
-            </button>
-          )}
-          {clip.status === 'failed' && (
-            <button
-              onClick={onRetry}
-              className="flex-1 h-7 text-[10px] font-semibold rounded-lg border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 transition-colors"
-            >
-              🔄 Reintentar
-            </button>
-          )}
-          {clip.video_url && (
-            <a
-              href={clip.video_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 h-7 text-[10px] font-semibold rounded-lg border border-white/[0.08] text-[#94A3B8] hover:text-white flex items-center justify-center transition-colors"
-            >
-              ▶ Preview
-            </a>
-          )}
-          <button
-            onClick={onDelete}
-            className="h-7 w-7 rounded-lg border border-white/[0.06] text-[#3A3A5C] hover:text-red-400 hover:border-red-500/20 flex items-center justify-center transition-colors"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ClipsPage() {
@@ -288,6 +165,8 @@ export default function ClipsPage() {
 }
 
 function ClipsPageInner() {
+  const supabase = createClient();
+
   const [clients, setClients]   = useState<Client[]>([]);
   const [clientId, setClientId] = useState("");
   const [step, setStep]         = useState<Step>('idle');
@@ -295,19 +174,19 @@ function ClipsPageInner() {
   const [progress, setProgress] = useState<string>('');
 
   // Video
-  const [videoFile, setVideoFile]     = useState<File | null>(null);
+  const [videoFile, setVideoFile]           = useState<File | null>(null);
   const [videoObjectUrl, setVideoObjectUrl] = useState("");
   const [videoDuration, setVideoDuration]   = useState(0);
-  const [videoUrl, setVideoUrl]       = useState("");
-  const [clipRecordId, setClipRecordId] = useState<string | null>(null);
-  const [isDragging, setIsDragging]   = useState(false);
+  const [videoUrl, setVideoUrl]             = useState("");
+  const [clipRecordId, setClipRecordId]     = useState<string | null>(null);
+  const [isDragging, setIsDragging]         = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Transcript
   const [transcriptData, setTranscriptData] = useState<TranscriptData | null>(null);
 
   // Moments + selection
-  const [moments, setMoments]             = useState<Moment[]>([]);
+  const [moments, setMoments]                 = useState<Moment[]>([]);
   const [selectedMoments, setSelectedMoments] = useState<Set<number>>(new Set());
 
   // Output options
@@ -328,6 +207,7 @@ function ClipsPageInner() {
   useEffect(() => {
     supabase.from("clients").select("id,name,company").order("name")
       .then(({ data }) => setClients(data ?? []));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Revoke object URL on unmount
@@ -564,7 +444,7 @@ function ClipsPageInner() {
       if (fmt.width) vfParts.push(`scale=${fmt.width}:${fmt.height}`);
 
       if (burnSubtitles) {
-        const subText = clipSubtitles[index] ?? moment.subtitle_preview;
+        const subText    = clipSubtitles[index] ?? moment.subtitle_preview;
         const textFilter = buildDrawTextFilters(subText, moment.duration, subtitleStyle);
         if (textFilter) vfParts.push(textFilter);
       }
@@ -622,24 +502,26 @@ function ClipsPageInner() {
 
   const router       = useRouter()
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab]         = useState<'extract' | 'generate'>(
-    (searchParams.get('tab') as 'extract' | 'generate') ?? 'extract'
+  const [activeTab, setActiveTab] = useState<'extract' | 'generate' | 'shorts' | 'upload'>(
+    (searchParams.get('tab') as 'extract' | 'generate' | 'shorts' | 'upload') ?? 'extract'
   )
-  const [agents, setAgents]               = useState<{ id: string; name: string }[]>([])
-  const [aiClips, setAiClips]             = useState<AiClip[]>([])
-  const [showGenModal, setShowGenModal]   = useState(false)
-  const [genDispatched, setGenDispatched] = useState(false)
-  const [generating, setGenerating]       = useState(false)
-  const [genError, setGenError]           = useState<string | null>(null)
-  const [publishing, setPublishing]       = useState<string | null>(null)
-  const [genForm, setGenForm]             = useState({
-    agent_id:     '',
-    topic:        '',
-    tone:         'professional',
-    duration:     10,
-    auto_publish: false,
-  })
-  const [toasts, setToasts]               = useState<Array<{ id: string; message: string; type: 'success' | 'error' }>>([])
+  const [agents, setAgents]         = useState<{ id: string; name: string }[]>([])
+  const [aiClips, setAiClips]       = useState<AiClip[]>([])
+  const [showGenModal, setShowGenModal] = useState(false)
+  const [selectedClip, setSelectedClip] = useState<AiClip | null>(null)
+  const [publishing, setPublishing] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [agentFilter, setAgentFilter]   = useState('')
+  const [searchQuery, setSearchQuery]   = useState('')
+  const [toasts, setToasts]             = useState<Array<{ id: string; message: string; type: 'success' | 'error' }>>([])
+  const [dismissedClips, setDismissedClips] = useState<string[]>([])
+
+  function dismissClip(id: string) {
+    setDismissedClips(prev => [...prev, id])
+  }
+  function dismissAll(ids: string[]) {
+    setDismissedClips(prev => [...prev, ...ids])
+  }
 
   function addToast(message: string, type: 'success' | 'error') {
     const id = Math.random().toString(36).slice(2)
@@ -647,7 +529,7 @@ function ClipsPageInner() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000)
   }
 
-  function handleTabChange(tab: 'extract' | 'generate') {
+  function handleTabChange(tab: 'extract' | 'generate' | 'shorts' | 'upload') {
     setActiveTab(tab)
     router.replace(`?tab=${tab}`, { scroll: false })
   }
@@ -655,73 +537,54 @@ function ClipsPageInner() {
   async function loadAiClips() {
     const [agentRes, clipRes] = await Promise.all([
       supabase.from('xenttech_agents').select('id, name').order('name'),
-      supabase.from('xenttech_clips_ai').select('*').order('created_at', { ascending: false }).limit(50),
+      supabase.from('xenttech_clips_ai').select('*').order('created_at', { ascending: false }).limit(100),
     ])
     const agentMap = new Map((agentRes.data ?? []).map(a => [a.id, a.name]))
     setAgents(agentRes.data ?? [])
-    setAiClips((clipRes.data ?? []).map(c => ({ ...c, agent_name: agentMap.get(c.agent_id) ?? null })))
+    const mapped = (clipRes.data ?? []).map(c => ({ ...c, agent_name: agentMap.get(c.agent_id) ?? null }))
+    console.log('CLIPS_LOADED:', mapped.length, mapped.map(c => ({ id: c.id, status: c.status, has_url: !!c.video_url })))
+    setAiClips(mapped)
   }
 
   useEffect(() => { void loadAiClips() }, [])
 
-  // Poll generating clips every 5s — fires toast when status changes
+  // Poll generating clips: fire immediately on mount, then every 10s
   useEffect(() => {
     const generatingClips = aiClips.filter(c => c.status === 'generating')
     if (!generatingClips.length) return
-    const interval = setInterval(async () => {
+
+    async function checkAll() {
       await Promise.all(
         generatingClips.map(async clip => {
-          const res  = await fetch(`/api/clips/${clip.id}/status`)
-          if (!res.ok) return
-          const data = await res.json() as AiClip
-          if (data.status !== clip.status) {
-            if (data.status === 'ready')  addToast(`✅ Clip "${clip.topic}" listo para publicar`, 'success')
-            if (data.status === 'failed') addToast(`❌ Error en "${clip.topic}": ${data.error_message ?? 'falló la generación'}`, 'error')
-          }
-          setAiClips(prev => prev.map(c => c.id === clip.id ? { ...c, ...data } : c))
+          try {
+            const res  = await fetch(`/api/clips/${clip.id}/status`)
+            if (!res.ok) return
+            const data = await res.json() as AiClip
+            if (data.status !== clip.status) {
+              if (data.status === 'ready')  addToast(`✅ Clip "${clip.topic}" listo para publicar`, 'success')
+              if (data.status === 'failed') addToast(`❌ Error en "${clip.topic}": ${data.error_message ?? 'falló la generación'}`, 'error')
+            }
+            setAiClips(prev => prev.map(c => c.id === clip.id ? { ...c, ...data } : c))
+          } catch { /* network error — retry next tick */ }
         })
       )
-    }, 5_000)
+    }
+
+    void checkAll()
+    const interval = setInterval(() => void checkAll(), 10_000)
     return () => clearInterval(interval)
   }, [aiClips])
-
-  async function handleGenerate() {
-    if (!genForm.agent_id || !genForm.topic.trim()) return
-    setGenerating(true)
-    setGenError(null)
-    try {
-      const res  = await fetch('/api/clips/generate', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(genForm),
-      })
-      const data = await res.json() as { clip_id?: string; error?: string }
-      if (!res.ok || data.error) throw new Error(data.error ?? 'Error al generar')
-      setGenDispatched(true)
-      await loadAiClips()
-    } catch (e) {
-      setGenError((e as Error).message)
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  function closeGenModal() {
-    setShowGenModal(false)
-    setGenDispatched(false)
-    setGenError(null)
-    if (genDispatched) setGenForm({ agent_id: '', topic: '', tone: 'professional', duration: 10, auto_publish: false })
-  }
 
   async function handlePublish(clipId: string) {
     setPublishing(clipId)
     try {
-      const res = await fetch(`/api/clips/${clipId}/publish`, { method: 'POST' })
+      const res  = await fetch(`/api/clips/${clipId}/publish`, { method: 'POST' })
       const data = await res.json() as { ok?: boolean; error?: string }
       if (!res.ok || data.error) throw new Error(data.error ?? 'Error al publicar')
+      addToast('✅ Clip publicado en Facebook', 'success')
       await loadAiClips()
     } catch (e) {
-      console.error('publish error:', e)
+      addToast(`❌ ${(e as Error).message}`, 'error')
     } finally {
       setPublishing(null)
     }
@@ -730,6 +593,7 @@ function ClipsPageInner() {
   async function handleDeleteAiClip(clipId: string) {
     await supabase.from('xenttech_clips_ai').delete().eq('id', clipId)
     setAiClips(prev => prev.filter(c => c.id !== clipId))
+    if (selectedClip?.id === clipId) setSelectedClip(null)
   }
 
   async function handleRetry(clipId: string) {
@@ -742,9 +606,30 @@ function ClipsPageInner() {
     }
   }
 
-  // ── Derived ───────────────────────────────────────────────────────────────
+  // ── Derived / filters ─────────────────────────────────────────────────────
 
   const stepIndex = ['uploading', 'extracting_audio', 'transcribing', 'analyzing', 'done'].indexOf(step);
+
+  const filteredClips = aiClips.filter(c => {
+    if (statusFilter !== 'all' && c.status !== statusFilter) return false
+    if (agentFilter && c.agent_id !== agentFilter) return false
+    if (searchQuery && !c.topic.toLowerCase().includes(searchQuery.toLowerCase())) return false
+    return true
+  })
+
+  const counts = {
+    all:        aiClips.length,
+    ready:      aiClips.filter(c => c.status === 'ready').length,
+    generating: aiClips.filter(c => c.status === 'generating').length,
+    published:  aiClips.filter(c => c.status === 'published').length,
+    failed:     aiClips.filter(c => c.status === 'failed').length,
+  } as Record<StatusFilter, number>
+
+  const thisMonth = new Date().toISOString().slice(0, 7)
+  const publishedThisMonth = aiClips.filter(c =>
+    c.status === 'published' && c.created_at?.startsWith(thisMonth)
+  ).length
+  const totalViews = aiClips.reduce((s, c) => s + (c.views ?? 0), 0)
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -776,10 +661,32 @@ function ClipsPageInner() {
         >
           ✨ Generar con IA
         </button>
+        <button
+          onClick={() => handleTabChange('shorts')}
+          className={cn(
+            'py-3 px-4 text-sm font-medium border-b-2 transition-colors -mb-px',
+            activeTab === 'shorts'
+              ? 'border-purple-400 text-purple-400'
+              : 'border-transparent text-[#64748B] hover:text-white'
+          )}
+        >
+          🎬 Crear Short
+        </button>
+        <button
+          onClick={() => handleTabChange('upload')}
+          className={cn(
+            'py-3 px-4 text-sm font-medium border-b-2 transition-colors -mb-px',
+            activeTab === 'upload'
+              ? 'border-orange-400 text-orange-400'
+              : 'border-transparent text-[#64748B] hover:text-white'
+          )}
+        >
+          📤 Subir y editar
+        </button>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════
-          TAB 1 — EXTRAER CLIPS VIRALES (código original sin cambios)
+          TAB 1 — EXTRAER CLIPS VIRALES
       ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'extract' && (
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
@@ -1177,55 +1084,59 @@ function ClipsPageInner() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════
-          TAB 2 — GENERAR CON IA (Kling)
+          TAB 2 — GENERAR CON IA
       ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'generate' && (
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-20">
 
-          {/* Header row */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-bold text-white">Videos generados con IA</p>
-              <p className="text-xs text-[#64748B]">Claude planifica el guión · Kling genera el video</p>
-            </div>
-            <button
-              onClick={() => setShowGenModal(true)}
-              className="h-9 px-4 bg-[#00D4AA] text-black text-sm font-semibold rounded-xl flex items-center gap-2 hover:bg-[#00D4AA]/90 transition-colors"
-            >
-              <Sparkles className="h-4 w-4" /> Generar clip
-            </button>
-          </div>
-
-          {/* Metrics */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Stats header */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: 'Listos',     value: aiClips.filter(c => c.status === 'ready' || c.status === 'published').length, color: 'text-[#00D4AA]' },
-              { label: 'Generando', value: aiClips.filter(c => c.status === 'generating').length,                          color: 'text-yellow-400' },
-              { label: 'Publicados',value: aiClips.filter(c => c.status === 'published').length,                           color: 'text-blue-400'   },
-            ].map(m => (
-              <div key={m.label} className="rounded-xl bg-[#0D0D1F] border border-[#1A1A35] p-3 text-center">
-                <p className={`text-2xl font-bold ${m.color}`}>{m.value}</p>
-                <p className="text-xs text-[#64748B] mt-0.5">{m.label}</p>
+              { label: 'Total generados',      value: aiClips.length,         color: 'text-white'        },
+              { label: 'Publicados este mes',   value: publishedThisMonth,     color: 'text-blue-400'     },
+              { label: 'En generación',         value: counts.generating,      color: 'text-yellow-400'   },
+              { label: 'Total views',           value: totalViews,             color: 'text-[#00D4AA]'    },
+            ].map(stat => (
+              <div key={stat.label} className="rounded-xl bg-[#0D0D1F] border border-[#1A1A35] p-3 text-center">
+                <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                <p className="text-xs text-[#64748B] mt-0.5">{stat.label}</p>
               </div>
             ))}
           </div>
 
+          {/* Filters */}
+          <ClipFilters
+            status={statusFilter}
+            agentId={agentFilter}
+            search={searchQuery}
+            agents={agents}
+            counts={counts}
+            onStatus={setStatusFilter}
+            onAgent={setAgentFilter}
+            onSearch={setSearchQuery}
+          />
+
           {/* Clips grid */}
-          {aiClips.length === 0 ? (
+          {filteredClips.length === 0 ? (
             <div className="rounded-xl border-2 border-dashed border-[#1A1A35] p-12 text-center">
               <Sparkles className="h-8 w-8 text-[#1A1A35] mx-auto mb-3" />
-              <p className="text-sm text-[#3A3A5C]">Sin clips generados todavía</p>
-              <p className="text-xs text-[#1A1A35] mt-1">Haz click en "Generar clip" para empezar</p>
+              <p className="text-sm text-[#3A3A5C]">
+                {aiClips.length === 0 ? 'Sin clips generados todavía' : 'No hay clips con ese filtro'}
+              </p>
+              <p className="text-xs text-[#1A1A35] mt-1">
+                {aiClips.length === 0 && 'Haz click en el botón ✨ Generar para empezar'}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {aiClips.map(clip => (
-                <AiClipCard
+              {filteredClips.map(clip => (
+                <ClipCard
                   key={clip.id}
                   clip={clip}
                   onDelete={() => handleDeleteAiClip(clip.id)}
                   onPublish={() => handlePublish(clip.id)}
                   onRetry={() => handleRetry(clip.id)}
+                  onOpen={() => setSelectedClip(clip)}
                 />
               ))}
             </div>
@@ -1236,196 +1147,168 @@ function ClipsPageInner() {
               <Loader2 className="h-3 w-3 animate-spin" /> Publicando…
             </p>
           )}
-
         </div>
+      )}
+
+      {/* ── TAB: Crear Short ── */}
+      {activeTab === 'shorts' && (
+        <ShortsTab
+          readyClips={aiClips.filter(c => c.status === 'ready')}
+          agents={agents}
+          agentId={agents[0]?.id ?? ''}
+        />
+      )}
+
+      {/* ── TAB: Subir y editar ── */}
+      {activeTab === 'upload' && (
+        <UploadTab
+          agents={agents}
+          agentId={agents[0]?.id ?? ''}
+          onDone={async () => {
+            await loadAiClips()
+            handleTabChange('generate')
+          }}
+        />
+      )}
+
+      {/* ── Persistent progress banner (stays until user dismisses) ── */}
+      {(() => {
+        const clipsEnProceso = aiClips.filter(c =>
+          (c.status === 'generating' || c.status === 'ready' || c.status === 'failed') &&
+          !dismissedClips.includes(c.id)
+        )
+        if (!clipsEnProceso.length) return null
+        const hasGenerating = clipsEnProceso.some(c => c.status === 'generating')
+        const hasFailed     = clipsEnProceso.some(c => c.status === 'failed')
+        const borderColor   = hasGenerating ? 'rgba(234,179,8,0.3)' : hasFailed ? 'rgba(239,68,68,0.3)' : 'rgba(0,212,170,0.3)'
+        const headerIcon    = hasGenerating
+          ? <Loader2 className="h-4 w-4 text-yellow-400 animate-spin flex-shrink-0" />
+          : hasFailed ? <span className="text-sm">❌</span> : <span className="text-sm">✅</span>
+        const headerText    = hasGenerating ? 'Generando video…' : hasFailed ? 'Error al generar' : 'Video listo'
+        return (
+          <div className="fixed top-4 right-4 z-50 bg-[#0D0D1F] border rounded-xl p-4 shadow-2xl w-80"
+               style={{ borderColor }}>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                {headerIcon}
+                <p className="text-sm font-semibold text-white">{headerText}</p>
+              </div>
+              <button
+                onClick={() => dismissAll(clipsEnProceso.map(c => c.id))}
+                className="text-[#3A3A5C] hover:text-white transition-colors text-lg leading-none"
+              >×</button>
+            </div>
+
+            {/* Per-clip rows */}
+            {clipsEnProceso.map(clip => (
+              <div key={clip.id} className="mb-3 last:mb-0">
+                <div className="flex items-center gap-2 mb-1">
+                  {clip.status === 'generating' && <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse flex-shrink-0" />}
+                  {clip.status === 'ready'      && <div className="w-2 h-2 rounded-full bg-[#00D4AA] flex-shrink-0" />}
+                  {clip.status === 'failed'     && <div className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />}
+                  <p className="text-xs text-[#94A3B8] truncate flex-1">{clip.topic}</p>
+                  <button
+                    onClick={() => dismissClip(clip.id)}
+                    className="text-[10px] text-[#3A3A5C] hover:text-white ml-1 flex-shrink-0"
+                  >✕</button>
+                </div>
+
+                {clip.status === 'generating' && (
+                  <div className="ml-4">
+                    <div className="h-1 bg-[#1A1A35] rounded-full overflow-hidden">
+                      <div className="h-full bg-yellow-500/60 rounded-full animate-pulse w-2/3" />
+                    </div>
+                    <p className="text-[10px] text-[#3A3A5C] mt-1">Kling procesando… ~60-90s</p>
+                  </div>
+                )}
+
+                {clip.status === 'failed' && (
+                  <div className="ml-4 flex items-center gap-2">
+                    <span className="text-[10px] text-red-400 truncate flex-1">
+                      {clip.error_message ?? 'Error en la generación'}
+                    </span>
+                    <button
+                      onClick={() => { void handleRetry(clip.id); dismissClip(clip.id) }}
+                      className="text-[10px] text-yellow-400 hover:text-yellow-300 underline flex-shrink-0 transition-colors"
+                    >Reintentar</button>
+                  </div>
+                )}
+
+                {clip.status === 'ready' && (
+                  <div className="ml-4 flex items-center gap-2">
+                    <span className="text-xs text-[#00D4AA]">Listo para publicar</span>
+                    <button
+                      onClick={() => {
+                        handleTabChange('generate')
+                        dismissClip(clip.id)
+                      }}
+                      className="text-xs text-blue-400 hover:text-blue-300 underline transition-colors"
+                    >
+                      Ver →
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {hasGenerating && (
+              <p className="text-[10px] text-[#3A3A5C] mt-3 pt-2 border-t border-[#1A1A35]">
+                Puedes navegar libremente — el banner avisa cuando esté listo
+              </p>
+            )}
+          </div>
+        )
+      })()}
+
+      {/* ── Floating generate button (generate tab only) ── */}
+      {activeTab === 'generate' && (
+        <button
+          onClick={() => setShowGenModal(true)}
+          className="fixed bottom-6 right-6 z-40 h-12 px-5 bg-[#00D4AA] text-black text-sm font-semibold rounded-full shadow-lg hover:bg-[#00D4AA]/90 transition-all hover:scale-105 flex items-center gap-2"
+        >
+          <Sparkles className="h-4 w-4" /> Generar
+        </button>
       )}
 
       {/* ── Generate modal ── */}
       {showGenModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md mx-4 rounded-2xl border border-[#1A1A35] bg-[#0D0D1F] shadow-2xl flex flex-col" style={{ maxHeight: '90vh' }}>
+        <GenerateModal
+          agents={agents}
+          onClose={() => setShowGenModal(false)}
+          onDispatched={async (_clipId) => {
+            setShowGenModal(false)
+            addToast('🎬 Clip en cola — el banner de arriba muestra el progreso', 'success')
+            await loadAiClips()
+          }}
+        />
+      )}
 
-            {/* Header */}
-            <div className="px-6 pt-6 pb-4 border-b border-[#1A1A35] flex-shrink-0">
-              <h2 className="text-base font-bold text-white">✨ Generar clip con IA</h2>
-              <p className="text-xs text-[#64748B] mt-0.5">Claude escribe el guión · Kling genera el video</p>
-            </div>
-
-            {/* Body — dispatched state */}
-            {genDispatched && (
-              <div className="flex-1 px-6 py-10 flex flex-col items-center justify-center gap-4 text-center">
-                <div className="w-12 h-12 rounded-full bg-[#00D4AA]/10 flex items-center justify-center">
-                  <Loader2 className="h-6 w-6 text-[#00D4AA] animate-spin" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-white">Generando tu clip…</p>
-                  <p className="text-xs text-[#64748B] mt-1">Claude escribe el guión · Kling genera el video</p>
-                  <p className="text-xs text-[#3A3A5C] mt-2">Tarda ~60-90 segundos. Puedes cerrar y seguir trabajando.</p>
-                </div>
-                <div className="flex flex-col gap-1.5 w-full max-w-[220px] text-left text-xs text-[#64748B]">
-                  <p>✅ Solicitud enviada</p>
-                  <p className="text-[#3A3A5C]">⏳ Claude escribiendo guión…</p>
-                  <p className="text-[#3A3A5C]">⏳ Kling generando video…</p>
-                </div>
-              </div>
-            )}
-
-            {/* Body — form */}
-            {!genDispatched && (
-            <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
-
-              {/* Agent */}
-              <div>
-                <label className="text-xs font-medium text-[#64748B] mb-1.5 block">Agente</label>
-                <select
-                  value={genForm.agent_id}
-                  onChange={e => setGenForm(f => ({ ...f, agent_id: e.target.value }))}
-                  className="w-full h-9 rounded-xl bg-[#080812] border border-[#1A1A35] text-white text-sm px-3 focus:outline-none focus:border-[#00D4AA]/40"
-                >
-                  <option value="">Seleccionar agente</option>
-                  {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </div>
-
-              {/* Topic */}
-              <div>
-                <label className="text-xs font-medium text-[#64748B] mb-1.5 block">¿Sobre qué es el clip?</label>
-                <input
-                  type="text"
-                  value={genForm.topic}
-                  onChange={e => setGenForm(f => ({ ...f, topic: e.target.value }))}
-                  placeholder="Ej: Beneficios de comprar terreno en zona norte"
-                  className="w-full h-9 rounded-xl bg-[#080812] border border-[#1A1A35] text-white text-sm px-3 focus:outline-none focus:border-[#00D4AA]/40 placeholder-[#3A3A5C]"
-                />
-              </div>
-
-              {/* Tone */}
-              <div>
-                <label className="text-xs font-medium text-[#64748B] mb-2 block">Tono</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {TONES.map(t => (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => setGenForm(f => ({ ...f, tone: t.value }))}
-                      className={cn(
-                        'h-9 rounded-xl border text-xs font-medium transition-colors',
-                        genForm.tone === t.value
-                          ? 'border-[#00D4AA]/40 bg-[#00D4AA]/[0.08] text-[#00D4AA]'
-                          : 'border-[#1A1A35] text-[#64748B] hover:border-white/[0.12] hover:text-white'
-                      )}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Duration */}
-              <div>
-                <label className="text-xs font-medium text-[#64748B] mb-2 block">Duración</label>
-                <div className="flex gap-2">
-                  {DURATIONS.map(d => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setGenForm(f => ({ ...f, duration: d }))}
-                      className={cn(
-                        'flex-1 h-9 rounded-xl border text-xs font-medium transition-colors',
-                        genForm.duration === d
-                          ? 'border-[#00D4AA]/40 bg-[#00D4AA]/[0.08] text-[#00D4AA]'
-                          : 'border-[#1A1A35] text-[#64748B] hover:border-white/[0.12] hover:text-white'
-                      )}
-                    >
-                      {d}s
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Auto publish */}
-              <button
-                type="button"
-                onClick={() => setGenForm(f => ({ ...f, auto_publish: !f.auto_publish }))}
-                className={cn(
-                  'w-full flex items-center justify-between p-3 rounded-xl border transition-colors',
-                  genForm.auto_publish
-                    ? 'border-[#00D4AA]/30 bg-[#00D4AA]/[0.04]'
-                    : 'border-[#1A1A35]'
-                )}
-              >
-                <div className="text-left">
-                  <p className={cn('text-xs font-medium', genForm.auto_publish ? 'text-white' : 'text-[#64748B]')}>
-                    Publicar automáticamente
-                  </p>
-                  <p className="text-[10px] text-[#3A3A5C]">Publica en Facebook cuando el video esté listo</p>
-                </div>
-                <div className={cn(
-                  'w-9 h-5 rounded-full transition-colors flex items-center px-0.5',
-                  genForm.auto_publish ? 'bg-[#00D4AA]' : 'bg-[#1A1A35]'
-                )}>
-                  <div className={cn(
-                    'w-4 h-4 rounded-full bg-white transition-transform',
-                    genForm.auto_publish ? 'translate-x-4' : 'translate-x-0'
-                  )} />
-                </div>
-              </button>
-
-              {genError && (
-                <div className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/[0.05] px-3 py-2.5">
-                  <AlertCircle className="h-3.5 w-3.5 text-red-400 shrink-0 mt-0.5" />
-                  <p className="text-xs text-red-300">{genError}</p>
-                </div>
-              )}
-            </div>
-            )}
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-[#1A1A35] flex-shrink-0 flex gap-3">
-              {genDispatched ? (
-                <button
-                  type="button"
-                  onClick={closeGenModal}
-                  className="flex-1 h-10 rounded-xl bg-[#00D4AA] text-black text-sm font-semibold hover:bg-[#00D4AA]/90 transition-colors"
-                >
-                  Cerrar y seguir en background
-                </button>
-              ) : (
-              <>
-              <button
-                type="button"
-                onClick={closeGenModal}
-                disabled={generating}
-                className="flex-1 h-10 rounded-xl border border-[#1A1A35] text-sm text-[#64748B] hover:text-white transition-colors disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleGenerate}
-                disabled={generating || !genForm.agent_id || !genForm.topic.trim()}
-                className="flex-1 h-10 rounded-xl bg-[#00D4AA] text-black text-sm font-semibold hover:bg-[#00D4AA]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-              >
-                {generating ? <><Loader2 className="h-4 w-4 animate-spin" /> Generando…</> : <><Sparkles className="h-4 w-4" /> Generar</>}
-              </button>
-              </>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* ── Player modal ── */}
+      {selectedClip && (
+        <PlayerModal
+          clip={selectedClip}
+          onClose={() => setSelectedClip(null)}
+          onPublish={() => {
+            void handlePublish(selectedClip.id)
+            setSelectedClip(null)
+          }}
+          onDelete={() => {
+            void handleDeleteAiClip(selectedClip.id)
+            setSelectedClip(null)
+          }}
+        />
       )}
 
       {/* ── Toast notifications ── */}
       {toasts.length > 0 && (
-        <div className="fixed bottom-6 right-6 z-[60] flex flex-col gap-2 pointer-events-none">
+        <div className="fixed bottom-6 right-6 z-[60] flex flex-col gap-2 pointer-events-none" style={{ bottom: activeTab === 'generate' ? 76 : 24 }}>
           {toasts.map(t => (
             <div
               key={t.id}
               className={cn(
                 'px-4 py-3 rounded-xl text-sm font-medium shadow-lg pointer-events-auto max-w-xs',
-                t.type === 'success'
-                  ? 'bg-[#00D4AA] text-black'
-                  : 'bg-red-500 text-white'
+                t.type === 'success' ? 'bg-[#00D4AA] text-black' : 'bg-red-500 text-white'
               )}
             >
               {t.message}

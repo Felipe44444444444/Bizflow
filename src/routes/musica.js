@@ -223,4 +223,25 @@ router.post('/favoritos', authSupabase, async (req, res) => {
   });
 });
 
+// PATCH /api/canciones/:id/letra — actualizar letra manualmente (admin)
+router.patch('/:id/letra', async (req, res) => {
+  const { id } = req.params;
+  const { letra_por_seccion } = req.body;
+
+  if (!letra_por_seccion || typeof letra_por_seccion !== 'object') {
+    return err(res, 400, 'letra_por_seccion requerida');
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('canciones')
+    .update({ letra_por_seccion })
+    .eq('id', id)
+    .select('id, titulo')
+    .single();
+
+  if (error?.code === 'PGRST116') return err(res, 404, `Canción ${id} no encontrada`);
+  if (error) return err(res, 500, error.message);
+  res.json({ ok: true, cancion: data });
+});
+
 module.exports = router;

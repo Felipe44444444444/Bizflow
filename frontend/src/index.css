@@ -358,3 +358,46 @@ body {
   .search-bar { width: 100%; }
   .section { padding: 1rem; }
 }
+
+/* ── MODO TOCADA + METRÓNOMO + ACORDES INLINE ── */
+.letra-linea-wrapper { margin-bottom: 0.4rem; }
+
+.acorde-inline {
+  font-size: 0.72rem; font-weight: 700; color: var(--accent);
+  font-family: 'Courier New', monospace; letter-spacing: 0.05em;
+  min-height: 1rem; line-height: 1;
+}
+
+.toggle-modo {
+  display: flex; background: var(--bg-highlight);
+  border-radius: var(--radius-full); padding: 4px; gap: 4px;
+  margin-bottom: 1.5rem; width: fit-content;
+}
+.toggle-btn {
+  padding: 0.5rem 1.25rem; border-radius: var(--radius-full);
+  border: none; background: transparent; color: var(--text-muted);
+  font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.toggle-btn.active { background: var(--text-primary); color: #000; }
+
+.metronomo {
+  display: flex; flex-direction: column; align-items: center; gap: 1rem;
+  padding: 1.5rem; background: var(--bg-elevated);
+  border-radius: var(--radius-lg); margin-bottom: 1.5rem;
+}
+.metronomo-titulo { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.1em; }
+.metronomo-bpm { font-size: 3rem; font-weight: 700; color: var(--accent); line-height: 1; }
+.metronomo-beats { display: flex; gap: 0.75rem; }
+.beat-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--bg-highlight); transition: background 0.08s, transform 0.08s;
+}
+.beat-dot.active { background: var(--accent); transform: scale(1.35); }
+.metronomo-controls { display: flex; align-items: center; gap: 1rem; }
+.bpm-adjust-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--bg-highlight); border: none; color: var(--text-primary);
+  font-size: 1.25rem; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; transition: background 0.2s;
+}
+.bpm-adjust-btn:hover { background: var(--bg-press, #333); }

@@ -58,11 +58,20 @@ interface Client {
   meta_page_id: string | null;
   meta_user_id: string | null;
   meta_token_expires_at: string | null;
+  // Creador de contenido
+  account_type: string | null;
+  content_platforms: string[] | null;
+  content_niche: string | null;
+  content_style: string | null;
+  content_tone: string | null;
+  content_language: string | null;
+  content_frequency: string | null;
 }
 
 const BLANK: Partial<Client> = {
   name: "", email: "", phone: "", company: "", industry: "",
   plan: "", status: "prospect", monthly_revenue: undefined, notes: "",
+  account_type: "business", content_platforms: [], content_language: "es",
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -129,7 +138,7 @@ export default function ClientsPage() {
     try {
       const { data, error } = await supabase
         .from("clients")
-        .select("id,name,email,phone,company,industry,plan,status,monthly_revenue,onboarding_step,notes,created_at,contract_signed,signature_data,signed_at,supabase_url,supabase_anon_key,supabase_service_key,meta_connected,meta_ad_account_id,meta_page_id,meta_user_id,meta_token_expires_at")
+        .select("id,name,email,phone,company,industry,plan,status,monthly_revenue,onboarding_step,notes,created_at,contract_signed,signature_data,signed_at,supabase_url,supabase_anon_key,supabase_service_key,meta_connected,meta_ad_account_id,meta_page_id,meta_user_id,meta_token_expires_at,account_type,content_platforms,content_niche,content_style,content_tone,content_language,content_frequency")
         .order("created_at", { ascending: false });
       if (error) throw error;
       setClients(data ?? []);
@@ -266,6 +275,13 @@ export default function ClientsPage() {
             status: form.status,
             monthly_revenue: form.monthly_revenue || null,
             notes: form.notes || null,
+            account_type: form.account_type || 'business',
+            content_platforms: form.content_platforms ?? [],
+            content_niche: form.content_niche || null,
+            content_style: form.content_style || null,
+            content_tone: form.content_tone || null,
+            content_language: form.content_language || 'es',
+            content_frequency: form.content_frequency || null,
           })
           .eq("id", editing.id);
         if (editError) throw new Error(editError.message);
@@ -285,6 +301,13 @@ export default function ClientsPage() {
             status: form.status || "prospect",
             monthly_revenue: form.monthly_revenue || null,
             notes: form.notes || null,
+            account_type: form.account_type || 'business',
+            content_platforms: form.content_platforms ?? [],
+            content_niche: form.content_niche || null,
+            content_style: form.content_style || null,
+            content_tone: form.content_tone || null,
+            content_language: form.content_language || 'es',
+            content_frequency: form.content_frequency || null,
           })
           .select()
           .single();
@@ -732,6 +755,142 @@ export default function ClientsPage() {
                 rows={3}
                 className="bg-[#0D0D1F] border-white/[0.08] text-white placeholder:text-[#64748B] resize-none"
               />
+            </div>
+
+            {/* Tipo de cuenta */}
+            <div className="col-span-2 pt-1 border-t border-[#1A1A35] space-y-3">
+              <div>
+                <label className="text-xs text-[#64748B] mb-2 block">Tipo de cuenta</label>
+                <div className="flex gap-3">
+                  {[
+                    { value: 'business', label: '🏢 Negocio / Empresa' },
+                    { value: 'creator',  label: '🎬 Creador de contenido' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, account_type: opt.value }))}
+                      className={cn(
+                        'flex-1 h-9 rounded-lg border text-xs font-medium transition-colors',
+                        (form.account_type ?? 'business') === opt.value
+                          ? 'border-[#00D4AA]/40 bg-[#00D4AA]/10 text-[#00D4AA]'
+                          : 'border-[#1A1A35] text-[#64748B] hover:text-white',
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {(form.account_type ?? 'business') === 'creator' && (
+                <div className="space-y-3 p-3 rounded-xl bg-[#080812] border border-[#1A1A35]">
+                  {/* Plataformas */}
+                  <div>
+                    <label className="text-[10px] text-[#64748B] uppercase tracking-wider block mb-1.5">Plataformas</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {['tiktok', 'instagram', 'youtube'].map(p => {
+                        const active = (form.content_platforms ?? []).includes(p)
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setForm(f => {
+                              const cur = f.content_platforms ?? []
+                              return { ...f, content_platforms: active ? cur.filter(x => x !== p) : [...cur, p] }
+                            })}
+                            className={cn(
+                              'px-3 h-7 rounded-lg text-[10px] font-semibold border capitalize transition-colors',
+                              active
+                                ? 'border-purple-500/40 bg-purple-500/15 text-purple-300'
+                                : 'border-[#1A1A35] text-[#64748B] hover:text-white',
+                            )}
+                          >
+                            {p === 'tiktok' ? '🎵' : p === 'instagram' ? '📸' : '▶️'} {p.charAt(0).toUpperCase() + p.slice(1)}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Nicho y estilo en grid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-[#64748B] uppercase tracking-wider block mb-1">Nicho</label>
+                      <select
+                        value={form.content_niche ?? ''}
+                        onChange={e => setForm(f => ({ ...f, content_niche: e.target.value || null }))}
+                        className="w-full h-8 px-2 rounded-lg bg-[#0D0D1F] border border-[#1A1A35] text-white text-xs focus:outline-none focus:border-[#00D4AA]/40"
+                      >
+                        <option value="">— Seleccionar —</option>
+                        {['Datos Curiosos','Datos Cómicos','Inmobiliaria','Spa / Bienestar','Fitness','Restaurante','Educación','Moda','Belleza','Tecnología','Motivacional'].map(n => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-[#64748B] uppercase tracking-wider block mb-1">Estilo</label>
+                      <select
+                        value={form.content_style ?? ''}
+                        onChange={e => setForm(f => ({ ...f, content_style: e.target.value || null }))}
+                        className="w-full h-8 px-2 rounded-lg bg-[#0D0D1F] border border-[#1A1A35] text-white text-xs focus:outline-none focus:border-[#00D4AA]/40"
+                      >
+                        <option value="">— Seleccionar —</option>
+                        {['Educativo','Cómico','Inspiracional','Informativo','Entretenimiento'].map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-[#64748B] uppercase tracking-wider block mb-1">Tono</label>
+                      <select
+                        value={form.content_tone ?? ''}
+                        onChange={e => setForm(f => ({ ...f, content_tone: e.target.value || null }))}
+                        className="w-full h-8 px-2 rounded-lg bg-[#0D0D1F] border border-[#1A1A35] text-white text-xs focus:outline-none focus:border-[#00D4AA]/40"
+                      >
+                        <option value="">— Seleccionar —</option>
+                        {['Serio','Casual','Cómico','Profesional','Energético'].map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-[#64748B] uppercase tracking-wider block mb-1">Idioma</label>
+                      <select
+                        value={form.content_language ?? 'es'}
+                        onChange={e => setForm(f => ({ ...f, content_language: e.target.value }))}
+                        className="w-full h-8 px-2 rounded-lg bg-[#0D0D1F] border border-[#1A1A35] text-white text-xs focus:outline-none focus:border-[#00D4AA]/40"
+                      >
+                        <option value="es">🇲🇽 Español</option>
+                        <option value="en">🇺🇸 Inglés</option>
+                        <option value="es-en">🌎 Español / Inglés</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Frecuencia */}
+                  <div>
+                    <label className="text-[10px] text-[#64748B] uppercase tracking-wider block mb-1.5">Frecuencia de publicación</label>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {['Diario','3x semana','Semanal','Quincenal'].map(f => (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => setForm(fm => ({ ...fm, content_frequency: f }))}
+                          className={cn(
+                            'px-2.5 h-7 rounded-lg text-[10px] border transition-colors',
+                            form.content_frequency === f
+                              ? 'border-[#00D4AA]/40 bg-[#00D4AA]/10 text-[#00D4AA]'
+                              : 'border-[#1A1A35] text-[#64748B] hover:text-white',
+                          )}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Meta Ads — solo al editar */}

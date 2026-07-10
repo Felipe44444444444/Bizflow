@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { waitUntil } from '@vercel/functions'
-import { generateClipScript, generateFalVideo } from '@/lib/xenttech/clips'
+import { generateClipScript, submitFalJob } from '@/lib/xenttech/clips'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +20,7 @@ export async function POST(
 
   const { data: clip, error } = await supabase
     .from('xenttech_clips_ai')
-    .select('id, status, agent_id, topic, tone, duration_seconds, video_prompt, auto_publish')
+    .select('id, status, agent_id, topic, tone, duration_seconds, video_prompt, auto_publish, reference_images')
     .eq('id', params.id)
     .maybeSingle()
 
@@ -39,45 +38,46 @@ export async function POST(
     .eq('id', clip.agent_id)
     .maybeSingle()
 
+  const tone      = clip.tone ?? 'professional'
+  const duration  = clip.duration_seconds ?? 10
+  const agentObj  = agent ?? { name: 'Asistente', system_prompt: null }
+  const refImages = (clip.reference_images as string[] | null) ?? []
+
+  let videoPrompt = clip.video_prompt as string | null
+  let script:      string | null = null
+
+  if (!videoPrompt) {
+    try {
+      const plan  = await generateClipScript(agentObj, clip.topic, tone, duration)
+      videoPrompt = plan.video_prompt
+      script      = plan.script
+    } catch (err) {
+      return NextResponse.json({ error: `Claude error: ${(err as Error).message}` }, { status: 502 })
+    }
+  }
+
+  let requestId: string
+  let falModel:  string
+  try {
+    const referenceImageUrl = refImages.length > 0 ? refImages[0] : undefined
+    const submitted = await submitFalJob(videoPrompt!, duration, referenceImageUrl)
+    requestId = submitted.request_id
+    falModel  = submitted.model
+  } catch (err) {
+    return NextResponse.json({ error: `Fal.ai submit error: ${(err as Error).message}` }, { status: 502 })
+  }
+
   await supabase
     .from('xenttech_clips_ai')
-    .update({ status: 'generating', error_message: null })
+    .update({
+      status:             'generating',
+      error_message:      null,
+      generation_task_id: requestId,
+      fal_model:          falModel,
+      ...(script      ? { script }           : {}),
+      ...(videoPrompt ? { video_prompt: videoPrompt } : {}),
+    })
     .eq('id', params.id)
-
-  waitUntil((async () => {
-    try {
-      const tone            = clip.tone ?? 'professional'
-      const duration        = clip.duration_seconds ?? 10
-      const agentObj        = agent ?? { name: 'Asistente', system_prompt: null }
-
-      let videoPrompt = clip.video_prompt as string | null
-      let script: string | null = null
-
-      if (!videoPrompt) {
-        const plan = await generateClipScript(agentObj, clip.topic, tone, duration)
-        videoPrompt = plan.video_prompt
-        script      = plan.script
-      }
-
-      const { video_url, task_id } = await generateFalVideo(videoPrompt!, duration)
-
-      await supabase
-        .from('xenttech_clips_ai')
-        .update({
-          ...(script ? { script } : {}),
-          ...(videoPrompt && !clip.video_prompt ? { video_prompt: videoPrompt } : {}),
-          video_url,
-          generation_task_id: task_id,
-          status: 'ready',
-        })
-        .eq('id', params.id)
-    } catch (err) {
-      await supabase
-        .from('xenttech_clips_ai')
-        .update({ status: 'failed', error_message: (err as Error).message })
-        .eq('id', params.id)
-    }
-  })())
 
   return NextResponse.json({ ok: true, status: 'generating' })
 }

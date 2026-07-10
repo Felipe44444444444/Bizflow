@@ -2,6 +2,7 @@ import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import Home from './pages/Home.jsx';
 import Cancion from './pages/Cancion.jsx';
 import Precios from './pages/Precios.jsx';
+import AdminLetras from './pages/AdminLetras.jsx';
 
 function Sidebar() {
   const loc = useLocation();
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="/favoritos" element={<Home favoritos />} />
           <Route path="/precios" element={<Precios />} />
           <Route path="/pro" element={<Precios />} />
+          <Route path="/admin/letras" element={<AdminLetras />} />
         </Routes>
       </main>
     </div>

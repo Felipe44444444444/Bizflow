@@ -64,7 +64,7 @@ export default function Landing() {
   }, []);
 
   return (
-    <div style={{ background: '#0D0D0D', color: '#fff', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ background: '#0D0D0D', color: '#fff', height: '100vh', overflowY: 'auto', fontFamily: 'Inter, sans-serif' }}>
 
       {/* NAV */}
       <nav style={{

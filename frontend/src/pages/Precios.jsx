@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth.js';
+import { signInWithGoogle } from '../lib/supabase.js';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -20,11 +22,12 @@ const FEATURES_PRO = [
 ];
 
 export default function Precios() {
+  const { session } = useAuth();
   const [loading, setLoading]     = useState(false);
   const [planActual, setPlanActual] = useState('free');
 
   useEffect(() => {
-    const token = localStorage.getItem('sb-token');
+    const token = session?.access_token;
     if (!token) return;
     fetch(`${API}/api/billing/status`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -32,19 +35,19 @@ export default function Precios() {
       .then((r) => r.json())
       .then((d) => setPlanActual(d.plan || 'free'))
       .catch(() => {});
-  }, []);
+  }, [session]);
 
   const handleCheckout = async () => {
-    const token = localStorage.getItem('sb-token');
-    if (!token) {
-      window.location.href = '/login?redirect=/precios';
+    if (!session) {
+      localStorage.setItem('auth_redirect', '/precios');
+      await signInWithGoogle();
       return;
     }
     setLoading(true);
     try {
       const r = await fetch(`${API}/api/billing/musica/checkout`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const body = await r.json();
       if (body.url) {
@@ -61,7 +64,8 @@ export default function Precios() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      height: '100vh',
+      overflowY: 'auto',
       background: 'var(--bg, #0D0D0D)',
       color: '#fff',
       display: 'flex',

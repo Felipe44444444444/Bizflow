@@ -270,7 +270,7 @@ export default function Cancion() {
     <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
       <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>😔</div>
       <p style={{ marginBottom: '1rem' }}>Canción no encontrada</p>
-      <Link to="/" style={{ color: 'var(--accent)', textDecoration: 'none' }}>← Volver al catálogo</Link>
+      <Link to="/app" style={{ color: 'var(--accent)', textDecoration: 'none' }}>← Volver al catálogo</Link>
     </div>
   );
 
@@ -284,7 +284,7 @@ export default function Cancion() {
       {/* TOPBAR */}
       <div className="topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Link to="/" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex' }}>
+          <Link to="/app" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
               <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
             </svg>

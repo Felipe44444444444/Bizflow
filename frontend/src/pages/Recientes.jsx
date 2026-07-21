@@ -30,7 +30,7 @@ export default function Recientes() {
       <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🕐</div>
         <div>Aún no has visto ninguna canción</div>
-        <button onClick={() => navigate('/')} style={{
+        <button onClick={() => navigate('/app')} style={{
           marginTop: '1.5rem', padding: '0.75rem 2rem',
           background: 'var(--accent)', border: 'none',
           borderRadius: 'var(--radius-full)', color: '#000',

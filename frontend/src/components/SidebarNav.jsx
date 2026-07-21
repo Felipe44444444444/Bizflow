@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
+import AuthButton from './AuthButton.jsx';
 
 const NAV_ITEMS = [
-  { path: '/',         icon: '🏠', label: 'Inicio' },
+  { path: '/app',      icon: '🏠', label: 'Inicio' },
   { path: '/favoritos', icon: '❤️', label: 'Favoritos' },
   { path: '/artistas',  icon: '🎤', label: 'Artistas' },
   { path: '/generos',   icon: '🎵', label: 'Géneros' },
@@ -13,7 +14,7 @@ export default function SidebarNav() {
 
   return (
     <aside className="sidebar">
-      <Link to="/" className="sidebar-logo">
+      <Link to="/app" className="sidebar-logo">
         <span style={{ fontSize: 26 }}>🎸</span>
         <span>ConnectaChat</span>
       </Link>
@@ -28,7 +29,7 @@ export default function SidebarNav() {
         ))}
       </nav>
 
-      <div style={{ marginTop: 'auto', borderTop: '1px solid var(--bg-highlight)', paddingTop: '1rem' }}>
+      <div style={{ marginTop: 'auto', borderTop: '1px solid var(--bg-highlight)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <Link to="/precios" className="nav-item" style={{ color: '#C9A84C' }}>
           <span style={{ fontSize: '1.1rem', width: '24px', textAlign: 'center' }}>⭐</span>
           Plan Pro $9.99
@@ -37,6 +38,9 @@ export default function SidebarNav() {
           <span style={{ fontSize: '1.1rem', width: '24px', textAlign: 'center' }}>⚙️</span>
           Admin
         </Link>
+        <div style={{ padding: '0.25rem 0' }}>
+          <AuthButton />
+        </div>
       </div>
     </aside>
   );

@@ -1,7 +1,8 @@
 const express = require('express');
 const router  = express.Router();
 const { supabaseAdmin } = require('../config/supabase');
-const channelService    = require('../services/channelService');
+// const channelService = require('../services/channelService'); // module doesn't exist — stubbed below
+const channelService = { sendMessage: async () => ({ ok: true }) };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

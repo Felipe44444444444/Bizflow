@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth.js';
+import { signInWithGoogle, signOut } from '../lib/supabase.js';
 
 const ARTISTAS_DESTACADOS = [
   { nombre: 'Vicente Fernández', emoji: '🎩', genero: 'Ranchera' },
@@ -51,6 +53,7 @@ const TESTIMONIOS = [
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [cancionActual, setCancionActual] = useState(0);
 
   const CANCIONES_DEMO = [
@@ -86,6 +89,36 @@ export default function Landing() {
           }}>
             Catálogo
           </button>
+
+          {user ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: '50%',
+                background: '#8B0000', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.875rem', fontWeight: 700, color: '#fff'
+              }}>
+                {user.user_metadata?.full_name?.[0] || user.email?.[0]?.toUpperCase()}
+              </div>
+              <button onClick={signOut} style={{
+                background: 'none', border: '1px solid #444',
+                color: '#999', padding: '0.5rem 1rem',
+                borderRadius: '50px', cursor: 'pointer', fontSize: '0.85rem'
+              }}>
+                Salir
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => signInWithGoogle()} style={{
+              background: 'none', border: '1px solid #555',
+              color: '#fff', padding: '0.6rem 1.25rem',
+              borderRadius: '50px', fontWeight: 600,
+              cursor: 'pointer', fontSize: '0.9rem'
+            }}>
+              Iniciar sesión
+            </button>
+          )}
+
           <button onClick={() => navigate('/precios')} style={{
             background: '#8B0000', border: 'none', color: '#fff',
             padding: '0.6rem 1.5rem', borderRadius: '50px',

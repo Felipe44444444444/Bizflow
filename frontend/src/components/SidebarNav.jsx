@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { path: '/artistas',  icon: '🎤', label: 'Artistas' },
   { path: '/generos',   icon: '🎵', label: 'Géneros' },
   { path: '/recientes', icon: '🕐', label: 'Recientes' },
+  { path: '/playlists', icon: '📋', label: 'Playlists' },
 ];
 
 export default function SidebarNav() {

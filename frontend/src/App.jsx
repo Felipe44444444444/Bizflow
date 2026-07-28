@@ -7,6 +7,7 @@ import AdminLetras from './pages/AdminLetras.jsx';
 import Artistas from './pages/Artistas.jsx';
 import Generos from './pages/Generos.jsx';
 import Recientes from './pages/Recientes.jsx';
+import Playlists from './pages/Playlists.jsx';
 import AuthCallback from './pages/AuthCallback.jsx';
 import Landing from './pages/Landing.jsx';
 
@@ -31,6 +32,7 @@ export default function App() {
       <Route path="/artistas"      element={<AppLayout><Artistas /></AppLayout>} />
       <Route path="/generos"       element={<AppLayout><Generos /></AppLayout>} />
       <Route path="/recientes"     element={<AppLayout><Recientes /></AppLayout>} />
+      <Route path="/playlists"     element={<AppLayout><Playlists /></AppLayout>} />
       <Route path="/admin/letras"  element={<AppLayout><AdminLetras /></AppLayout>} />
       <Route path="/auth/callback" element={<AuthCallback />} />
     </Routes>

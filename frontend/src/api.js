@@ -12,4 +12,5 @@ export const api = {
   buscar:  (q, p = {}) => get(`${BASE}/buscar?q=${encodeURIComponent(q)}&${new URLSearchParams(p)}`),
   generos: () => get(`${BASE}/generos`),
   detalle: (id) => get(`${BASE}/${id}`),
+  letraSync: (id) => get(`${BASE}/${id}/letra-sync`),
 };

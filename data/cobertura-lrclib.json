@@ -1,0 +1,822 @@
+{
+  "stats": {
+    "con_sync": 43,
+    "solo_texto": 1,
+    "no_encontradas": 41
+  },
+  "detalle": [
+    {
+      "id": 83,
+      "titulo": "Secreto de Amor",
+      "artista": "Joan Sebastian",
+      "duracion_segundos": 268,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Secreto de Amor",
+      "artista_lrc": "Joan Sebastian",
+      "lineas_sync": 51,
+      "duracion_lrc": 282.0
+    },
+    {
+      "id": 14,
+      "titulo": "Paloma Negra",
+      "artista": "Jenni Rivera",
+      "duracion_segundos": 285,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Intro: Paloma Negra",
+      "artista_lrc": "Jenni Rivera",
+      "lineas_sync": 7,
+      "duracion_lrc": 50.0
+    },
+    {
+      "id": 25,
+      "titulo": "La Bebe",
+      "artista": "Peso Pluma ft. Yng Lvcas",
+      "duracion_segundos": 170,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "La Bebe",
+      "artista_lrc": "Yng Lvcas;Peso Pluma",
+      "lineas_sync": 77,
+      "duracion_lrc": 233.0
+    },
+    {
+      "id": 3,
+      "titulo": "La Banda del Carro Rojo",
+      "artista": "Los Tigres del Norte",
+      "duracion_segundos": 228,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "La banda del carro rojo",
+      "artista_lrc": "Los Tigres del Norte",
+      "lineas_sync": 49,
+      "duracion_lrc": 184.0
+    },
+    {
+      "id": 32,
+      "titulo": "Tu Cárcel",
+      "artista": "Los Bukis",
+      "duracion_segundos": 272,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Tu Cárcel",
+      "artista_lrc": "Los Bukis",
+      "lineas_sync": 41,
+      "duracion_lrc": 213.0
+    },
+    {
+      "id": 37,
+      "titulo": "Más Que Tu Amigo",
+      "artista": "Marco Antonio Solís",
+      "duracion_segundos": 239,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Mas que tu amigo",
+      "artista_lrc": "Marco Antonio Solís",
+      "lineas_sync": 44,
+      "duracion_lrc": 206.0
+    },
+    {
+      "id": 30,
+      "titulo": "No Te Contaron Mal",
+      "artista": "Christian Nodal",
+      "duracion_segundos": 207,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "No te contaron mal",
+      "artista_lrc": "Christian Nodal",
+      "lineas_sync": 33,
+      "duracion_lrc": 156.0
+    },
+    {
+      "id": 20,
+      "titulo": "Mi Razón de Ser",
+      "artista": "Banda MS de Sergio Lizárraga",
+      "duracion_segundos": 258,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Mi Razón de Ser (REMASTERIZADO)",
+      "artista_lrc": "Banda MS de Sergio Lizárraga",
+      "lineas_sync": 28,
+      "duracion_lrc": 209.0
+    },
+    {
+      "id": 45,
+      "titulo": "Taco de Ojo",
+      "artista": "El Komander",
+      "duracion_segundos": 203,
+      "encontrado": false
+    },
+    {
+      "id": 46,
+      "titulo": "A Lo Bestia",
+      "artista": "El Komander",
+      "duracion_segundos": 194,
+      "encontrado": false
+    },
+    {
+      "id": 17,
+      "titulo": "Las Isabeles",
+      "artista": "Chalino Sánchez",
+      "duracion_segundos": 195,
+      "encontrado": false
+    },
+    {
+      "id": 29,
+      "titulo": "Adiós Amor",
+      "artista": "Christian Nodal",
+      "duracion_segundos": 228,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Adiós Amor",
+      "artista_lrc": "Christian Nodal",
+      "lineas_sync": 37,
+      "duracion_lrc": 202.0
+    },
+    {
+      "id": 71,
+      "titulo": "El Ausente",
+      "artista": "Ramón Ayala",
+      "duracion_segundos": 208,
+      "encontrado": false
+    },
+    {
+      "id": 39,
+      "titulo": "Fuerte No Soy",
+      "artista": "Intocable",
+      "duracion_segundos": 231,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Fuerte No Soy",
+      "artista_lrc": "Intocable",
+      "lineas_sync": 44,
+      "duracion_lrc": 268.0
+    },
+    {
+      "id": 35,
+      "titulo": "Si No Te Hubieras Ido",
+      "artista": "Marco Antonio Solís",
+      "duracion_segundos": 264,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Si no te hubieras ido",
+      "artista_lrc": "Marco Antonio Solís",
+      "lineas_sync": 51,
+      "duracion_lrc": 282.0
+    },
+    {
+      "id": 23,
+      "titulo": "Soy El Diablo",
+      "artista": "Natanael Cano",
+      "duracion_segundos": 172,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Soy El Diablo",
+      "artista_lrc": "Natanael Cano",
+      "lineas_sync": 41,
+      "duracion_lrc": 157.0
+    },
+    {
+      "id": 10,
+      "titulo": "Querida",
+      "artista": "Juan Gabriel",
+      "duracion_segundos": 275,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Querida",
+      "artista_lrc": "Juan Gabriel",
+      "lineas_sync": 73,
+      "duracion_lrc": 323.0
+    },
+    {
+      "id": 21,
+      "titulo": "Amor Tumbado",
+      "artista": "Natanael Cano",
+      "duracion_segundos": 168,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Amor Tumbado",
+      "artista_lrc": "Natanael Cano",
+      "lineas_sync": 28,
+      "duracion_lrc": 221.0
+    },
+    {
+      "id": 36,
+      "titulo": "El Momento",
+      "artista": "Marco Antonio Solís",
+      "duracion_segundos": 243,
+      "encontrado": false
+    },
+    {
+      "id": 67,
+      "titulo": "Carta Jugada",
+      "artista": "Los Cadetes de Linares",
+      "duracion_segundos": 196,
+      "encontrado": true,
+      "tiene_sync": false,
+      "solo_texto": true,
+      "nombre_lrc": "Carta Jugada"
+    },
+    {
+      "id": 57,
+      "titulo": "Procuro Olvidarte",
+      "artista": "La Arrolladora Banda El Limón",
+      "duracion_segundos": 243,
+      "encontrado": false
+    },
+    {
+      "id": 26,
+      "titulo": "Ya Supérame",
+      "artista": "Grupo Firme",
+      "duracion_segundos": 218,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Ya supérame",
+      "artista_lrc": "Grupo Firme",
+      "lineas_sync": 45,
+      "duracion_lrc": 189.0
+    },
+    {
+      "id": 24,
+      "titulo": "Ella Baila Sola",
+      "artista": "Eslabon Armado ft. Peso Pluma",
+      "duracion_segundos": 195,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Ella Baila Sola",
+      "artista_lrc": "Eslabón Armado",
+      "lineas_sync": 36,
+      "duracion_lrc": 188.0
+    },
+    {
+      "id": 60,
+      "titulo": "Volverte a Ver",
+      "artista": "Valentín Elizalde",
+      "duracion_segundos": 219,
+      "encontrado": false
+    },
+    {
+      "id": 59,
+      "titulo": "A Mis Enemigos",
+      "artista": "Valentín Elizalde",
+      "duracion_segundos": 207,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "A Mis Enemigos",
+      "artista_lrc": "Valentín Elizalde",
+      "lineas_sync": 42,
+      "duracion_lrc": 185.0
+    },
+    {
+      "id": 64,
+      "titulo": "Baraja de Oro",
+      "artista": "Cornelio Reyna",
+      "duracion_segundos": 188,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Baraja De Oro",
+      "artista_lrc": "Cornelio Reyna",
+      "lineas_sync": 23,
+      "duracion_lrc": 172.0
+    },
+    {
+      "id": 16,
+      "titulo": "Alma Enamorada",
+      "artista": "Chalino Sánchez",
+      "duracion_segundos": 202,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Alma Enamorada",
+      "artista_lrc": "Chalino Sanchez",
+      "lineas_sync": 25,
+      "duracion_lrc": 172.0
+    },
+    {
+      "id": 33,
+      "titulo": "Me Muero de Amor",
+      "artista": "Los Bukis",
+      "duracion_segundos": 248,
+      "encontrado": false
+    },
+    {
+      "id": 65,
+      "titulo": "El Extraño de Tu Piel",
+      "artista": "Los Yonics",
+      "duracion_segundos": 258,
+      "encontrado": false
+    },
+    {
+      "id": 82,
+      "titulo": "Tatuajes",
+      "artista": "Joan Sebastian",
+      "duracion_segundos": 254,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Tatuajes",
+      "artista_lrc": "Joan Sebastian",
+      "lineas_sync": 24,
+      "duracion_lrc": 211.0
+    },
+    {
+      "id": 49,
+      "titulo": "Sangre de Reyes",
+      "artista": "Gerardo Ortiz",
+      "duracion_segundos": 206,
+      "encontrado": false
+    },
+    {
+      "id": 15,
+      "titulo": "Nieves de Enero",
+      "artista": "Chalino Sánchez",
+      "duracion_segundos": 210,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Nieves de enero",
+      "artista_lrc": "Chalino Sánchez",
+      "lineas_sync": 21,
+      "duracion_lrc": 209.0
+    },
+    {
+      "id": 70,
+      "titulo": "Un Rinconcito en el Cielo",
+      "artista": "Ramón Ayala",
+      "duracion_segundos": 214,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Un Rinconcito en el Cielo",
+      "artista_lrc": "Ramón Ayala & Sus Bravos del Norte",
+      "lineas_sync": 22,
+      "duracion_lrc": 212.0
+    },
+    {
+      "id": 55,
+      "titulo": "Dependencia",
+      "artista": "Calibre 50",
+      "duracion_segundos": 244,
+      "encontrado": false
+    },
+    {
+      "id": 51,
+      "titulo": "El Más Poderoso",
+      "artista": "Larry Hernandez",
+      "duracion_segundos": 208,
+      "encontrado": false
+    },
+    {
+      "id": 69,
+      "titulo": "Tragos de Amargo Licor",
+      "artista": "Ramón Ayala",
+      "duracion_segundos": 192,
+      "encontrado": false
+    },
+    {
+      "id": 43,
+      "titulo": "No Tengo Madre",
+      "artista": "Lupillo Rivera",
+      "duracion_segundos": 211,
+      "encontrado": false
+    },
+    {
+      "id": 4,
+      "titulo": "Jefe de Jefes",
+      "artista": "Los Tigres del Norte",
+      "duracion_segundos": 242,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Jefe De Jefes",
+      "artista_lrc": "Los Tigres Del Norte",
+      "lineas_sync": 46,
+      "duracion_lrc": 216.0
+    },
+    {
+      "id": 27,
+      "titulo": "El Tóxico",
+      "artista": "Grupo Firme ft. Nicki Nicole y Becky G",
+      "duracion_segundos": 204,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "El Tóxico",
+      "artista_lrc": "Grupo Firme",
+      "lineas_sync": 54,
+      "duracion_lrc": 195.0
+    },
+    {
+      "id": 6,
+      "titulo": "El Rey",
+      "artista": "Vicente Fernández",
+      "duracion_segundos": 195,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "El rey",
+      "artista_lrc": "Vicente Fernández",
+      "lineas_sync": 26,
+      "duracion_lrc": 146.0
+    },
+    {
+      "id": 53,
+      "titulo": "Corazón Vacío",
+      "artista": "Calibre 50",
+      "duracion_segundos": 251,
+      "encontrado": false
+    },
+    {
+      "id": 61,
+      "titulo": "El Gallo de Oro",
+      "artista": "Valentín Elizalde",
+      "duracion_segundos": 211,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "El Gallo De Oro",
+      "artista_lrc": "Valentín Elizalde",
+      "lineas_sync": 34,
+      "duracion_lrc": 214.256327
+    },
+    {
+      "id": 41,
+      "titulo": "El Borracho",
+      "artista": "Lupillo Rivera",
+      "duracion_segundos": 224,
+      "encontrado": false
+    },
+    {
+      "id": 75,
+      "titulo": "Me Sobran las Ganas",
+      "artista": "El Chapo de Sinaloa",
+      "duracion_segundos": 219,
+      "encontrado": false
+    },
+    {
+      "id": 38,
+      "titulo": "Robarte un Beso",
+      "artista": "Intocable",
+      "duracion_segundos": 246,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Robarte un beso",
+      "artista_lrc": "Intocable",
+      "lineas_sync": 48,
+      "duracion_lrc": 194.0
+    },
+    {
+      "id": 47,
+      "titulo": "Duro y Parejo",
+      "artista": "Gerardo Ortiz",
+      "duracion_segundos": 209,
+      "encontrado": false
+    },
+    {
+      "id": 66,
+      "titulo": "Eres un Chico Difícil de Olvidar",
+      "artista": "Los Yonics",
+      "duracion_segundos": 245,
+      "encontrado": false
+    },
+    {
+      "id": 73,
+      "titulo": "Hasta la Eternidad",
+      "artista": "Los Invasores de Nuevo León",
+      "duracion_segundos": 215,
+      "encontrado": false
+    },
+    {
+      "id": 74,
+      "titulo": "En Tu Perra Vida",
+      "artista": "El Chapo de Sinaloa",
+      "duracion_segundos": 228,
+      "encontrado": false
+    },
+    {
+      "id": 76,
+      "titulo": "Qué de Raro",
+      "artista": "Pancho Barraza",
+      "duracion_segundos": 232,
+      "encontrado": false
+    },
+    {
+      "id": 85,
+      "titulo": "No Sé Mentir",
+      "artista": "Los Invasores de Nuevo León",
+      "duracion_segundos": 211,
+      "encontrado": false
+    },
+    {
+      "id": 1,
+      "titulo": "La Jaula de Oro",
+      "artista": "Los Tigres del Norte",
+      "duracion_segundos": 214,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "La Jaula De Oro",
+      "artista_lrc": "Los Tigres Del Norte",
+      "lineas_sync": 30,
+      "duracion_lrc": 181.0
+    },
+    {
+      "id": 2,
+      "titulo": "Contrabando y Traición",
+      "artista": "Los Tigres del Norte",
+      "duracion_segundos": 252,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Contrabando y Traición",
+      "artista_lrc": "Los Tigres Del Norte",
+      "lineas_sync": 48,
+      "duracion_lrc": 205.0
+    },
+    {
+      "id": 7,
+      "titulo": "Acá Entre Nos",
+      "artista": "Vicente Fernández",
+      "duracion_segundos": 235,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Acá entre nos",
+      "artista_lrc": "Vicente Fernández",
+      "lineas_sync": 43,
+      "duracion_lrc": 194.0
+    },
+    {
+      "id": 5,
+      "titulo": "Volver Volver",
+      "artista": "Vicente Fernández",
+      "duracion_segundos": 222,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Volver, volver",
+      "artista_lrc": "Vicente Fernández",
+      "lineas_sync": 31,
+      "duracion_lrc": 178.0
+    },
+    {
+      "id": 8,
+      "titulo": "Lástima que Seas Ajena",
+      "artista": "Vicente Fernández",
+      "duracion_segundos": 250,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Lástima que seas ajena",
+      "artista_lrc": "Vicente Fernández",
+      "lineas_sync": 53,
+      "duracion_lrc": 256.0
+    },
+    {
+      "id": 11,
+      "titulo": "El Noa Noa",
+      "artista": "Juan Gabriel",
+      "duracion_segundos": 200,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "El Noa Noa",
+      "artista_lrc": "Juan Gabriel",
+      "lineas_sync": 64,
+      "duracion_lrc": 257.0
+    },
+    {
+      "id": 9,
+      "titulo": "Amor Eterno",
+      "artista": "Juan Gabriel",
+      "duracion_segundos": 268,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Amor eterno",
+      "artista_lrc": "Juan Gabriel",
+      "lineas_sync": 40,
+      "duracion_lrc": 428.0
+    },
+    {
+      "id": 12,
+      "titulo": "De Contrabando",
+      "artista": "Jenni Rivera",
+      "duracion_segundos": 232,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "De Contrabando",
+      "artista_lrc": "Jenni Rivera",
+      "lineas_sync": 45,
+      "duracion_lrc": 202.0
+    },
+    {
+      "id": 13,
+      "titulo": "La Gran Señora",
+      "artista": "Jenni Rivera",
+      "duracion_segundos": 218,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "La gran señora",
+      "artista_lrc": "Jenni Rivera",
+      "lineas_sync": 46,
+      "duracion_lrc": 252.0
+    },
+    {
+      "id": 19,
+      "titulo": "Tu Postura",
+      "artista": "Banda MS de Sergio Lizárraga",
+      "duracion_segundos": 222,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Tu Postura",
+      "artista_lrc": "Banda MS de Sergio Lizárraga",
+      "lineas_sync": 55,
+      "duracion_lrc": 305.0
+    },
+    {
+      "id": 18,
+      "titulo": "El Muchacho Alegre",
+      "artista": "Banda MS de Sergio Lizárraga",
+      "duracion_segundos": 185,
+      "encontrado": false
+    },
+    {
+      "id": 22,
+      "titulo": "El Drip",
+      "artista": "Natanael Cano",
+      "duracion_segundos": 155,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "El Drip",
+      "artista_lrc": "Natanael Cano",
+      "lineas_sync": 25,
+      "duracion_lrc": 143.0
+    },
+    {
+      "id": 28,
+      "titulo": "Yo Ya No Vuelvo Contigo",
+      "artista": "Grupo Firme",
+      "duracion_segundos": 213,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Yo Ya No Vuelvo Contigo",
+      "artista_lrc": "Grupo Firme",
+      "lineas_sync": 107,
+      "duracion_lrc": 395.9379712
+    },
+    {
+      "id": 31,
+      "titulo": "De Los Besos Que Te Di",
+      "artista": "Christian Nodal",
+      "duracion_segundos": 234,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "De los Besos Que Te Di",
+      "artista_lrc": "Christian Nodal",
+      "lineas_sync": 28,
+      "duracion_lrc": 170.253
+    },
+    {
+      "id": 34,
+      "titulo": "Falso",
+      "artista": "Los Bukis",
+      "duracion_segundos": 256,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Falso Amor",
+      "artista_lrc": "Los Bukis",
+      "lineas_sync": 31,
+      "duracion_lrc": 177.0
+    },
+    {
+      "id": 42,
+      "titulo": "Despreciado",
+      "artista": "Lupillo Rivera",
+      "duracion_segundos": 237,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Despreciado",
+      "artista_lrc": "Lupillo Rivera",
+      "lineas_sync": 35,
+      "duracion_lrc": 165.153333
+    },
+    {
+      "id": 40,
+      "titulo": "Quiero Más",
+      "artista": "Intocable",
+      "duracion_segundos": 216,
+      "encontrado": false
+    },
+    {
+      "id": 44,
+      "titulo": "El Movimiento Alterado",
+      "artista": "El Komander",
+      "duracion_segundos": 198,
+      "encontrado": false
+    },
+    {
+      "id": 50,
+      "titulo": "Borracho y Loco",
+      "artista": "Larry Hernandez",
+      "duracion_segundos": 217,
+      "encontrado": false
+    },
+    {
+      "id": 48,
+      "titulo": "Me La Llevaría",
+      "artista": "Gerardo Ortiz",
+      "duracion_segundos": 221,
+      "encontrado": false
+    },
+    {
+      "id": 54,
+      "titulo": "El Sinaloense",
+      "artista": "Calibre 50",
+      "duracion_segundos": 223,
+      "encontrado": false
+    },
+    {
+      "id": 52,
+      "titulo": "Patrón de Patrones",
+      "artista": "Larry Hernandez",
+      "duracion_segundos": 199,
+      "encontrado": false
+    },
+    {
+      "id": 56,
+      "titulo": "El Mechón",
+      "artista": "La Arrolladora Banda El Limón",
+      "duracion_segundos": 198,
+      "encontrado": false
+    },
+    {
+      "id": 58,
+      "titulo": "Qué Lloren",
+      "artista": "La Arrolladora Banda El Limón",
+      "duracion_segundos": 218,
+      "encontrado": false
+    },
+    {
+      "id": 63,
+      "titulo": "Me Caíste del Cielo",
+      "artista": "Cornelio Reyna",
+      "duracion_segundos": 201,
+      "encontrado": true,
+      "tiene_sync": true,
+      "nombre_lrc": "Me Caíste Del Cielo",
+      "artista_lrc": "Cornelio Reyna",
+      "lineas_sync": 32,
+      "duracion_lrc": 218.0
+    },
+    {
+      "id": 62,
+      "titulo": "Necesito una Compañera",
+      "artista": "Cornelio Reyna",
+      "duracion_segundos": 195,
+      "encontrado": false
+    },
+    {
+      "id": 68,
+      "titulo": "El Papalote",
+      "artista": "Los Cadetes de Linares",
+      "duracion_segundos": 203,
+      "encontrado": false
+    },
+    {
+      "id": 72,
+      "titulo": "Consejo de Amor",
+      "artista": "Los Invasores de Nuevo León",
+      "duracion_segundos": 221,
+      "encontrado": false
+    },
+    {
+      "id": 79,
+      "titulo": "Los Dos Amigos",
+      "artista": "Miguel y Miguel",
+      "duracion_segundos": 198,
+      "encontrado": false
+    },
+    {
+      "id": 77,
+      "titulo": "Como un Perro Abandonado",
+      "artista": "Pancho Barraza",
+      "duracion_segundos": 248,
+      "encontrado": false
+    },
+    {
+      "id": 78,
+      "titulo": "El Corrido del Pato",
+      "artista": "Miguel y Miguel",
+      "duracion_segundos": 201,
+      "encontrado": false
+    },
+    {
+      "id": 80,
+      "titulo": "La Criatura",
+      "artista": "El As de la Sierra",
+      "duracion_segundos": 195,
+      "encontrado": false
+    },
+    {
+      "id": 81,
+      "titulo": "Corrido del 22",
+      "artista": "El As de la Sierra",
+      "duracion_segundos": 208,
+      "encontrado": false
+    },
+    {
+      "id": 84,
+      "titulo": "Bésame, Bésame",
+      "artista": "Joan Sebastian",
+      "duracion_segundos": 241,
+      "encontrado": false
+    }
+  ]
+}

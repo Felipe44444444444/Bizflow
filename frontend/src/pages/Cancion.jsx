@@ -58,6 +58,27 @@ function buildLetraConAcordes(letraRaw, acordes) {
   });
 }
 
+// Letra real de LRCLIB (tiempos reales) + acorde real más reciente en ese
+// instante (también tiempo real) — union de dos fuentes de timing real,
+// sin la aproximación proporcional de buildLetraConAcordes.
+function buildLetraConAcordesLRC(lineasLRC, acordes) {
+  if (!lineasLRC?.length) return [];
+  return lineasLRC.map(l => {
+    let acorde = acordes[0];
+    for (const a of acordes) {
+      if (a.tiempo_segundos <= l.tiempo) acorde = a;
+      else break;
+    }
+    return {
+      tipo: 'linea',
+      texto: l.texto,
+      tiempo: l.tiempo,
+      acorde: acorde?.acorde,
+      tipoAcorde: acorde?.tipo,
+    };
+  });
+}
+
 function Metronomo({ bpm: bpmInicial }) {
   const [bpm, setBpm] = useState(bpmInicial || 120);
   const [corriendo, setCorriendo] = useState(false);
@@ -114,6 +135,7 @@ function Metronomo({ bpm: bpmInicial }) {
 export default function Cancion() {
   const { id } = useParams();
   const [cancion, setCancion]         = useState(null);
+  const [letraSync, setLetraSync]     = useState(null);
   const [loading, setLoading]         = useState(true);
   const [modo, setModo]               = useState('tocada'); // 'tocada' | 'video'
   const [player, setPlayer]           = useState(null);
@@ -133,6 +155,7 @@ export default function Cancion() {
   const letraRef                        = useRef(null);
 
   useEffect(() => {
+    setLetraSync(null);
     api.detalle(id).then(c => {
       setCancion(c);
       try {
@@ -141,6 +164,7 @@ export default function Cancion() {
         localStorage.setItem('cc-recientes', JSON.stringify(next));
       } catch {}
     }).catch(console.error).finally(() => setLoading(false));
+    api.letraSync(id).then(setLetraSync).catch(() => setLetraSync({ sync: false, secciones: [] }));
   }, [id]);
 
   // YouTube IFrame API
@@ -212,8 +236,12 @@ export default function Cancion() {
     acorde: transposeChord(a.acorde, transpose),
   }));
 
-  // Letra + acordes intercalados
-  const letraConAcordes = buildLetraConAcordes(letraLineas, acordesTranspuestos);
+  // Letra + acordes intercalados — LRC (tiempo real) si hay sync, si no
+  // cae a la estructura de secciones (sin texto de letra)
+  const usaLRC = letraSync?.sync === true;
+  const letraConAcordes = usaLRC
+    ? buildLetraConAcordesLRC(letraSync.lineas, acordesTranspuestos)
+    : buildLetraConAcordes(letraLineas, acordesTranspuestos);
 
   // Sync acorde activo
   useEffect(() => {
@@ -464,7 +492,19 @@ export default function Cancion() {
           {/* LETRA CON ACORDES INTERCALADOS */}
           {letraConAcordes.length > 0 && (
             <div className="letra-section" ref={letraRef}>
-              <div className="letra-title">LETRA Y ACORDES</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="letra-title">LETRA Y ACORDES</div>
+                {letraSync && (
+                  <span style={{
+                    fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px',
+                    borderRadius: 'var(--radius-full)',
+                    background: usaLRC ? 'rgba(29,185,84,0.15)' : 'var(--bg-highlight)',
+                    color: usaLRC ? 'var(--accent)' : 'var(--text-muted)',
+                  }}>
+                    {usaLRC ? '🎯 Letra sincronizada' : '🎸 Acordes + estructura'}
+                  </span>
+                )}
+              </div>
               {letraConAcordes.map((linea, i) =>
                 linea.tipo === 'seccion' ? (
                   <div key={i} className="letra-seccion-titulo">{linea.texto}</div>

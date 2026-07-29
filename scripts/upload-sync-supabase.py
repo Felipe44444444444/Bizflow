@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """
 Sube los acordes auto-detectados a Supabase.
-Lee todos los data/sync/cancion_*_sync.json y actualiza la tabla canciones.
+
+Requiere --ids con la lista explicita de song IDs a subir (los que se
+acaban de procesar en esta corrida). No sube archivos viejos que quedaron
+sueltos en data/sync/ de corridas anteriores -- eso fue lo que sobreescribio
+49 canciones ya corregidas con fuentes reales el 2026-07-27.
+
+Uso: python3 scripts/upload-sync-supabase.py --ids 12,45,67
 """
 
+import argparse
 import json
 import os
-import glob
 import urllib.request
 import urllib.error
 
@@ -38,8 +44,18 @@ def patch_cancion(cancion_id: int, acordes: list, sync_calidad: str = "auto-dete
         return False
 
 
-archivos = sorted(glob.glob("data/sync/cancion_*_sync.json"))
-print(f"Subiendo {len(archivos)} archivos a Supabase...\n")
+parser = argparse.ArgumentParser()
+parser.add_argument("--ids", required=True, help="song IDs a subir, separados por coma (ej: 12,45,67)")
+args = parser.parse_args()
+
+ids_permitidos = {int(x) for x in args.ids.split(",") if x.strip()}
+archivos = [f"data/sync/cancion_{i}_sync.json" for i in ids_permitidos]
+archivos = [a for a in archivos if os.path.exists(a)]
+faltantes = ids_permitidos - {int(os.path.basename(a).split("_")[1]) for a in archivos}
+if faltantes:
+    print(f"AVISO: no hay archivo sync para IDs {sorted(faltantes)}, se omiten")
+
+print(f"Subiendo {len(archivos)} archivos a Supabase (solo IDs {sorted(ids_permitidos)})...\n")
 
 ok = err = 0
 for archivo in archivos:

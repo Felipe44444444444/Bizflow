@@ -223,6 +223,95 @@ router.post('/favoritos', authSupabase, async (req, res) => {
   });
 });
 
+// ── GET /api/canciones/:id/letra-sync ────────────────────────────────────────
+// Letra sincronizada en vivo desde LRCLIB (no se persiste en Supabase —
+// LRCLIB es la fuente legal en tiempo real). Si no hay match con sync,
+// cae a la estructura de secciones (sin texto de letra) para el modo
+// solo-acordes.
+const LRC_CACHE = new Map(); // id -> { ts, data }
+const LRC_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6h — las letras no cambian
+
+function limpiarArtista(artista) {
+  return String(artista ?? '').split(/ ft\.| feat\.| y sus| &/i)[0].trim();
+}
+
+function parseLRC(syncedLyrics) {
+  const lineas = [];
+  const tagRe = /\[(\d{2}):(\d{2}(?:\.\d{1,2})?)\]/g;
+  for (const raw of String(syncedLyrics ?? '').split('\n')) {
+    const texto = raw.replace(/\[\d{2}:\d{2}(?:\.\d{1,2})?\]/g, '').trim();
+    if (!texto) continue;
+    tagRe.lastIndex = 0;
+    let m;
+    while ((m = tagRe.exec(raw))) {
+      const tiempo = parseInt(m[1], 10) * 60 + parseFloat(m[2]);
+      lineas.push({ tiempo, texto });
+    }
+  }
+  lineas.sort((a, b) => a.tiempo - b.tiempo);
+  return lineas;
+}
+
+function elegirMejorMatch(resultados, duracionEsperada) {
+  const conSync = (resultados || []).filter(r => r.syncedLyrics);
+  if (!conSync.length) return null;
+  if (duracionEsperada) {
+    conSync.sort((a, b) =>
+      Math.abs((a.duration || 0) - duracionEsperada) - Math.abs((b.duration || 0) - duracionEsperada)
+    );
+  }
+  return conSync[0];
+}
+
+router.get('/:id/letra-sync', async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (!Number.isFinite(id) || id < 1) return err(res, 400, 'ID inválido');
+
+  const cached = LRC_CACHE.get(id);
+  if (cached && Date.now() - cached.ts < LRC_CACHE_TTL_MS) {
+    return res.json(cached.data);
+  }
+
+  const { data: cancion, error } = await supabaseAdmin
+    .from('canciones')
+    .select('id, titulo, artista, duracion_segundos, estructura')
+    .eq('id', id)
+    .single();
+
+  if (error?.code === 'PGRST116') return err(res, 404, `Canción ${id} no encontrada`);
+  if (error) return err(res, 500, error.message);
+
+  const fallback = { sync: false, secciones: cancion.estructura || [] };
+
+  let resultado = fallback;
+  try {
+    const params = new URLSearchParams({
+      track_name: cancion.titulo,
+      artist_name: limpiarArtista(cancion.artista),
+    });
+    const r = await fetch(`https://lrclib.net/api/search?${params}`, {
+      headers: { 'User-Agent': 'ConnectaChat/1.0 (https://conectaachat.com)' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (r.ok) {
+      const resultados = await r.json();
+      const mejor = elegirMejorMatch(resultados, cancion.duracion_segundos);
+      if (mejor) {
+        const lineas = parseLRC(mejor.syncedLyrics);
+        if (lineas.length) {
+          resultado = { sync: true, lineas, fuente: 'lrclib' };
+        }
+      }
+    }
+  } catch (e) {
+    // LRCLIB caído/lento — degradar a fallback sin romper la página
+    console.error(`[letra-sync] LRCLIB error para canción ${id}:`, e.message);
+  }
+
+  LRC_CACHE.set(id, { ts: Date.now(), data: resultado });
+  res.json(resultado);
+});
+
 // PATCH /api/canciones/:id/letra — actualizar letra manualmente (admin)
 router.patch('/:id/letra', async (req, res) => {
   const { id } = req.params;

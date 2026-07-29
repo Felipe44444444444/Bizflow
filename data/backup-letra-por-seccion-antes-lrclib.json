@@ -1,0 +1,459 @@
+[
+  {
+    "id": 14,
+    "titulo": "Paloma Negra",
+    "letra_por_seccion": {
+      "Coro": "Hoy te juro que jamás\nHe podido amar igual\nQuiero ser libre pero no puedo\nPaloma negra ¿dónde andarás?",
+      "Intro": "Mariachi con violines llorando la melodía, intro dramática",
+      "Outro": "Violines en llanto, cierre emotivo con mariachi",
+      "Verso 1": "Ya me canté de rogarle\nYa me canté de llorar\nPaloma negra paloma negra\n¿Dónde dónde andarás?",
+      "Verso 2": "Son más viejas mis angustias\nQue el retrato de tu madre\nPaloma negra paloma negra\n¿Por qué vuelas tan lejos de mí?",
+      "Verso 3": "A dónde irás paloma negra\nQue en mis noches lloro sin poder dormir\nSi ya te fuiste para no volver\nEntonces para qué vivo sin ti"
+    }
+  },
+  {
+    "id": 25,
+    "titulo": "La Bebe",
+    "letra_por_seccion": {
+      "Coro": "La bebe la bebe\nSe mueve que se mueve\nLa bebe la bebe\nEl corazón me trae\nLa bebe la bebe\nQue no para no para\nLa bebe la bebe",
+      "Intro": "Beat urbano con guitarra racheada norteña, sample percutivo característico",
+      "Outro": "Beat desvaneciéndose, guitarra sola",
+      "Puente": "Yng Lvcas y Peso Pluma juntos\nDominando los rumbos\nEl trap y el corrido unidos\nSomos los más buscados",
+      "Verso 1": "La bebe me tiene loco\nEs diferente a todas\nTrae el swag a poquito\nPero enloquece a todas",
+      "Verso 2": "Me manda un mensaje a las dos\nDice que piensa en los dos\nY yo le respondo en el spot\nQue también pienso en los dos"
+    }
+  },
+  {
+    "id": 3,
+    "titulo": "La Banda del Carro Rojo",
+    "letra_por_seccion": {
+      "Coro": "La banda del carro rojo\njamás se pudo olvidar\nsus nombres quedaron escritos\nen el norte pa' recordar\nque vivieron como leones\ny supieron pelear",
+      "Verso 1": "La banda del carro rojo\ncorría sin parar\nde Sinaloa a Sonora\ncon carga pa' vender\neran cinco compañeros\nque no le temían a nada",
+      "Verso 2": "Murieron como valientes\nen medio del desierto\nninguno se rindió\ntodos salieron muertos\npero su nombre y su historia\nsigue viva en la frontera"
+    }
+  },
+  {
+    "id": 83,
+    "titulo": "Secreto de Amor",
+    "letra_por_seccion": {
+      "Coro": "Secreto de amor\nQue nadie debe saber\nSecreto de amor\nQue solo viven tú y yo\nSecreto de amor\nQue nos une sin querer\nSecreto de amor\nQue el destino nos dio",
+      "Intro": "Bolero ranchero con mariachi, Joan Sebastian en tonalidad de C mayor, intro lenta y sensual",
+      "Outro": "Mariachi en pianissimo, cierre suave con guitarrón",
+      "Puente": "Joan Sebastian escribió esta canción\nPara los amores que no pueden ser\nPara los que se aman en silencio\nSin poder decirlo aunque quieran",
+      "Verso 1": "Tenemos un secreto de amor\nQue nadie más conoce\nSolo tú y yo sabemos\nLo que el corazón reconoce\nEse secreto que guardamos\nEntre los dos con discreción\nQue es más poderoso\nQue cualquier declaración",
+      "Verso 2": "Cuando nos vemos en público\nActuamos con naturalidad\nPero por dentro nos sabemos\nCada mirada cada verdad\nEse secreto que cargamos\nEs más pesado cada día"
+    }
+  },
+  {
+    "id": 32,
+    "titulo": "Tu Cárcel",
+    "letra_por_seccion": {
+      "Coro": "Tu cárcel es mi vida\nTus rejas son de amor\nEstoy preso en tu mundo\nY el carcelero eres tú\nTu cárcel es mi cuerpo\nTu cárcel es mi alma\nQué lástima tan grande\nVivir sin tu calma",
+      "Intro": "Teclados característicos de Los Bukis, balada grupera melancólica en la menor",
+      "Outro": "Teclados en decrescendo, balada cerrando lentamente",
+      "Puente": "Marco Antonio Solís compuso este poema\nPara los que aman sin límites\nY saben que el amor verdadero\nEs la más dulce de las prisiones",
+      "Verso 1": "Cuánto tiempo aquí sentado\nMirando la pared\nTu ausencia me ha llegado\nMás hondo que otra vez\nTus recuerdos me encadenan\nEsta soledad me duele\nSoy prisionero tuyo\nY no hay quien me consuele",
+      "Verso 2": "Si el amor es una cárcel\nYo no quiero ser libre\nPreferiero estar encadenado\nA que tu ausencia me lastime"
+    }
+  },
+  {
+    "id": 37,
+    "titulo": "Más Que Tu Amigo",
+    "letra_por_seccion": {
+      "Coro": "Soy más que tu amigo\nY menos que tu amor\nEstoy en el medio\nDe la amistad y el dolor\nSoy más que tu amigo\nY quisiera ser todo\nPero no me dejas entrar\nDe ningún modo",
+      "Intro": "Guitarra acústica y piano, balada romántica con influencia pop-grupero",
+      "Outro": "Piano final con ritardando",
+      "Verso 1": "Soy más que tu amigo\nLo sabes muy bien\nQue cada vez que me buscas\nEs porque me necesitas también\nY aunque dices que solo somos amigos\nTus ojos me dicen otra cosa",
+      "Verso 2": "Cada abrazo que me das\nMe confunde más y más\nCada vez que me sonríes\nNo puedo dejar de pensar"
+    }
+  },
+  {
+    "id": 30,
+    "titulo": "No Te Contaron Mal",
+    "letra_por_seccion": {
+      "Coro": "No te contaron mal\nSoy de rancho y soy sincero\nQuizás no soy lo que esperabas\nPero soy hombre de lo bueno\nNo te contaron mal\nLo que ves es lo que hay\nSoy cristiano y soy Nodal\nY en el amor no fallo más",
+      "Intro": "Acordeón y requinto norteño, polka con estilo contemporáneo de Nodal",
+      "Outro": "Acordeón en resolución final, norteño puro",
+      "Verso 1": "No te contaron mal de mí\nSoy lo que dicen que soy\nSí fui borracho y mujeriego\nPero ese ya no soy hoy",
+      "Verso 2": "Me señalan con el dedo\nPor lo que fui en el pasado\nPero nadie nace sabiendo\nY yo ya sé lo que he cambiado"
+    }
+  },
+  {
+    "id": 20,
+    "titulo": "Mi Razón de Ser",
+    "letra_por_seccion": {
+      "Coro": "Eres mi razón de ser\nMi motivo para estar aquí\nSin tu amor no puedo ver\nEl horizonte de mi existir\nEres tú mi razón de ser",
+      "Intro": "Balada de banda, trompetas suaves y clarinete en melodía dulce",
+      "Outro": "Banda en pianissimo, cierre suave y emotivo",
+      "Puente": "Y aunque el mundo se acabe\nYo siempre te voy a querer\nPorque sin ti en mi vida\nNo tiene caso ni existir",
+      "Verso 1": "Desde que llegaste a mi vida\nTodo cambió para bien\nSiento que nací de nuevo\nCuando me miras también",
+      "Verso 2": "Tus manos me dan la calma\nQue siempre he buscado en mi alma\nTu voz es lo que necesito\nPara seguir en este camino"
+    }
+  },
+  {
+    "id": 29,
+    "titulo": "Adiós Amor",
+    "letra_por_seccion": {
+      "Coro": "Adiós amor\nNo tengo más que decirte\nSolo que me duele mucho\nTener que despedirte\nAdiós amor\nQue te vaya muy bonito\nYo me quedo con el tiempo\nQue pasamos juntos",
+      "Intro": "Debut de Nodal, banda sinaloense con producción moderna, trompetas suaves",
+      "Outro": "Nortec moderno con bajo de tuba en fade",
+      "Verso 1": "Recuerdo que llegaste un día de verano\nQue tu sonrisa me llegó hasta las manos\nQue me entregué sin medir las consecuencias\nY hoy me arrepiento de tan larga resistencia",
+      "Verso 2": "Cometí el error de creer que eras todo\nY cuando te fuiste me perdí de otro modo\nHoy entiendo que el amor no es un seguro\nQue a veces el adiós construye el futuro",
+      "Pre-Coro": "No me quedé sin amor\nMe quedé sin el tuyo\nQue aunque duela admitirlo\nEra el que yo más quería"
+    }
+  },
+  {
+    "id": 23,
+    "titulo": "Soy El Diablo",
+    "letra_por_seccion": {
+      "Coro": "Soy el diablo soy el malo\nEl que todos señalan\nPero los mismos que critican\nConmigo andan y se escalan",
+      "Intro": "Guitarra en flamenco norteño, progresión Am-G-F-E característica del flamenco",
+      "Outro": "Guitarra flamenca cerrando en Am",
+      "Verso 1": "Soy el diablo en carne viva\nY traigo gente arriba\nQue me respalda mi vida\nEn cada esquina que pisa",
+      "Verso 2": "Me pintan de negro\nPorque soy de otro rango\nNi modo que les mienta\nSoy de los que andan fregando"
+    }
+  },
+  {
+    "id": 39,
+    "titulo": "Fuerte No Soy",
+    "letra_por_seccion": {
+      "Coro": "Fuerte no soy\ncuando de ti se trata\npierdo la cordura\npierdo la batalla\nfuerte no soy\ncuando me miras\nme rindo ante tus ojos\nte entrego el alma mía",
+      "Verso 1": "Creí que era fuerte\ncreí que podría\nolvidarte para siempre\ny seguir con mi vida\npero cuando menos pienso\nel recuerdo de ti llega",
+      "Verso 2": "Me prometí no buscarte\nme prometí olvidarte\npero el corazón no escucha\ny regresa a buscarte\nno tengo fuerza suficiente\npara alejarme de ti"
+    }
+  },
+  {
+    "id": 10,
+    "titulo": "Querida",
+    "letra_por_seccion": {
+      "Coro": "Querida tú eres buena\nTu corazón no engaña\nEres como la cigüeña\nQue llega a mi ventana",
+      "Intro": "Mariachi con trompetas, entrada brillante y festiva",
+      "Outro": "Trompetas en fanfarria, final festivo",
+      "Puente": "Ojalá que te vaya bonito\nOjalá que se acaben tus penas\nOjalá que la vida te premie\nCon un amor que te llene la vida",
+      "Verso 1": "Querida ya llegué\nCon el alma contrita herida y cansada\nQuerida ya me fui\nA seguir con mi vida en otra posada",
+      "Verso 2": "Querida te perdí\nCuando un día decidiste ser feliz con otro\nY al paso del tiempo al fin comprendí\nQue tú eras mi amor y yo era tu tormento"
+    }
+  },
+  {
+    "id": 35,
+    "titulo": "Si No Te Hubieras Ido",
+    "letra_por_seccion": {
+      "Coro": "Si no te hubieras ido\nsi yo te hubiera retenido\nsi no hubiera sido tan terco\nsi no te hubiera perdido\nsi no te hubieras ido",
+      "Verso 1": "Hoy que estoy tan solo\nrecuerdo tus palabras\ncuando me dijiste que te ibas\npor no haberte escuchado",
+      "Verso 2": "Ahora que el tiempo pasa\nme doy cuenta que te amaba\ny que nunca en mi vida\nnadie me ha querido así"
+    }
+  },
+  {
+    "id": 21,
+    "titulo": "Amor Tumbado",
+    "letra_por_seccion": {
+      "Coro": "Así es el amor tumbado\nTe llega sin ser esperado\nTe deja mal parado\nY al final te has enamorado\nAsí es el corrido tumbado",
+      "Intro": "Beat trap con guitarra acústica norteña, fusión de estilos, intro suave",
+      "Outro": "Guitar outro con beat trap desvaneciéndose",
+      "Verso 1": "Amor tumbado qué te pasó\nAntes eras bueno y ahora el malo soy yo\nMe cambiaste el switch cuando menos pensé\nY ahora ando en el bad mode sin saber por qué",
+      "Verso 2": "Entre caguamas y corridos\nMe di cuenta de lo que has hecho\nQue me tiraste al suelo el pecho\nY yo seguía de ti prendido"
+    }
+  },
+  {
+    "id": 26,
+    "titulo": "Ya Supérame",
+    "letra_por_seccion": {
+      "Coro": "Ya supérame ya supérame\nQue yo seguí mi camino sin ti\nYa supérame ya supérame\nQue algo mucho mejor llegó para mí",
+      "Intro": "Banda sinaloense con metales y tuba, groove bailable de polka moderna",
+      "Outro": "Banda en remate final con tarolas y platillos",
+      "Puente": "Edén Muñoz me escribió esta canción\nPara decirte adiós con dignidad\nY aunque duela admitir que perdiste\nAsí es el amor y así será",
+      "Verso 1": "Ya supérame por favor\nQue si me extrañas ya no es mi error\nTú me dejaste sin compasión\nY hoy te arrepientes sin ninguna razón",
+      "Verso 2": "No me llames a deshoras\nNi aparezcas cuando quieras\nYa pasó el tiempo de llorarte\nHoy soy feliz y ya no me duele"
+    }
+  },
+  {
+    "id": 24,
+    "titulo": "Ella Baila Sola",
+    "letra_por_seccion": {
+      "Coro": "Ella baila sola\nnadie la acompaña\nella ríe sola\nnada le hace daña\nella vive sola\nen su propio mundo",
+      "Verso 1": "Cuando el alcohol comienza a circular\nen el cuerpo y en la mente\nya no piensa en más\ny el corazón se olvida de sufrir",
+      "Verso 2": "Sus amigas se preguntan\nde qué está feliz\nsi su amor se fue hace tiempo\nlejos de aquí"
+    }
+  },
+  {
+    "id": 64,
+    "titulo": "Baraja de Oro",
+    "letra_por_seccion": {
+      "Coro": "Baraja de oro\nno me traicionaste\nfui yo el culpable\nde todo lo que aposté\nbaraja de oro\nme enseñaste a vivir\nque en el amor y en el juego\nhay que saber ganar y perder",
+      "Verso 1": "Con la baraja de oro\nme puse a jugar un día\naposté todo lo que tenía\naposté hasta mi alegría\nperdi en aquella partida\npero aprendí la lección mía",
+      "Verso 2": "En la mesa de la vida\ntodos jugamos algún día\nunos ganan en el amor\notros pierden la alegría\npero al final lo que importa\nes jugar con valentía"
+    }
+  },
+  {
+    "id": 59,
+    "titulo": "A Mis Enemigos",
+    "letra_por_seccion": {
+      "Coro": "A mis enemigos\nles mando saludar\nque el Gallo de Oro\nno para de cantar\nque sigan intentando\nno me van a callar",
+      "Verso 1": "A mis enemigos les digo\nque aquí sigo en pie\nque aunque me busquen la muerte\nno han podido con el Gallo\nme han tirado muchas balas\npero aquí estoy de vuelta",
+      "Verso 2": "El que nació pa' tamal\ndel cielo le caen las hojas\ny al que nació pa' mero gallo\nningún zorro lo acobarda\nyo soy el Gallo de Oro\ncanto sin miedo alguno"
+    }
+  },
+  {
+    "id": 16,
+    "titulo": "Alma Enamorada",
+    "letra_por_seccion": {
+      "Coro": "Alma enamorada\nno puedo olvidarte\nalma enamorada\nte sigo esperando\nque regreses pronto\nque vuelvas conmigo\nque sin ti mi vida\nno tiene sentido",
+      "Verso 1": "Mi alma enamorada\nllora por tu amor\nllora en la distancia\nllora con dolor\ndesde que te fuiste\nmi vida se oscureció\nmi alma enamorada\ntu recuerdo no olvidó",
+      "Verso 2": "Por los caminos de Sinaloa\nte busco sin parar\npregunté a los vientos\ny a las olas del mar\nnadie me da razón de ti\nnada me quiere contestar"
+    }
+  },
+  {
+    "id": 82,
+    "titulo": "Tatuajes",
+    "letra_por_seccion": {
+      "Coro": "Tatuajes en la piel\nTatuajes en el alma\nTatuajes de tu amor\nQue no me dan la calma\nTatuajes que me duelen\nCuando pasa el tiempo y tú no estás\nTatuajes que recuerdan\nQue te amé y que te amaré más",
+      "Intro": "Mariachi moderno con Joan Sebastian, ranchera de autor con sello pop-ranchero",
+      "Outro": "Mariachi cerrando con trumpetas, ranchera terminando con grito charro",
+      "Puente": "Joan Sebastian el poeta\nDel rancho y de la ciudad\nDiciendo que el amor que duele\nEs el que más se recuerda ya",
+      "Verso 1": "Me hice un tatuaje en la piel\nPara no poder olvidarte\nUn tatuaje que no se borra\nCon el nombre de tu amor\nLo mandé grabar muy hondo\nPara que jamás se borre\nY que cada vez que me vea\nTe recuerde con dolor",
+      "Verso 2": "Dicen que los tatuajes\nSe pueden quitar con láser\nPero el tatuaje que tú me diste\nNingún láser puede borrar\nEstá grabado en lo profundo\nEn el alma y en el corazón"
+    }
+  },
+  {
+    "id": 15,
+    "titulo": "Nieves de Enero",
+    "letra_por_seccion": {
+      "Intro": "Acordeón norteño con tololoche, estilo Sinaloa antiguo",
+      "Outro": "Acordeón cerrando con el tema inicial",
+      "Estrofa 1": "En el mes de enero\nCuando el frío arrecia\nRecuerdo mi tierra\nY a mi amada Graciela",
+      "Estrofa 2": "Con nieves de enero\nSe cubre el camino\nQue lleva a tu rancho\nDonde nació mi destino",
+      "Estrofa 3": "Me fui de tu lado\nPor culpa del viento\nPero en cada noche\nTe llevo en el pensamiento",
+      "Estrofa 4": "Así pasan los años\nY el tiempo va y viene\nPero el amor que tengo\nSolo para ti se mantiene"
+    }
+  },
+  {
+    "id": 70,
+    "titulo": "Un Rinconcito en el Cielo",
+    "letra_por_seccion": {
+      "Coro": "Un rinconcito en el cielo\nEs lo que te pido a ti\nQue cuando yo me vaya de este mundo\nMe esperes tú ahí\nUn rinconcito en el cielo\nPara los dos existir\nJuntos para siempre\nEn el más allá vivir",
+      "Intro": "Norteña con sabor ranchero, Ramón Ayala en registro emotivo con tololoche",
+      "Outro": "Acordeón cerrando emotivamente, norteña en fade",
+      "Verso 1": "Pídele a Dios un rinconcito\nEn el cielo para mí\nPara cuando me muera\nEstar cerca de ti\nQue nos guarden un lugar\nJuntos para siempre\nDonde el amor no duela\nY la vida sea diferente",
+      "Verso 2": "La vida pasa rápido\nY el amor no alcanza\nPero si hay un cielo\nTengo la esperanza\nDe volverte a encontrar\nEn algún lugar eterno"
+    }
+  },
+  {
+    "id": 4,
+    "titulo": "Jefe de Jefes",
+    "letra_por_seccion": {
+      "Coro": "Soy el jefe de jefes señores\ny lo vengo a demostrar\nque el dinero y el poder\nno te pueden comprar\nla paz y la tranquilidad\nque yo tengo al caminar",
+      "Outro": "Soy el jefe de jefes\nseñores tengo el poder\nsoy la máxima autoridad\ny mi palabra es la ley",
+      "Verso 1": "Siempre me gustó todo\nlo que es de calidad\nlos carros del año\nla buena amistad\npor eso no me arrepiento\nde lo que llegué a ser",
+      "Verso 2": "Nací en tierra sinaloense\ncrecer fue mi destino\nme gané el respeto a pulso\ncaminando mi camino\nnadie me regaló nada\ntodo lo conquisté"
+    }
+  },
+  {
+    "id": 27,
+    "titulo": "El Tóxico",
+    "letra_por_seccion": {
+      "Coro": "Eres tóxico para mí\nY sin embargo no puedo prescindir\nDe tu amor que me hace enloquecer\nEres lo peor y lo mejor a la vez\nSoy adicto a tu veneno\nMe tienes mal y sé que está mal",
+      "Intro": "Beat urbano fusionado con banda, mezcla norteña con trap latino",
+      "Outro": "Trompetas de banda cerrando el track",
+      "Verso 1": "Quiero olvidarte pero no puedo\nEres veneno que en mí has sembrado\nY aunque me haces daño y sé lo que has hecho\nNo puedo quitarte de mi pensamiento",
+      "Verso 2": "Ya sé que no me conviene\nQue cuando te vas me duele\nPero cuando regresas\nOlvido todo lo que sé",
+      "Pre-Coro": "Porque eres malo para mí\nY sin embargo no puedo seguir\nSin tenerte aquí\nEres todo lo que no necesito"
+    }
+  },
+  {
+    "id": 6,
+    "titulo": "El Rey",
+    "letra_por_seccion": {
+      "Coro": "Con dinero y sin dinero\nhago siempre lo que quiero\ny mi palabra es la ley\nno tengo trono ni reina\nni nadie que me comprenda\npero sigo siendo el rey",
+      "Verso 1": "Yo sé bien que estoy afuera\npero el día que yo me muera\nsé que tendrás que llorar\nllorar y llorar\ndirás que no me quisiste\npero vas a estar muy triste\ny así te vas a quedar",
+      "Verso 2": "Una piedra en el camino\nme enseñó que mi destino\nera rodar y rodar\ntambién me dijo un arriero\nque no hay que llegar primero\npero hay que saber llegar"
+    }
+  },
+  {
+    "id": 61,
+    "titulo": "El Gallo de Oro",
+    "letra_por_seccion": {
+      "Intro": "Corrido alegre con acordeón, homenaje al apodo de Valentín Elizalde",
+      "Outro": "Acordeón cerrando rápido, corrido finalizando con remate",
+      "Estrofa 1": "Me llaman el gallo de oro\nPorque siempre me levanto\nAunque caiga me levanto\nComo gallo que no llanto",
+      "Estrofa 2": "Soy del estado de Sonora\nPero canto en Sinaloa\nY en Jalisco y en Nayarit\nY en donde quieran que me pongan",
+      "Estrofa 3": "El gallo de oro no se rinde\nEl gallo de oro sigue en pie\nY donde quieran que me pongan\nEl gallo de oro ha de ganar",
+      "Estrofa 4": "Valentín Elizalde en el corrido\nCantando su nombre y su historia\nEl gallo de oro que se fue\nPero quedó pa' siempre en la memoria"
+    }
+  },
+  {
+    "id": 38,
+    "titulo": "Robarte un Beso",
+    "letra_por_seccion": {
+      "Coro": "Robarte un beso\nrobarte el alma\nquedarte conmigo siempre\ny no dejarte nunca\nserías mía\nyo sería tuyo\nsi me dejaras\nrobarte un beso",
+      "Verso 1": "Quisiera robarte un beso\nsin que te des cuenta amor\nacercarme a tu mejilla\ny decirte cuánto te quiero\nsin palabras ni promesas\nsolo darte mi calor",
+      "Verso 2": "Cada vez que me sonríes\nel corazón se me va\ntus ojos me tienen loco\nno te puedo olvidar\npor eso quiero acercarme\ny robarte un beso más"
+    }
+  },
+  {
+    "id": 1,
+    "titulo": "La Jaula de Oro",
+    "letra_por_seccion": {
+      "Coro": "De qué me sirve el dinero\nsi estoy como prisionero\ndentro de esta gran nación\ncuando me acuerdo hasta lloro\naunque la jaula sea de oro\nno deja de ser prisión",
+      "Verso 1": "Aquí estoy establecido\nen los Estados Unidos\ndiez años pasaron ya\nen que crucé de mojado\npapeles no he arreglado\nsigo siendo ilegal",
+      "Verso 2": "Mis hijos no hablan conmigo\nse les ha olvidado ya\nel español de sus padres\nen el que yo les hablé\nahora ni la patria tienen\nni modo de regresar"
+    }
+  },
+  {
+    "id": 2,
+    "titulo": "Contrabando y Traición",
+    "letra_por_seccion": {
+      "Coro": "Sonaron siete balazos, Camelia a Emilio mataba\nLa policia sólo halló una pistola tirada\nDel dinero y de Camelia nunca más se supo nada",
+      "Verso 1": "Salieron de San Isidro, procedentes de Tijuana\nTraían las llantas del carro repletas de hierba mala\nEran Emilio Varela y Camelia la Texana\nPasaron por San Clemente, los paró la emigración\nLes pidió sus documentos, les dijo: \"¿De dónde son?\"\nElla era de San Antonio, una hembra de corazón",
+      "Verso 2": "A Los Angeles llegaron, a Hollywood se pasaron\nEn un callejón obscuro, las cuatro llantas cambiaron\nAhí entregaron la hierba y ahí también les pagaron\nEmilio dice a Camelia: \"Hoy te das por despedida\nCon la parte que te toca, tú puedes rehacer tu vida\nYo me voy para San Francisco con la dueña de mi vida\""
+    }
+  },
+  {
+    "id": 5,
+    "titulo": "Volver Volver",
+    "letra_por_seccion": {
+      "Coro": "Volver, volver, volver\na tus brazos otra vez\nllegar hasta donde estás\nquiero volver, volver, volver",
+      "Verso 1": "Este amor apasionado\nanda todo alborotado\npor tu querer\nlos pilares de tu alma\nyo los muevo a mi antojo\ndarling ven",
+      "Verso 2": "Ay ay ay ay\ncómo me duele\nay ay ay ay\nque no me quieras\nay ay ay ay\nvuélveme a querer"
+    }
+  },
+  {
+    "id": 7,
+    "titulo": "Acá Entre Nos",
+    "letra_por_seccion": {
+      "Coro": "Acá entre nos te digo\nQue nunca te olvidé\nQue siempre te he querido\nY siempre te querré",
+      "Intro": "Ranchera lenta con violines, introducción nostálgica",
+      "Outro": "Mariachi en rallentando final",
+      "Verso 1": "Acá entre nos fue muy bonito\nLo que nos dimos tú y yo\nMas el destino caprichoso\nNos fue alejando poco a poco",
+      "Verso 2": "Tú lo que hiciste ya no importa\nYo lo que hice menos aún\nPorque en el fondo de mi alma\nSolo eres tú, solo eres tú"
+    }
+  },
+  {
+    "id": 8,
+    "titulo": "Lástima que Seas Ajena",
+    "letra_por_seccion": {
+      "Coro": "Lástima que seas ajena\nLástima que tengas dueño\nLástima que seas de otro\nY no puedas ser mi sueño",
+      "Intro": "Guitarrón y vihuela abriendo la melodía, bolero ranchero lento",
+      "Outro": "Violines en decrescendo, cierre con mariachi",
+      "Verso 1": "Ya sé que eres ajena\nQue perteneces a otro corazón\nQue tienes dueño y que no eres libre\nPero igual yo te doy mi amor",
+      "Verso 2": "Me torturas con tu sonrisa\nCon ese cuerpo que Dios te dio\nSi supieras lo que me haces\nCuando pasan tus ojos por mí"
+    }
+  },
+  {
+    "id": 9,
+    "titulo": "Amor Eterno",
+    "letra_por_seccion": {
+      "Coro": "Para seguir amándote\nnecesito tenerte aquí\ncerca de mí\ncorazón que siente\nni la distancia ni el tiempo\nni el olvido",
+      "Verso 1": "Cómo quisiera que tú vivieras\nque tus ojitos jamás se cerraran\namor eterno e inolvidable\ntarde o temprano estaré contigo",
+      "Verso 2": "En mis sueños te he vuelto a besar\ncomo en los viejos tiempos\ndesde que te fuiste\nel mundo no es el mismo para mí"
+    }
+  },
+  {
+    "id": 11,
+    "titulo": "El Noa Noa",
+    "letra_por_seccion": {
+      "Coro": "En el Noa Noa Noa\nse baila tropical\nen el Noa Noa Noa\ntodo mundo va a gozar\nmueve los pies\nmueve el cuerpo\naprieta tu pareja\ny no la vas a soltar",
+      "Puente": "Vamos al Noa Noa\nel lugar de moda\nvamos al Noa Noa\na bailar toda la noche",
+      "Verso 1": "Yo quiero que te vengas conmigo\nesta noche vamos los dos\nal Noa Noa donde se baila\nse goza y se olvida el dolor\nen el Noa Noa todo se vale\nentra quien quiera entrar",
+      "Verso 2": "Dicen que en el Noa Noa\nla gente es muy especial\nque viene gente de todo tipo\nchicos grandes sin igual\nlos que lloran sus penas\nlos que van a festejar"
+    }
+  },
+  {
+    "id": 12,
+    "titulo": "De Contrabando",
+    "letra_por_seccion": {
+      "Coro": "De contrabando entré a tu vida\nDe contrabando fui tuya\nDe contrabando me quisiste\nY de contrabando me vas a olvidar",
+      "Intro": "Banda sinaloense con metales y tuba, introducción enérgica",
+      "Outro": "Remate de banda con metales en fortissimo",
+      "Verso 1": "Me metiste de contrabando en tu corazón\nSin pagar los impuestos de tanto amor\nMe pasaste la frontera de tus brazos\nY ahora soy tuya sin ningún control",
+      "Verso 2": "La aduana de tu cuerpo nunca me paró\nMe dejó pasar sin darme ningún papel\nAhora que ya estoy adentro de tu amor\nNadie me puede sacar de aquí otra vez"
+    }
+  },
+  {
+    "id": 13,
+    "titulo": "La Gran Señora",
+    "letra_por_seccion": {
+      "Coro": "Soy la gran señora\nLa mera mera de este lugar\nAhora que te fuiste\nSoy más feliz con mi libertad",
+      "Intro": "Banda sinaloense, intro con clarinete y tuba marcando el ritmo",
+      "Outro": "Banda en crescendo final con remate",
+      "Puente": "Que le digan a él\nQue no me busque más\nQue ya encontré quien me quiera de verdad",
+      "Verso 1": "Qué me pasa estoy contenta\nAunque me duela el corazón\nAl que le duela que le duela\nNo le voy a pedir perdón",
+      "Verso 2": "Me decías que sin ti no era nada\nQue sin tu amor yo no podía vivir\nMira cómo estoy de bien sin ti\nLibre y feliz de que te fuiste al fin"
+    }
+  },
+  {
+    "id": 19,
+    "titulo": "Tu Postura",
+    "letra_por_seccion": {
+      "Coro": "Tu postura me confunde\nMe traes loco de verdad\nNo sé si eres de mi lado\nO si me das vuelta y ya\nTu postura me provoca\nMe lleva la tentación\nDime si me quieres o no\nDime la verdad por favor",
+      "Intro": "Trompetas marcando la melodía principal, banda en pleno",
+      "Outro": "Banda en crescendo con remate final",
+      "Verso 1": "Me tienes muy confundido\nNo sé si me quieres o no\nTu cuerpo dice que sí\nPero tu boca dice que no",
+      "Verso 2": "Cuando estás junto a mí\nSiento que el mundo se para\nPero cuando te vas\nTodo vuelve a su lugar normal",
+      "Pre-Coro": "Y no sé qué hacer\nMe tienes loco de verdad\nEsa mirada tuya\nMe quita la tranquilidad"
+    }
+  },
+  {
+    "id": 22,
+    "titulo": "El Drip",
+    "letra_por_seccion": {
+      "Coro": "El drip no se compra\nEl drip se tiene\nMi flow no se roba\nMi estilo viene\nDe las calles de Sonora\nDonde el truene llega",
+      "Intro": "Sample de bajo oscuro con guitarra racheada, hi-hats de trap",
+      "Outro": "Beat desvaneciendo con guitarra norteña",
+      "Verso 1": "Tengo el drip que te gusta\nY los corridos que escuchas\nPa que anden en la lucha\nCon mi gente que me empuja",
+      "Verso 2": "Me visto con lo fino\nPero nunca me descuido\nSoy norteño de nacido\nY el trap me ha recibido"
+    }
+  },
+  {
+    "id": 28,
+    "titulo": "Yo Ya No Vuelvo Contigo",
+    "letra_por_seccion": {
+      "Coro": "Yo ya no vuelvo contigo\naunque me pidas perdón\nya no quiero más mentiras\nni ese falso corazón\nme cansé de ser el tonto\nme cansé de tanto amor",
+      "Verso 1": "Cuántas veces te perdoné\ntus mentiras y traiciones\ncuántas noches me la pase\nllorando por tus razones\npero hoy me di cuenta\nque ya no eres para mí",
+      "Verso 2": "Pensé que ibas a cambiar\npensé que me ibas a querer\npero tus promesas eran\nnada más que aire nada más\nhoy me alejo para siempre\ncon todo mi dolor"
+    }
+  },
+  {
+    "id": 31,
+    "titulo": "De Los Besos Que Te Di",
+    "letra_por_seccion": {
+      "Coro": "De los besos que te di\nMe arrepiento de haberlos dado\nPorque junto con mis besos\nFue mi corazón entregado\nDe los besos que te di\nHoy quisiera recuperar\nPara dárselos a alguien\nQue me sepa valorar",
+      "Intro": "Trompetas de banda abriendo con el riff principal, melodía memorable",
+      "Outro": "Banda cerrando con todos los metales",
+      "Puente": "Ojalá que en tu camino\nEncuentres lo que yo te di\nPorque lo que yo te entregué\nFue lo más real que hay en mí",
+      "Verso 1": "De los besos que te di\nNinguno fue mentira\nCada uno fue un pedazo\nDe mi alma que salía",
+      "Verso 2": "Pensé que eran eternos\nQue el amor duraría\nPero tú cambiaste el rumbo\nY hoy solo el recuerdo queda"
+    }
+  },
+  {
+    "id": 34,
+    "titulo": "Falso",
+    "letra_por_seccion": {
+      "Coro": "Falso falso fue tu amor\nFalso como tú misma eres\nFalso todo lo que dijiste\nFalso hasta el decir que me quieres\nEres falsa\nEres completamente falsa",
+      "Intro": "Bajo eléctrico y teclados gruperos, balada lenta con feelinge ochentero",
+      "Outro": "Guitarra sola, cierre triste y reflexivo",
+      "Puente": "Y lo peor de todo es que\nAún te sigo recordando\nQue aunque sé que eres falsa\nAún te sigo extrañando",
+      "Verso 1": "Creí en tus palabras como un tonto\nCreí que tu amor era verdad\nPero todo lo que me prometiste\nResultó ser una gran falsedad",
+      "Verso 2": "Cuántas noches me engañaste\nCuántas tardes de mentira\nCuántas veces te creí\nCuando todo era una trampa"
+    }
+  },
+  {
+    "id": 42,
+    "titulo": "Despreciado",
+    "letra_por_seccion": {
+      "Coro": "Despreciado por el dinero\nDespreciado por la apariencia\nPero soy hombre de verdad\nY me quedo con mi conciencia\nDespreciado pero digno\nDespreciado pero bueno\nQue me juzguen si quieren\nYo sigo siendo el mismo",
+      "Intro": "Acordeón norteño y tololoche, estilo corrido ranchero de Lupillo",
+      "Outro": "Acordeón cerrando con resolución en D",
+      "Verso 1": "Me desprecian por ser pobre\nPor no tener un buen carro\nPor mis botas y mi sombrero\nY mis jeans que ya están gastados\nPero soy honrado y trabajador\nY eso vale más que cualquier valor",
+      "Verso 2": "Llegará el día en que entiendan\nQue el dinero no lo es todo\nQue el corazón vale más\nQue cualquier capricho o modo"
+    }
+  },
+  {
+    "id": 63,
+    "titulo": "Me Caíste del Cielo",
+    "letra_por_seccion": {
+      "Coro": "Me caíste del cielo\ncomo ángel que Dios mandó\npara alegrar mi existencia\ny llenar mi corazón\nme caíste del cielo\ny ya no quiero que te vayas",
+      "Verso 1": "Cuando menos lo esperaba\nde repente apareciste\ny mi vida que era triste\nde alegría la llenaste\nme caíste como del cielo\ncuando más te necesitaba",
+      "Verso 2": "Tus ojos son como luceros\ntu sonrisa es el amanecer\ncon tu amor soy el más rico\ncon tu amor me siento bien\nme caíste del cielo\nquédate junto a mí también"
+    }
+  }
+]

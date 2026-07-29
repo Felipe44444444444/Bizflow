@@ -149,6 +149,7 @@ export default function Cancion() {
   const [acordeActivo, setAcordeActivo] = useState(0);
   const [lineaActiva, setLineaActiva]   = useState(0);
   const [compasManual, setCompasManual] = useState(0);
+  const [offset, setOffset]             = useState(0);
   const timerRef                        = useRef(null);
   const manualTimerRef                  = useRef(null);
   const acordesListRef                  = useRef(null);
@@ -208,22 +209,25 @@ export default function Cancion() {
     return () => clearInterval(timerRef.current);
   }, [player, modo]);
 
-  // Timer manual modo tocada
+  // Timer manual modo tocada — avanza en pasos de un beat, al ritmo del BPM
   const toggleManualPlay = useCallback(() => {
     if (isPlaying) {
       clearInterval(manualTimerRef.current);
       setIsPlaying(false);
     } else {
       setIsPlaying(true);
+      const bpm = cancion?.bpm || 120;
+      const segundosPorBeat = 60 / bpm;
       manualTimerRef.current = setInterval(() => {
-        setManualTime(t => t + 0.5);
-      }, 300);
+        setManualTime(t => t + segundosPorBeat);
+      }, segundosPorBeat * 1000);
     }
-  }, [isPlaying]);
+  }, [isPlaying, cancion?.bpm]);
 
   useEffect(() => () => clearInterval(manualTimerRef.current), []);
 
   const tiempoActual = modo === 'video' ? currentTime : manualTime;
+  const tiempoAjustado = tiempoActual + offset;
 
   // Build líneas de letra
   const letraLineas = cancion
@@ -248,7 +252,7 @@ export default function Cancion() {
     if (!acordesTranspuestos.length) return;
     let idx = 0;
     for (let i = 0; i < acordesTranspuestos.length; i++) {
-      if (tiempoActual >= acordesTranspuestos[i].tiempo_segundos) idx = i;
+      if (tiempoAjustado >= acordesTranspuestos[i].tiempo_segundos) idx = i;
       else break;
     }
     setAcordeActivo(prev => {
@@ -259,14 +263,14 @@ export default function Cancion() {
       }
       return idx;
     });
-  }, [tiempoActual, acordesTranspuestos.length]);
+  }, [tiempoAjustado, acordesTranspuestos.length]);
 
   // Sync línea activa
   useEffect(() => {
     if (!letraConAcordes.length) return;
     let idx = 0;
     for (let i = 0; i < letraConAcordes.length; i++) {
-      if (letraConAcordes[i].tipo === 'linea' && tiempoActual >= letraConAcordes[i].tiempo) idx = i;
+      if (letraConAcordes[i].tipo === 'linea' && tiempoAjustado >= letraConAcordes[i].tiempo) idx = i;
     }
     setLineaActiva(prev => {
       if (prev !== idx) {
@@ -276,14 +280,18 @@ export default function Cancion() {
       }
       return idx;
     });
-  }, [tiempoActual, letraConAcordes.length]);
+  }, [tiempoAjustado, letraConAcordes.length]);
 
+  // Al saltar a un punto (click en línea/acorde), se compensa el offset para
+  // que el tiempo real de reproducción, una vez sumado el offset, vuelva a
+  // coincidir con el punto elegido.
   const seekTo = (t) => {
+    const tReal = t - offset;
     if (modo === 'video') {
-      player?.seekTo(t, true);
-      setCurrentTime(t);
+      player?.seekTo(tReal, true);
+      setCurrentTime(tReal);
     } else {
-      setManualTime(t);
+      setManualTime(tReal);
     }
   };
 
@@ -505,6 +513,29 @@ export default function Cancion() {
                   </span>
                 )}
               </div>
+              {usaLRC && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.5rem 0 1rem',
+                }}>
+                  <span>Sincronizar letra:</span>
+                  <button onClick={() => setOffset(o => Math.round((o - 0.5) * 10) / 10)}
+                    className="transpose-btn">-0.5s</button>
+                  <span style={{
+                    minWidth: '50px', textAlign: 'center',
+                    color: offset !== 0 ? 'var(--accent)' : 'var(--text-muted)',
+                    fontWeight: 700,
+                  }}>
+                    {offset > 0 ? `+${offset}s` : offset === 0 ? '0s' : `${offset}s`}
+                  </span>
+                  <button onClick={() => setOffset(o => Math.round((o + 0.5) * 10) / 10)}
+                    className="transpose-btn">+0.5s</button>
+                  <button onClick={() => setOffset(0)} style={{
+                    background: 'none', border: 'none',
+                    color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.75rem',
+                  }}>Reset</button>
+                </div>
+              )}
               {letraConAcordes.map((linea, i) =>
                 linea.tipo === 'seccion' ? (
                   <div key={i} className="letra-seccion-titulo">{linea.texto}</div>

@@ -352,11 +352,20 @@ body {
   .cancion-layout { grid-template-columns: 1fr; }
   .song-list-header, .song-list-item { grid-template-columns: 40px 1fr 80px 36px; }
   .song-list-genre { display: none; }
+  /* El panel de acordes deja de estar sticky una vez que el layout se
+     apila a una sola columna — si no, queda fijo cubriendo el resto
+     de la pagina al hacer scroll en mobile. */
+  .acordes-panel { position: static; max-height: none; }
 }
 @media (max-width: 600px) {
-  .topbar { padding: 0.75rem 1rem; }
+  .topbar { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
   .search-bar { width: 100%; }
   .section { padding: 1rem; }
+  /* Objetivos táctiles más grandes para transpose/velocidad/metrónomo */
+  .transpose-btn { width: 34px; height: 34px; font-size: 1.05rem; }
+  .speed-btn { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+  .bpm-adjust-btn { width: 40px; height: 40px; }
+  .toggle-btn { padding: 0.6rem 1rem; }
 }
 
 /* ── MODO TOCADA + METRÓNOMO + ACORDES INLINE ── */

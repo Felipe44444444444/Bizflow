@@ -36,8 +36,10 @@ export async function middleware(request: NextRequest) {
     || pathname.startsWith("/auth/")
     || pathname.startsWith("/install/");
   const isRoot = pathname === "/";
+  // Music app API is public — its own users don't hold a dashboard session.
+  const isPublicApi = pathname.startsWith("/api/canciones");
 
-  if (!user && !isPublicAuthPage) {
+  if (!user && !isPublicAuthPage && !isPublicApi) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

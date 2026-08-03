@@ -575,20 +575,35 @@ export default function Cancion() {
           </div>
 
           <div className="acordes-list" ref={acordesListRef}>
-            {acordesTranspuestos.map((a, i) => (
-              <div key={i} data-idx={i}
-                className={`acorde-item ${i === acordeActivo ? 'active' : ''}`}
-                onClick={() => seekTo(a.tiempo_segundos)}>
-                <DiagramaAcorde chord={a.acorde} size={0.5} label={false} />
-                <div className="acorde-info">
-                  <div className="acorde-nombre" style={{ color: i === acordeActivo ? 'var(--accent)' : '' }}>
-                    {a.acorde}
+            {acordesTranspuestos.map((a, i) =>
+              a.tipo === 'requinto' && a.tabs ? (
+                <div key={i} data-idx={i} onClick={() => seekTo(a.tiempo_segundos)} style={{
+                  background: 'rgba(255,176,32,0.08)', border: '1px solid rgba(255,176,32,0.2)',
+                  borderRadius: 12, padding: '12px 16px', margin: '8px', fontFamily: 'monospace',
+                  cursor: 'pointer',
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#FFB020', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    🎸 {a.notas || 'Requinto'}
                   </div>
-                  <div className="acorde-compas">Compás {a.compas} · {a.tipo}</div>
+                  <pre style={{ fontSize: 12, lineHeight: 1.6, color: '#ccc', margin: 0, overflow: 'auto', whiteSpace: 'pre' }}>
+{a.tabs.e && `e|${a.tabs.e}\n`}{a.tabs.B && `B|${a.tabs.B}\n`}{a.tabs.G && `G|${a.tabs.G}\n`}{a.tabs.D && `D|${a.tabs.D}\n`}{a.tabs.A && `A|${a.tabs.A}\n`}{a.tabs.E && `E|${a.tabs.E}`}
+                  </pre>
                 </div>
-                <div className="acorde-tiempo">{formatTime(a.tiempo_segundos)}</div>
-              </div>
-            ))}
+              ) : (
+                <div key={i} data-idx={i}
+                  className={`acorde-item ${i === acordeActivo ? 'active' : ''}`}
+                  onClick={() => seekTo(a.tiempo_segundos)}>
+                  <DiagramaAcorde chord={a.acorde} size={0.5} label={false} />
+                  <div className="acorde-info">
+                    <div className="acorde-nombre" style={{ color: i === acordeActivo ? 'var(--accent)' : '' }}>
+                      {a.acorde}
+                    </div>
+                    <div className="acorde-compas">Compás {a.compas} · {a.tipo}</div>
+                  </div>
+                  <div className="acorde-tiempo">{formatTime(a.tiempo_segundos)}</div>
+                </div>
+              )
+            )}
           </div>
         </div>
       </div>

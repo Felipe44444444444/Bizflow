@@ -82,6 +82,45 @@ router.post('/musica/checkout', async (req, res) => {
   }
 });
 
+// POST /api/billing/musica/transpose — registra un uso de transpose, aplica límite diario (free: 3/día)
+// Usuarios anónimos (sin token) no se limitan: no hay user_id contra el cual llevar el conteo.
+router.post('/musica/transpose', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.json({ allowed: true });
+
+  const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+  if (!user) return res.json({ allowed: true });
+
+  const { data: sub } = await supabaseAdmin
+    .from('suscripciones')
+    .select('plan_id, status')
+    .eq('user_id', user.id)
+    .single();
+
+  if (sub?.plan_id === 'pro' && sub.status === 'active') {
+    return res.json({ allowed: true, unlimited: true });
+  }
+
+  const LIMITE = 3;
+  const hoy = new Date().toISOString().split('T')[0];
+  const { data: uso } = await supabaseAdmin
+    .from('uso_diario')
+    .select('transposiciones_hoy')
+    .eq('user_id', user.id)
+    .eq('fecha', hoy)
+    .single();
+
+  const usado = uso?.transposiciones_hoy || 0;
+  if (usado >= LIMITE) return res.json({ allowed: false, usado, limite: LIMITE });
+
+  await supabaseAdmin.from('uso_diario').upsert(
+    { user_id: user.id, fecha: hoy, transposiciones_hoy: usado + 1 },
+    { onConflict: 'user_id,fecha' }
+  );
+
+  res.json({ allowed: true, usado: usado + 1, limite: LIMITE });
+});
+
 // ── Stripe webhook — handles both Bizflow (org) and Música (user) events
 router.post('/webhook', webhookLimiter, async (req, res) => {
   const signature = req.headers['stripe-signature'];
